@@ -151,6 +151,8 @@ macro_rules! assert_type_of {
 pub use crate::bindgen_runtime::ctor as module_init;
 
 pub mod bindgen_prelude {
+  use std::{ffi::CString, ptr};
+
   #[cfg(all(feature = "compat-mode", not(feature = "noop")))]
   pub use crate::bindgen_runtime::register_module_exports;
   #[cfg(feature = "tokio_rt")]
@@ -169,6 +171,23 @@ pub mod bindgen_prelude {
   #[cfg(not(all(feature = "tokio_rt", feature = "napi4")))]
   pub fn within_runtime_if_available<F: FnOnce() -> T, T>(f: F) -> T {
     f()
+  }
+
+  /// node support symbol napi_register_module_v1,but harmony not support.So we must call it.
+  pub fn pre_init() {
+    let name = CString::new("entry").unwrap();
+    let mut modules = sys::napi_module {
+      nm_version: 1,
+      nm_filename: ptr::null_mut(),
+      nm_flags: 0,
+      nm_modname: name.as_ptr().cast(),
+      nm_priv: ptr::null_mut() as *mut _,
+      nm_register_func: Some(napi_register_module_v1),
+      reserved: [ptr::null_mut() as *mut _; 4],
+    };
+    unsafe {
+      sys::napi_module_register(&mut modules);
+    }
   }
 }
 

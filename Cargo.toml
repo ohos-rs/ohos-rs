@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members  = ["./crates/backend", "./crates/build", "./crates/macro", "./crates/napi", "./crates/sys", "./examples/hello"]
+
+[profile.release]
+lto = true
+
+[profile.napi-rs-custom]
+inherits      = "dev"
+codegen-units = 1024

@@ -1,7 +1,0 @@
-[package]
-edition = "2021"
-name = "napi-examples-binary"
-publish = false
-version = "0.1.0"
-
-[dependencies]

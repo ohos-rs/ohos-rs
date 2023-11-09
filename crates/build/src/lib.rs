@@ -1,5 +1,6 @@
 mod android;
 mod macos;
+mod ohos;
 mod wasi;
 
 pub fn setup() {
@@ -13,6 +14,13 @@ pub fn setup() {
     Ok("android") => if android::setup().is_ok() {},
     Ok("wasi") => {
       wasi::setup();
+    }
+    _ => {}
+  }
+
+  match std::env::var("CARGO_CFG_TARGET_ENV").as_deref() {
+    Ok("ohos") => {
+      ohos::setup();
     }
     _ => {}
   }

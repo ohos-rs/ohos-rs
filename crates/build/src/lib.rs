@@ -18,10 +18,7 @@ pub fn setup() {
     _ => {}
   }
 
-  match std::env::var("CARGO_CFG_TARGET_ENV").as_deref() {
-    Ok("ohos") => {
-      ohos::setup();
-    }
-    _ => {}
+  if let Ok("ohos") = std::env::var("CARGO_CFG_TARGET_ENV").as_deref() {
+    ohos::setup();
   }
 }

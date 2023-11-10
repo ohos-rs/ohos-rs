@@ -91,7 +91,7 @@ pub mod ValueType {
   pub const napi_object: i32 = 6;
   pub const napi_function: i32 = 7;
   pub const napi_external: i32 = 8;
-  #[cfg(feature = "napi6")]
+  #[cfg(any(feature = "ohos",feature = "napi6"))]
   pub const napi_bigint: i32 = 9;
 }
 
@@ -107,9 +107,9 @@ pub mod TypedarrayType {
   pub const uint32_array: i32 = 6;
   pub const float32_array: i32 = 7;
   pub const float64_array: i32 = 8;
-  #[cfg(feature = "napi6")]
+  #[cfg(any(feature = "napi6",feature = "ohos"))]
   pub const bigint64_array: i32 = 9;
-  #[cfg(feature = "napi6")]
+  #[cfg(any(feature = "napi6",feature = "ohos"))]
   pub const biguint64_array: i32 = 10;
 }
 
@@ -234,30 +234,30 @@ pub struct napi_async_work__ {
 }
 pub type napi_async_work = *mut napi_async_work__;
 
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4",feature = "ohos"))]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct napi_threadsafe_function__ {
   _unused: [u8; 0],
 }
 
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4",feature = "ohos"))]
 pub type napi_threadsafe_function = *mut napi_threadsafe_function__;
 
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4",feature = "ohos"))]
 pub type napi_threadsafe_function_release_mode = i32;
 
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4",feature = "ohos"))]
 pub mod ThreadsafeFunctionReleaseMode {
   use super::napi_threadsafe_function_release_mode;
   pub const release: napi_threadsafe_function_release_mode = 0;
   pub const abort: napi_threadsafe_function_release_mode = 1;
 }
 
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4",feature = "ohos"))]
 pub type napi_threadsafe_function_call_mode = i32;
 
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4",feature = "ohos"))]
 pub mod ThreadsafeFunctionCallMode {
   use super::napi_threadsafe_function_call_mode;
 
@@ -270,7 +270,7 @@ pub type napi_async_execute_callback =
 pub type napi_async_complete_callback =
   Option<unsafe extern "C" fn(env: napi_env, status: napi_status, data: *mut c_void)>;
 
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4",feature = "ohos"))]
 pub type napi_threadsafe_function_call_js = Option<
   unsafe extern "C" fn(
     env: napi_env,

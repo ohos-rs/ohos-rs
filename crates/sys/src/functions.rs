@@ -780,6 +780,103 @@ pub use napi8::*;
 #[cfg(feature = "napi9")]
 pub use napi9::*;
 
+#[cfg(feature = "ohos")]
+mod ohos {
+  use super::super::types::*;
+  use std::os::raw::c_void;
+
+
+  generate!(
+    extern "C" {
+      fn napi_get_uv_event_loop(env: napi_env, loop_: *mut *mut uv_loop_s) -> napi_status;
+            fn napi_create_threadsafe_function(
+        env: napi_env,
+        func: napi_value,
+        async_resource: napi_value,
+        async_resource_name: napi_value,
+        max_queue_size: usize,
+        initial_thread_count: usize,
+        thread_finalize_data: *mut c_void,
+        thread_finalize_cb: napi_finalize,
+        context: *mut c_void,
+        call_js_cb: napi_threadsafe_function_call_js,
+        result: *mut napi_threadsafe_function,
+      ) -> napi_status;
+      fn napi_get_threadsafe_function_context(
+        func: napi_threadsafe_function,
+        result: *mut *mut c_void,
+      ) -> napi_status;
+      fn napi_call_threadsafe_function(
+        func: napi_threadsafe_function,
+        data: *mut c_void,
+        is_blocking: napi_threadsafe_function_call_mode,
+      ) -> napi_status;
+      fn napi_acquire_threadsafe_function(func: napi_threadsafe_function) -> napi_status;
+      fn napi_release_threadsafe_function(
+        func: napi_threadsafe_function,
+        mode: napi_threadsafe_function_release_mode,
+      ) -> napi_status;
+      fn napi_unref_threadsafe_function(
+        env: napi_env,
+        func: napi_threadsafe_function,
+      ) -> napi_status;
+      fn napi_ref_threadsafe_function(env: napi_env, func: napi_threadsafe_function)
+        -> napi_status;
+            fn napi_create_date(env: napi_env, time: f64, result: *mut napi_value) -> napi_status;
+      fn napi_is_date(env: napi_env, value: napi_value, is_date: *mut bool) -> napi_status;
+      fn napi_get_date_value(env: napi_env, value: napi_value, result: *mut f64) -> napi_status;
+            fn napi_create_bigint_int64(
+        env: napi_env,
+        value: i64,
+        result: *mut napi_value,
+      ) -> napi_status;
+      fn napi_create_bigint_uint64(
+        env: napi_env,
+        value: u64,
+        result: *mut napi_value,
+      ) -> napi_status;
+      fn napi_create_bigint_words(
+        env: napi_env,
+        sign_bit: c_int,
+        word_count: usize,
+        words: *const u64,
+        result: *mut napi_value,
+      ) -> napi_status;
+      fn napi_get_value_bigint_int64(
+        env: napi_env,
+        value: napi_value,
+        result: *mut i64,
+        lossless: *mut bool,
+      ) -> napi_status;
+      fn napi_get_value_bigint_uint64(
+        env: napi_env,
+        value: napi_value,
+        result: *mut u64,
+        lossless: *mut bool,
+      ) -> napi_status;
+      fn napi_get_value_bigint_words(
+        env: napi_env,
+        value: napi_value,
+        sign_bit: *mut c_int,
+        word_count: *mut usize,
+        words: *mut u64,
+      ) -> napi_status;
+            fn napi_detach_arraybuffer(env: napi_env, arraybuffer: napi_value) -> napi_status;
+      fn napi_is_detached_arraybuffer(
+        env: napi_env,
+        value: napi_value,
+        result: *mut bool,
+      ) -> napi_status;
+            fn napi_object_freeze(env: napi_env, object: napi_value) -> napi_status;
+
+      fn napi_object_seal(env: napi_env, object: napi_value) -> napi_status;
+    }
+  );
+}
+
+#[cfg(feature = "ohos")]
+pub use ohos::*;
+
 #[cfg(windows)]
 pub(super) unsafe fn load_all() -> Result<libloading::Library, libloading::Error> {
   let host = match libloading::os::windows::Library::this() {

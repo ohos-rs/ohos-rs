@@ -1,15 +1,15 @@
 [package]
-authors = ["LongYinan <lynweklm@gmail.com>"]
-description = "NodeJS N-API raw binding"
+authors = ["southorange0929 <southornage0929@foxmail.com>","LongYinan <lynweklm@gmail.com>"]
+description = "Harmony N-API raw binding"
 edition = "2021"
 include = ["src/**/*", "Cargo.toml"]
-keywords = ["NodeJS", "FFI", "NAPI", "n-api"]
+keywords = ["NodeJS", "FFI", "NAPI", "n-api","HarmonyOS"]
 license = "MIT"
-name = "napi-sys"
+name = "napi-sys-ohos"
 readme = "README.md"
-repository = "https://github.com/napi-rs/napi-rs"
+repository = "https://github.com/southorange0929/napi-rs"
 rust-version = "1.65"
-version = "2.3.0"
+version = "0.0.1"
 
 [features]
 experimental = []
@@ -22,6 +22,7 @@ napi6 = ["napi5"]
 napi7 = ["napi6"]
 napi8 = ["napi7"]
 napi9 = ["napi8"]
+ohos= ["napi1"]
 
 [package.metadata.workspaces]
 independent = true

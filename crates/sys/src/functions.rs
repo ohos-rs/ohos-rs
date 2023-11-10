@@ -785,11 +785,10 @@ mod ohos {
   use super::super::types::*;
   use std::os::raw::c_void;
 
-
   generate!(
     extern "C" {
       fn napi_get_uv_event_loop(env: napi_env, loop_: *mut *mut uv_loop_s) -> napi_status;
-            fn napi_create_threadsafe_function(
+      fn napi_create_threadsafe_function(
         env: napi_env,
         func: napi_value,
         async_resource: napi_value,
@@ -822,10 +821,10 @@ mod ohos {
       ) -> napi_status;
       fn napi_ref_threadsafe_function(env: napi_env, func: napi_threadsafe_function)
         -> napi_status;
-            fn napi_create_date(env: napi_env, time: f64, result: *mut napi_value) -> napi_status;
+      fn napi_create_date(env: napi_env, time: f64, result: *mut napi_value) -> napi_status;
       fn napi_is_date(env: napi_env, value: napi_value, is_date: *mut bool) -> napi_status;
       fn napi_get_date_value(env: napi_env, value: napi_value, result: *mut f64) -> napi_status;
-            fn napi_create_bigint_int64(
+      fn napi_create_bigint_int64(
         env: napi_env,
         value: i64,
         result: *mut napi_value,
@@ -861,14 +860,13 @@ mod ohos {
         word_count: *mut usize,
         words: *mut u64,
       ) -> napi_status;
-            fn napi_detach_arraybuffer(env: napi_env, arraybuffer: napi_value) -> napi_status;
+      fn napi_detach_arraybuffer(env: napi_env, arraybuffer: napi_value) -> napi_status;
       fn napi_is_detached_arraybuffer(
         env: napi_env,
         value: napi_value,
         result: *mut bool,
       ) -> napi_status;
-            fn napi_object_freeze(env: napi_env, object: napi_value) -> napi_status;
-
+      fn napi_object_freeze(env: napi_env, object: napi_value) -> napi_status;
       fn napi_object_seal(env: napi_env, object: napi_value) -> napi_status;
     }
   );

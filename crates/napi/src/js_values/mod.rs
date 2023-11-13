@@ -1,5 +1,5 @@
 use std::convert::TryFrom;
-#[cfg(feature = "napi5")]
+#[cfg(any(feature = "napi5",feature = "ohos"))]
 use std::ffi::c_void;
 use std::ffi::CString;
 use std::ptr;
@@ -15,11 +15,11 @@ mod de;
 mod ser;
 
 mod arraybuffer;
-#[cfg(feature = "napi6")]
+#[cfg(any(feature = "napi6",feature = "ohos"))]
 mod bigint;
 mod boolean;
 mod buffer;
-#[cfg(feature = "napi5")]
+#[cfg(feature = "ohos",feature = "napi5")]
 mod date;
 #[cfg(feature = "napi4")]
 mod deferred;

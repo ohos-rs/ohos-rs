@@ -1,7 +1,6 @@
-use napi::bindgen_prelude::{Buffer,pre_init};
+use napi::bindgen_prelude::{pre_init, Buffer};
 use napi::module_init;
 use napi_derive::napi;
-
 
 #[napi]
 pub fn get_info_with_buffer() -> Buffer {
@@ -11,7 +10,7 @@ pub fn get_info_with_buffer() -> Buffer {
 
 #[napi]
 pub fn get_number() -> Buffer {
-    vec![1,2,3].into()
+  vec![1, 2, 3].into()
 }
 
 #[napi]

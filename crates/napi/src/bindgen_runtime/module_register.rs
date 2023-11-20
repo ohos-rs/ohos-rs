@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ffi::CStr;
 use std::ptr;
-#[cfg(any(all(feature = "napi4", not(target_os = "wasi")),all(feature = "ohos", not(target_os = "wasi"))))]
+#[cfg(any(
+  all(feature = "napi4", not(target_os = "wasi")),
+  all(feature = "ohos", not(target_os = "wasi"))
+))]
 use std::sync::atomic::AtomicPtr;
 #[cfg(all(
   not(any(target_os = "macos", target_os = "wasi")),
@@ -77,9 +80,15 @@ static FN_REGISTER_MAP: Lazy<FnRegisterMap> = Lazy::new(Default::default);
 #[cfg(all(feature = "napi4", not(target_os = "wasi")))]
 pub(crate) static CUSTOM_GC_TSFN: AtomicPtr<sys::napi_threadsafe_function__> =
   AtomicPtr::new(ptr::null_mut());
-#[cfg(any(all(feature = "napi4", not(target_os = "wasi")),all(feature = "ohos", not(target_os = "wasi"))))]
+#[cfg(any(
+  all(feature = "napi4", not(target_os = "wasi")),
+  all(feature = "ohos", not(target_os = "wasi"))
+))]
 pub(crate) static CUSTOM_GC_TSFN_DESTROYED: AtomicBool = AtomicBool::new(false);
-#[cfg(any(all(feature = "napi4", not(target_os = "wasi")),all(feature = "ohos", not(target_os = "wasi"))))]
+#[cfg(any(
+  all(feature = "napi4", not(target_os = "wasi")),
+  all(feature = "ohos", not(target_os = "wasi"))
+))]
 // Store thread id of the thread that created the CustomGC ThreadsafeFunction.
 pub(crate) static THREADS_CAN_ACCESS_ENV: once_cell::sync::Lazy<
   PersistedPerInstanceHashMap<ThreadId, bool>,

@@ -192,7 +192,9 @@ fn replace_napi_attr_in_mod(
 #[cfg(feature = "type-def")]
 fn prepare_type_def_file() {
   if let Ok(ref type_def_file) = env::var("TYPE_DEF_TMP_PATH") {
-    use napi_derive_backend_ohos::{NAPI_RS_CLI_VERSION, NAPI_RS_CLI_VERSION_WITH_SHARED_CRATES_FIX};
+    use napi_derive_backend_ohos::{
+      NAPI_RS_CLI_VERSION, NAPI_RS_CLI_VERSION_WITH_SHARED_CRATES_FIX,
+    };
     if let Err(_e) = if *NAPI_RS_CLI_VERSION >= *NAPI_RS_CLI_VERSION_WITH_SHARED_CRATES_FIX {
       remove_existed_type_def(type_def_file)
     } else {

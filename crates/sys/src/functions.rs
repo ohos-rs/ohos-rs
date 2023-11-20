@@ -783,7 +783,7 @@ pub use napi9::*;
 #[cfg(feature = "ohos")]
 mod ohos {
   use super::super::types::*;
-  use std::os::raw::c_void;
+  use std::os::raw::{c_void,c_int};
 
   generate!(
     extern "C" {

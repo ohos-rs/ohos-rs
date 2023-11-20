@@ -1,7 +1,7 @@
 use std::ptr;
 
 use super::Value;
-#[cfg(any(feature = "napi4",feature = "ohos"))]
+#[cfg(any(feature = "napi4", feature = "ohos"))]
 use crate::{
   bindgen_runtime::ToNapiValue,
   threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunction},
@@ -137,7 +137,7 @@ impl JsFunction {
     Ok(name_value.into_utf8()?.as_str()?.to_owned())
   }
 
-  #[cfg(any(feature = "napi4",feature = "ohos"))]
+  #[cfg(any(feature = "napi4", feature = "ohos"))]
   pub fn create_threadsafe_function<T, V, F, ES>(
     &self,
     max_queue_size: usize,

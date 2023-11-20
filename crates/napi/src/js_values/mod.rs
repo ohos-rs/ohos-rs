@@ -19,7 +19,7 @@ mod arraybuffer;
 mod bigint;
 mod boolean;
 mod buffer;
-#[cfg(feature = "ohos", feature = "napi5")]
+#[cfg(any(feature = "ohos", feature = "napi5"))]
 mod date;
 #[cfg(feature = "napi4")]
 mod deferred;

@@ -7,7 +7,7 @@ init:
     cargo binstall typos-cli taplo-cli -y
 
 ready:
-    git diff --exit-code --quiet
+    #git diff --exit-code --quiet
     typos
     cargo fmt
     just check

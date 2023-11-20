@@ -394,7 +394,7 @@ macro_rules! impl_typed_array {
                 &mut arraybuffer_value,
               )
             };
-            if status == napi_sys::Status::napi_no_external_buffers_allowed {
+            if status == napi_sys_ohos::Status::napi_no_external_buffers_allowed {
               let hint = unsafe { Box::from_raw(hint_ptr) };
               let mut underlying_data = ptr::null_mut();
               let status = unsafe {

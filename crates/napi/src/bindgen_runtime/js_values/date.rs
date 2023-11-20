@@ -48,12 +48,7 @@ impl FromNapiValue for NaiveDateTime {
     let mut to_iso_string = ptr::null_mut();
     check_status!(
       unsafe {
-        napi_sys::napi_create_string_utf8(
-          env,
-          "toISOString\0".as_ptr().cast(),
-          11,
-          &mut to_iso_string,
-        )
+        sys::napi_create_string_utf8(env, "toISOString\0".as_ptr().cast(), 11, &mut to_iso_string)
       },
       "create toISOString JavaScript string failed"
     )?;

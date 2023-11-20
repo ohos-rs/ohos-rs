@@ -1,6 +1,6 @@
-use napi::bindgen_prelude::{pre_init, Buffer};
-use napi::module_init;
-use napi_derive::napi;
+use napi_derive_ohos::napi;
+use napi_ohos::bindgen_prelude::{pre_init, Buffer};
+use napi_ohos::module_init;
 
 #[napi]
 pub fn get_info_with_buffer() -> Buffer {

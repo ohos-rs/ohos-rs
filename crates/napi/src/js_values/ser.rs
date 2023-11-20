@@ -1,5 +1,5 @@
 use std::result::Result as StdResult;
-#[cfg(feature = "napi6")]
+#[cfg(any(feature = "napi6", feature = "ohos"))]
 use std::slice;
 
 use serde::{ser, Serialize, Serializer};

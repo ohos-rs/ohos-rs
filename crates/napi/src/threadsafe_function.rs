@@ -704,8 +704,17 @@ unsafe extern "C" fn call_js_cb<T: 'static, V: ToNapiValue, R, ES>(
           )
         },
         Err(e) => match ES::VALUE {
+          // TODO: harmony not support napi_fatal_exception
           ErrorStrategy::Fatal::VALUE => unsafe {
-            sys::napi_fatal_exception(raw_env, JsError::from(e).into_value(raw_env))
+            // sys::napi_fatal_exception(raw_env, JsError::from(e).into_value(raw_env))
+            sys::napi_call_function(
+              raw_env,
+              recv,
+              js_callback,
+              1,
+              [JsError::from(e).into_value(raw_env)].as_mut_ptr(),
+              &mut return_value,
+            )
           },
           ErrorStrategy::CalleeHandled::VALUE => unsafe {
             sys::napi_call_function(
@@ -758,8 +767,16 @@ unsafe extern "C" fn call_js_cb<T: 'static, V: ToNapiValue, R, ES>(
       }
       status
     }
+    // TODO
     Err(e) if ES::VALUE == ErrorStrategy::Fatal::VALUE => unsafe {
-      sys::napi_fatal_exception(raw_env, JsError::from(e).into_value(raw_env))
+      sys::napi_call_function(
+        raw_env,
+        recv,
+        js_callback,
+        1,
+        [JsError::from(e).into_value(raw_env)].as_mut_ptr(),
+        ptr::null_mut(),
+      )
     },
     Err(e) => unsafe {
       sys::napi_call_function(
@@ -783,8 +800,9 @@ unsafe extern "C" fn call_js_cb<T: 'static, V: ToNapiValue, R, ES>(
     );
 
     // When shutting down, napi_fatal_exception sometimes returns another exception
-    let stat = unsafe { sys::napi_fatal_exception(raw_env, error_result) };
-    assert!(stat == sys::Status::napi_ok || stat == sys::Status::napi_pending_exception);
+    // TODO
+    // let stat = unsafe { sys::napi_fatal_exception(raw_env, error_result) };
+    // assert!(stat == sys::Status::napi_ok || stat == sys::Status::napi_pending_exception);
   } else {
     let error_code: Status = status.into();
     let error_code_string = format!("{:?}", error_code);
@@ -820,10 +838,11 @@ unsafe extern "C" fn call_js_cb<T: 'static, V: ToNapiValue, R, ES>(
       },
       sys::Status::napi_ok,
     );
-    assert_eq!(
-      unsafe { sys::napi_fatal_exception(raw_env, error_value) },
-      sys::Status::napi_ok
-    );
+    // TODO
+    // assert_eq!(
+    //   unsafe { sys::napi_fatal_exception(raw_env, error_value) },
+    //   sys::Status::napi_ok
+    // );
   }
 }
 

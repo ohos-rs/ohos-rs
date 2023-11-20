@@ -260,7 +260,7 @@ impl ToNapiValue for Buffer {
             &mut ret,
           )
         };
-        if status == napi_sys::Status::napi_no_external_buffers_allowed {
+        if status == napi_sys_ohos::Status::napi_no_external_buffers_allowed {
           let value = unsafe { Box::from_raw(val_box_ptr) };
           status = unsafe {
             sys::napi_create_buffer_copy(

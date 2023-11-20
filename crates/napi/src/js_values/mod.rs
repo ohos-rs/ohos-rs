@@ -21,7 +21,7 @@ mod boolean;
 mod buffer;
 #[cfg(any(feature = "ohos", feature = "napi5"))]
 mod date;
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4", feature = "ohos"))]
 mod deferred;
 mod either;
 mod escapable_handle_scope;
@@ -37,15 +37,15 @@ mod value;
 mod value_ref;
 
 pub use arraybuffer::*;
-#[cfg(feature = "napi6")]
+#[cfg(any(feature = "napi6", feature = "ohos"))]
 pub use bigint::JsBigInt;
 pub use boolean::JsBoolean;
 pub use buffer::*;
-#[cfg(feature = "napi5")]
+#[cfg(any(feature = "napi5", feature = "ohos"))]
 pub use date::*;
 #[cfg(feature = "serde-json")]
 pub(crate) use de::De;
-#[cfg(feature = "napi4")]
+#[cfg(any(feature = "napi4", feature = "ohos"))]
 pub use deferred::*;
 pub use either::Either;
 pub use escapable_handle_scope::EscapableHandleScope;
@@ -650,7 +650,7 @@ impl_js_value_methods!(JsNumber);
 impl_js_value_methods!(JsString);
 impl_js_value_methods!(JsObject);
 impl_js_value_methods!(JsGlobal);
-#[cfg(feature = "napi5")]
+#[cfg(any(feature = "napi5", feature = "ohos"))]
 impl_js_value_methods!(JsDate);
 impl_js_value_methods!(JsFunction);
 impl_js_value_methods!(JsExternal);
@@ -679,7 +679,7 @@ impl_napi_value_trait!(JsNumber, Number);
 impl_napi_value_trait!(JsString, String);
 impl_napi_value_trait!(JsObject, Object);
 impl_napi_value_trait!(JsGlobal, Object);
-#[cfg(feature = "napi5")]
+#[cfg(any(feature = "napi5", feature = "ohos"))]
 impl_napi_value_trait!(JsDate, Object);
 impl_napi_value_trait!(JsTimeout, Object);
 impl_napi_value_trait!(JsFunction, Function);

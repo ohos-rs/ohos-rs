@@ -58,13 +58,13 @@ pub fn contextless_function(_attr: TokenStream, input: TokenStream) -> TokenStre
     #signature #(#fn_block)*
 
     #visibility extern "C" fn #fn_name(
-      raw_env: napi::sys::napi_env,
-      cb_info: napi::sys::napi_callback_info,
-    ) -> napi::sys::napi_value {
+      raw_env: napi_ohos::sys::napi_env,
+      cb_info: napi_ohos::sys::napi_callback_info,
+    ) -> napi_ohos::sys::napi_value {
       use std::ptr;
       use std::panic::{self, AssertUnwindSafe};
       use std::ffi::CString;
-      use napi::{Env, NapiValue, NapiRaw, Error, Status};
+      use napi_ohos::{Env, NapiValue, NapiRaw, Error, Status};
 
       let ctx = unsafe { Env::from_raw(raw_env) };
       #execute_js_function
@@ -94,13 +94,13 @@ pub fn js_function(attr: TokenStream, input: TokenStream) -> TokenStream {
     #signature #(#fn_block)*
 
     #visibility extern "C" fn #fn_name(
-      raw_env: napi::sys::napi_env,
-      cb_info: napi::sys::napi_callback_info,
-    ) -> napi::sys::napi_value {
+      raw_env: napi_ohos::sys::napi_env,
+      cb_info: napi_ohos::sys::napi_callback_info,
+    ) -> napi_ohos::sys::napi_value {
       use std::ptr;
       use std::panic::{self, AssertUnwindSafe};
       use std::ffi::CString;
-      use napi::{Env, Error, Status, NapiValue, NapiRaw, CallContext};
+      use napi_ohos::{Env, Error, Status, NapiValue, NapiRaw, CallContext};
       let mut argc = #arg_len_span as usize;
       #[cfg(all(target_os = "windows", target_arch = "x86"))]
       let mut raw_args = vec![ptr::null_mut(); #arg_len_span];
@@ -109,7 +109,7 @@ pub fn js_function(attr: TokenStream, input: TokenStream) -> TokenStream {
       let mut raw_this = ptr::null_mut();
 
       unsafe {
-        let status = napi::sys::napi_get_cb_info(
+        let status = napi_ohos::sys::napi_get_cb_info(
           raw_env,
           cb_info,
           &mut argc,
@@ -151,10 +151,10 @@ pub fn module_exports(_attr: TokenStream, input: TokenStream) -> TokenStream {
   };
 
   let register = quote! {
-    #[cfg_attr(not(target_os = "wasi"), napi::bindgen_prelude::ctor)]
+    #[cfg_attr(not(target_os = "wasi"), napi_ohos::bindgen_prelude::ctor)]
     fn __napi__explicit_module_register() {
-      unsafe fn register(raw_env: napi::sys::napi_env, raw_exports: napi::sys::napi_value) -> napi::Result<()> {
-        use napi::{Env, JsObject, NapiValue};
+      unsafe fn register(raw_env: napi_ohos::sys::napi_env, raw_exports: napi_ohos::sys::napi_value) -> napi_ohos::Result<()> {
+        use napi_ohos::{Env, JsObject, NapiValue};
 
         let env = Env::from_raw(raw_env);
         let exports = JsObject::from_raw_unchecked(raw_env, raw_exports);
@@ -162,7 +162,7 @@ pub fn module_exports(_attr: TokenStream, input: TokenStream) -> TokenStream {
         #call_expr
       }
 
-      napi::bindgen_prelude::register_module_exports(register)
+      napi_ohos::bindgen_prelude::register_module_exports(register)
     }
   };
 

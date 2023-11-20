@@ -102,7 +102,7 @@ pub fn get_execute_js_code(new_fn_name: Ident, function_kind: FunctionKind) -> T
     }).and_then(|v| v) {
       #return_token_stream
       Err(e) => {
-        unsafe { napi::JsError::from(e).throw_into(raw_env) };
+        unsafe { napi_ohos::JsError::from(e).throw_into(raw_env) };
         ptr::null_mut()
       }
     }

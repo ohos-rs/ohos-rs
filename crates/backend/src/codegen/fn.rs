@@ -45,18 +45,18 @@ impl TryToTokens for NapiFn {
 
     let build_ref_container = if self.is_async {
       quote! {
-          struct NapiRefContainer([napi::sys::napi_ref; #arg_ref_count]);
+          struct NapiRefContainer([napi_ohos::sys::napi_ref; #arg_ref_count]);
           impl NapiRefContainer {
-            fn drop(self, env: napi::sys::napi_env) {
+            fn drop(self, env: napi_ohos::sys::napi_env) {
               for r in self.0.into_iter() {
                 assert_eq!(
-                  unsafe { napi::sys::napi_reference_unref(env, r, &mut 0) },
-                  napi::sys::Status::napi_ok,
+                  unsafe { napi_ohos::sys::napi_reference_unref(env, r, &mut 0) },
+                  napi_ohos::sys::Status::napi_ok,
                   "failed to delete napi ref"
                 );
                 assert_eq!(
-                  unsafe { napi::sys::napi_delete_reference(env, r) },
-                  napi::sys::Status::napi_ok,
+                  unsafe { napi_ohos::sys::napi_delete_reference(env, r) },
+                  napi_ohos::sys::Status::napi_ok,
                   "failed to delete napi ref"
                 );
               }
@@ -64,16 +64,16 @@ impl TryToTokens for NapiFn {
           }
           unsafe impl Send for NapiRefContainer {}
           unsafe impl Sync for NapiRefContainer {}
-          let _make_ref = |a: ::std::ptr::NonNull<napi::bindgen_prelude::sys::napi_value__>| {
+          let _make_ref = |a: ::std::ptr::NonNull<napi_ohos::bindgen_prelude::sys::napi_value__>| {
             let mut node_ref = ::std::mem::MaybeUninit::uninit();
-            napi::bindgen_prelude::check_status!(unsafe {
-                napi::bindgen_prelude::sys::napi_create_reference(env, a.as_ptr(), 1, node_ref.as_mut_ptr())
+            napi_ohos::bindgen_prelude::check_status!(unsafe {
+                napi_ohos::bindgen_prelude::sys::napi_create_reference(env, a.as_ptr(), 1, node_ref.as_mut_ptr())
               },
               "failed to create napi ref"
             )?;
-            Ok::<napi::sys::napi_ref, napi::Error>(unsafe { node_ref.assume_init() })
+            Ok::<napi_ohos::sys::napi_ref, napi_ohos::Error>(unsafe { node_ref.assume_init() })
           };
-          let mut _args_array = [::std::ptr::null_mut::<napi::bindgen_prelude::sys::napi_ref__>(); #arg_ref_count];
+          let mut _args_array = [::std::ptr::null_mut::<napi_ohos::bindgen_prelude::sys::napi_ref__>(); #arg_ref_count];
           let mut _arg_write_index = 0;
 
           #(#refs)*
@@ -91,7 +91,7 @@ impl TryToTokens for NapiFn {
     };
     let native_call = if !self.is_async {
       quote! {
-        napi::bindgen_prelude::within_runtime_if_available(move || {
+        napi_ohos::bindgen_prelude::within_runtime_if_available(move || {
           let #receiver_ret_name = {
             #receiver(#(#arg_names),*)
           };
@@ -105,7 +105,7 @@ impl TryToTokens for NapiFn {
         quote! { Ok(#receiver(#(#arg_names),*).await) }
       };
       quote! {
-        napi::bindgen_prelude::execute_tokio_future(env, async move { #call }, move |env, #receiver_ret_name| {
+        napi_ohos::bindgen_prelude::execute_tokio_future(env, async move { #call }, move |env, #receiver_ret_name| {
           _args_ref.drop(env);
           #ret
         })
@@ -120,7 +120,7 @@ impl TryToTokens for NapiFn {
     };
 
     let function_call_inner = quote! {
-      napi::bindgen_prelude::CallbackInfo::<#args_len>::new(env, cb, None, #use_after_async).and_then(|mut cb| {
+      napi_ohos::bindgen_prelude::CallbackInfo::<#args_len>::new(env, cb, None, #use_after_async).and_then(|mut cb| {
           #build_ref_container
           #(#arg_conversions)*
           #native_call
@@ -138,7 +138,7 @@ impl TryToTokens for NapiFn {
       quote! {
         // constructor function is called from class `factory`
         // so we should skip the original `constructor` logic
-        if napi::__private::___CALL_FROM_FACTORY.with(|inner| inner.load(std::sync::atomic::Ordering::Relaxed)) {
+        if napi_ohos::__private::___CALL_FROM_FACTORY.with(|inner| inner.load(std::sync::atomic::Ordering::Relaxed)) {
           return std::ptr::null_mut();
         }
         #function_call_inner
@@ -161,7 +161,7 @@ impl TryToTokens for NapiFn {
                   format!("panic from Rust code: {:?}", e)
                 }
               };
-              napi::Error::new(napi::Status::GenericFailure, message)
+              napi_ohos::Error::new(napi_ohos::Status::GenericFailure, message)
             })
             .and_then(|r| r)
         }
@@ -178,13 +178,13 @@ impl TryToTokens for NapiFn {
       #[allow(non_snake_case)]
       #[allow(clippy::all)]
       extern "C" fn #intermediate_ident(
-        env: napi::bindgen_prelude::sys::napi_env,
-        cb: napi::bindgen_prelude::sys::napi_callback_info
-      ) -> napi::bindgen_prelude::sys::napi_value {
+        env: napi_ohos::bindgen_prelude::sys::napi_env,
+        cb: napi_ohos::bindgen_prelude::sys::napi_callback_info
+      ) -> napi_ohos::bindgen_prelude::sys::napi_value {
         unsafe {
           #function_call.unwrap_or_else(|e| {
-            napi::bindgen_prelude::JsError::from(e).throw_into(env);
-            std::ptr::null_mut::<napi::bindgen_prelude::sys::napi_value__>()
+            napi_ohos::bindgen_prelude::JsError::from(e).throw_into(env);
+            std::ptr::null_mut::<napi_ohos::bindgen_prelude::sys::napi_value__>()
           })
         }
       }
@@ -207,7 +207,7 @@ impl NapiFn {
       quote! {
         _args_array[_arg_write_index] = _make_ref(
           ::std::ptr::NonNull::new(#input)
-            .ok_or_else(|| napi::Error::new(napi::Status::InvalidArg, "referenced ptr is null".to_owned()))?
+            .ok_or_else(|| napi_ohos::Error::new(napi_ohos::Status::InvalidArg, "referenced ptr is null".to_owned()))?
         )?;
         _arg_write_index += 1;
       }
@@ -242,7 +242,7 @@ impl NapiFn {
       match &arg.kind {
         NapiFnArgKind::PatType(path) => {
           if &path.ty.to_token_stream().to_string() == "Env" {
-            args.push(quote! { napi::bindgen_prelude::Env::from(env) });
+            args.push(quote! { napi_ohos::bindgen_prelude::Env::from(env) });
             skipped_arg_count += 1;
           } else {
             let is_in_class = self.parent.is_some();
@@ -263,7 +263,7 @@ impl NapiFn {
                       if let Some(p) = path.path.segments.first() {
                         if p.ident == *self.parent.as_ref().unwrap() {
                           args.push(
-                            quote! { napi::bindgen_prelude::Reference::from_value_ptr(this_ptr as *mut std::ffi::c_void, env)? },
+                            quote! { napi_ohos::bindgen_prelude::Reference::from_value_ptr(this_ptr as *mut std::ffi::c_void, env)? },
                           );
                           skipped_arg_count += 1;
                           continue;
@@ -298,7 +298,7 @@ impl NapiFn {
                           args.push(
                             quote! {
                               {
-                                <#ident as napi::bindgen_prelude::FromNapiValue>::from_napi_value(env, cb.this)?
+                                <#ident as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, cb.this)?
                               }
                             },
                           );
@@ -320,9 +320,9 @@ impl NapiFn {
                             refs.push(make_ref(quote! { cb.this }));
                             let token = if mutability.is_some() {
                               mut_ref_spans.push(generic_type.span());
-                              quote! { <#ident as napi::bindgen_prelude::FromNapiMutRef>::from_napi_mut_ref(env, cb.this)? }
+                              quote! { <#ident as napi_ohos::bindgen_prelude::FromNapiMutRef>::from_napi_mut_ref(env, cb.this)? }
                             } else {
-                              quote! { <#ident as napi::bindgen_prelude::FromNapiRef>::from_napi_ref(env, cb.this)? }
+                              quote! { <#ident as napi_ohos::bindgen_prelude::FromNapiRef>::from_napi_ref(env, cb.this)? }
                             };
                             args.push(token);
                             skipped_arg_count += 1;
@@ -333,7 +333,7 @@ impl NapiFn {
                     }
                   }
                   refs.push(make_ref(quote! { cb.this }));
-                  args.push(quote! { <napi::bindgen_prelude::This as napi::NapiValue>::from_raw_unchecked(env, cb.this) });
+                  args.push(quote! { <napi_ohos::bindgen_prelude::This as napi_ohos::NapiValue>::from_raw_unchecked(env, cb.this) });
                   skipped_arg_count += 1;
                   continue;
                 }
@@ -377,7 +377,7 @@ impl NapiFn {
     let ty = &*path.ty;
     let type_check = if self.return_if_invalid {
       quote! {
-        if let Ok(maybe_promise) = <#ty as napi::bindgen_prelude::ValidateNapiValue>::validate(env, cb.get_arg(#index)) {
+        if let Ok(maybe_promise) = <#ty as napi_ohos::bindgen_prelude::ValidateNapiValue>::validate(env, cb.get_arg(#index)) {
           if !maybe_promise.is_null() {
             return Ok(maybe_promise);
           }
@@ -387,7 +387,7 @@ impl NapiFn {
       }
     } else if self.strict {
       quote! {
-        let maybe_promise = <#ty as napi::bindgen_prelude::ValidateNapiValue>::validate(env, cb.get_arg(#index))?;
+        let maybe_promise = <#ty as napi_ohos::bindgen_prelude::ValidateNapiValue>::validate(env, cb.get_arg(#index))?;
         if !maybe_promise.is_null() {
           return Ok(maybe_promise);
         }
@@ -405,7 +405,7 @@ impl NapiFn {
         let q = quote! {
           let #arg_name = {
             #type_check
-            <#elem as napi::bindgen_prelude::FromNapiMutRef>::from_napi_mut_ref(env, cb.get_arg(#index))?
+            <#elem as napi_ohos::bindgen_prelude::FromNapiMutRef>::from_napi_mut_ref(env, cb.get_arg(#index))?
           };
         };
         (q, NapiArgType::MutRef)
@@ -414,7 +414,7 @@ impl NapiFn {
         let q = quote! {
           let #arg_name = {
             #type_check
-            <#elem as napi::bindgen_prelude::FromNapiRef>::from_napi_ref(env, cb.get_arg(#index))?
+            <#elem as napi_ohos::bindgen_prelude::FromNapiRef>::from_napi_ref(env, cb.get_arg(#index))?
           };
         };
         (q, NapiArgType::Ref)
@@ -423,7 +423,7 @@ impl NapiFn {
         let q = quote! {
           let #arg_name = {
             #type_check
-            <#ty as napi::bindgen_prelude::FromNapiValue>::from_napi_value(env, cb.get_arg(#index))?
+            <#ty as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, cb.get_arg(#index))?
           };
         };
         (q, NapiArgType::Value)
@@ -439,14 +439,14 @@ impl NapiFn {
       let cb_arg_ident = Ident::new(&format!("callback_arg_{}", i), Span::call_site());
       inputs.push(quote! { #cb_arg_ident: #ty });
       arg_conversions.push(
-        quote! { <#ty as napi::bindgen_prelude::ToNapiValue>::to_napi_value(env, #cb_arg_ident)? },
+        quote! { <#ty as napi_ohos::bindgen_prelude::ToNapiValue>::to_napi_value(env, #cb_arg_ident)? },
       );
     }
 
     let ret = match &cb.ret {
       Some(ty) => {
         quote! {
-          let ret = <#ty as napi::bindgen_prelude::FromNapiValue>::from_napi_value(env, ret_ptr)?;
+          let ret = <#ty as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, ret_ptr)?;
 
           Ok(ret)
         }
@@ -455,7 +455,7 @@ impl NapiFn {
     };
 
     quote! {
-      napi::bindgen_prelude::assert_type_of!(env, cb.get_arg(#index), napi::bindgen_prelude::ValueType::Function)?;
+      napi_ohos::bindgen_prelude::assert_type_of!(env, cb.get_arg(#index), napi_ohos::bindgen_prelude::ValueType::Function)?;
       let #arg_name = |#(#inputs),*| {
         let args = vec![
           #(#arg_conversions),*
@@ -463,9 +463,9 @@ impl NapiFn {
 
         let mut ret_ptr = std::ptr::null_mut();
 
-        napi::bindgen_prelude::check_pending_exception!(
+        napi_ohos::bindgen_prelude::check_pending_exception!(
           env,
-          napi::bindgen_prelude::sys::napi_call_function(
+          napi_ohos::bindgen_prelude::sys::napi_call_function(
             env,
             cb.this(),
             cb.get_arg(#index),
@@ -531,16 +531,16 @@ impl NapiFn {
       } else if self.is_ret_result {
         if self.is_async {
           quote! {
-            <#ty as napi::bindgen_prelude::ToNapiValue>::to_napi_value(env, #ret)
+            <#ty as napi_ohos::bindgen_prelude::ToNapiValue>::to_napi_value(env, #ret)
           }
         } else if is_return_self {
           quote! { #ret.map(|_| cb.this) }
         } else {
           quote! {
             match #ret {
-              Ok(value) => napi::bindgen_prelude::ToNapiValue::to_napi_value(env, value),
+              Ok(value) => napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, value),
               Err(err) => {
-                napi::bindgen_prelude::JsError::from(err).throw_into(env);
+                napi_ohos::bindgen_prelude::JsError::from(err).throw_into(env);
                 Ok(std::ptr::null_mut())
               },
             }
@@ -550,12 +550,12 @@ impl NapiFn {
         quote! { Ok(cb.this) }
       } else {
         quote! {
-          <#ty as napi::bindgen_prelude::ToNapiValue>::to_napi_value(env, #ret)
+          <#ty as napi_ohos::bindgen_prelude::ToNapiValue>::to_napi_value(env, #ret)
         }
       }
     } else {
       quote! {
-        <() as napi::bindgen_prelude::ToNapiValue>::to_napi_value(env, ())
+        <() as napi_ohos::bindgen_prelude::ToNapiValue>::to_napi_value(env, ())
       }
     }
   }
@@ -577,11 +577,11 @@ impl NapiFn {
       quote! {
         #[allow(non_snake_case)]
         #[allow(clippy::all)]
-        unsafe fn #cb_name(env: napi::bindgen_prelude::sys::napi_env) -> napi::bindgen_prelude::Result<napi::bindgen_prelude::sys::napi_value> {
+        unsafe fn #cb_name(env: napi_ohos::bindgen_prelude::sys::napi_env) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
           let mut fn_ptr = std::ptr::null_mut();
 
-          napi::bindgen_prelude::check_status!(
-            napi::bindgen_prelude::sys::napi_create_function(
+          napi_ohos::bindgen_prelude::check_status!(
+            napi_ohos::bindgen_prelude::sys::napi_create_function(
               env,
               #js_name.as_ptr().cast(),
               #name_len,
@@ -592,16 +592,16 @@ impl NapiFn {
             "Failed to register function `{}`",
             #name_str,
           )?;
-          napi::bindgen_prelude::register_js_function(#js_name, #cb_name, Some(#intermediate_ident));
+          napi_ohos::bindgen_prelude::register_js_function(#js_name, #cb_name, Some(#intermediate_ident));
           Ok(fn_ptr)
         }
 
         #[allow(clippy::all)]
         #[allow(non_snake_case)]
         #[cfg(all(not(test), not(feature = "noop"), not(target_os = "wasi")))]
-        #[napi::bindgen_prelude::ctor]
+        #[napi_ohos::bindgen_prelude::ctor]
         fn #module_register_name() {
-          napi::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
+          napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
         }
 
         #[allow(clippy::all)]
@@ -609,7 +609,7 @@ impl NapiFn {
         #[cfg(all(not(test), not(feature = "noop"), target_os = "wasi"))]
         #[no_mangle]
         extern "C" fn #module_register_name() {
-          napi::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
+          napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
         }
       }
     }

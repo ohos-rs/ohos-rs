@@ -1,14 +1,14 @@
 [package]
-authors = ["LongYinan <lynweklm@gmail.com>", "Forehalo <forehalo@gmail.com>"]
+authors = ["LongYinan <lynweklm@gmail.com>", "Forehalo <forehalo@gmail.com>","southorange0929 <southorange0929@foxmail.com>"]
 description = "N-API procedural macros"
 edition = "2021"
 keywords = ["NodeJS", "FFI", "NAPI", "n-api"]
 license = "MIT"
-name = "napi-derive"
+name = "napi-derive-ohos"
 readme = "README.md"
 repository = "https://github.com/napi-rs/napi-rs"
 rust-version = "1.65"
-version = "2.14.1"
+version = "0.0.1"
 
 [package.metadata.workspaces]
 independent = true
@@ -17,13 +17,13 @@ independent = true
 compat-mode = []
 default = ["compat-mode", "full"]
 full = ["type-def", "strict"]
-noop = ["napi-derive-backend/noop"]
-strict = ["napi-derive-backend/strict"]
-type-def = ["napi-derive-backend/type-def"]
+noop = ["napi-derive-backend-ohos/noop"]
+strict = ["napi-derive-backend-ohos/strict"]
+type-def = ["napi-derive-backend-ohos/type-def"]
 
 [dependencies]
 convert_case = "0.6"
-napi-derive-backend = { version = "1.0.54", path = "../backend" }
+napi-derive-backend-ohos = { path = "../backend" }
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "1.0.61", features = ["fold", "full", "extra-traits"] }

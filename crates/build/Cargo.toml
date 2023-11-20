@@ -1,15 +1,15 @@
 [package]
-authors = ["LongYinan <lynweklm@gmail.com>"]
+authors = ["LongYinan <lynweklm@gmail.com>","southorange0929 <southorange0929@foxmail.com>"]
 description = "N-API build support"
 edition = "2021"
 include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE"]
 keywords = ["NodeJS", "FFI", "NAPI", "n-api"]
 license = "MIT"
-name = "napi-build"
+name = "napi-build-ohos"
 readme = "README.md"
 repository = "https://github.com/napi-rs/napi-rs"
 rust-version = "1.65"
-version = "2.1.0"
+version = "0.0.1"
 
 [package.metadata.workspaces]
 independent = true

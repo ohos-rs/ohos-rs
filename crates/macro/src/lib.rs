@@ -6,7 +6,7 @@ mod parser;
 #[macro_use]
 extern crate syn;
 #[macro_use]
-extern crate napi_derive_backend;
+extern crate napi_derive_backend_ohos;
 #[macro_use]
 extern crate quote;
 

@@ -8,7 +8,7 @@ use std::str::Chars;
 use attrs::{BindgenAttr, BindgenAttrs};
 
 use convert_case::{Case, Casing};
-use napi_derive_backend::{
+use napi_derive_backend_ohos::{
   BindgenResult, CallbackArg, Diagnostic, FnKind, FnSelf, Napi, NapiConst, NapiEnum, NapiEnumValue,
   NapiEnumVariant, NapiFn, NapiFnArg, NapiFnArgKind, NapiImpl, NapiItem, NapiStruct,
   NapiStructField, NapiStructKind,

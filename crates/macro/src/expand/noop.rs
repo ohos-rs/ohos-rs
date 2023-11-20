@@ -1,4 +1,4 @@
-use napi_derive_backend::BindgenResult;
+use napi_derive_backend_ohos::BindgenResult;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::Attribute;

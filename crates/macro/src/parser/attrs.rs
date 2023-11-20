@@ -1,7 +1,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
-use napi_derive_backend::{bail_span, BindgenResult, Diagnostic};
+use napi_derive_backend_ohos::{bail_span, BindgenResult, Diagnostic};
 use proc_macro2::{Delimiter, Ident, Span, TokenTree};
 use syn::spanned::Spanned;
 

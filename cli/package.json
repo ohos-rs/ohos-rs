@@ -1,6 +1,6 @@
 {
   "name": "@napi-rs/cli",
-  "version": "3.0.0-alpha.7",
+  "version": "3.0.0-alpha.8",
   "description": "Cli tools for napi-rs",
   "author": "LongYinan <lynweklm@gmail.com>",
   "homepage": "https://github.com/napi-rs/napi-rs",
@@ -72,32 +72,32 @@
     "clipanion": "^3.2.1",
     "colorette": "^2.0.20",
     "debug": "^4.3.4",
-    "emnapi": "0.43.1",
-    "inquirer": "^9.2.11",
+    "emnapi": "0.44.0",
+    "inquirer": "^9.2.12",
     "js-yaml": "^4.1.0",
     "lodash-es": "^4.17.21",
     "toml": "^3.0.0",
     "typanion": "^3.14.0"
   },
   "devDependencies": {
-    "@emnapi/core": "0.43.1",
-    "@emnapi/runtime": "0.43.1",
-    "@types/debug": "^4.1.10",
-    "@types/inquirer": "^9.0.6",
-    "@types/js-yaml": "^4.0.8",
-    "@types/lodash-es": "^4.17.10",
+    "@emnapi/core": "0.44.0",
+    "@emnapi/runtime": "0.44.0",
+    "@types/debug": "^4.1.12",
+    "@types/inquirer": "^9.0.7",
+    "@types/js-yaml": "^4.0.9",
+    "@types/lodash-es": "^4.17.11",
     "ava": "^5.3.1",
     "env-paths": "^3.0.0",
     "esbuild": "^0.19.5",
-    "prettier": "^3.0.3",
+    "prettier": "^3.1.0",
     "ts-node": "^10.9.1",
     "tslib": "^2.6.2",
     "typescript": "^5.2.2"
   },
   "peerDependencies": {
-    "@emnapi/runtime": "0.43.1",
+    "@emnapi/runtime": "0.44.0",
     "@tybys/wasm-util": "0.8.0",
-    "emnapi": "0.43.1"
+    "emnapi": "0.44.0"
   },
   "peerDependenciesMeta": {
     "@emnapi/runtime": {

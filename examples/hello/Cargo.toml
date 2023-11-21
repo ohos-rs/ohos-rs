@@ -1,5 +1,5 @@
 [package]
-name = "entry"
+name    = "entry"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi-ohos = { path = '../../crates/napi' }
+napi-ohos        = { path = '../../crates/napi' }
 napi-derive-ohos = { path = '../../crates/macro' }
 
 [build-dependencies]

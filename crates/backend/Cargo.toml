@@ -1,36 +1,36 @@
 [package]
-description = "Codegen backend for napi-harmony procedural macro"
-edition = "2021"
-homepage = "https://napi.rs"
-license = "MIT"
-name = "napi-derive-backend-ohos"
-readme = "README.md"
-repository = "https://github.com/southorange0929/napi-rs"
+description  = "Codegen backend for napi-harmony procedural macro"
+edition      = "2021"
+homepage     = "https://napi.rs"
+license      = "MIT"
+name         = "napi-derive-backend-ohos"
+readme       = "README.md"
+repository   = "https://github.com/southorange0929/napi-rs"
 rust-version = "1.65"
-version = "0.0.1"
+version      = "0.0.1"
 
 [package.metadata.workspaces]
 independent = true
 
 [features]
-noop = []
-strict = []
+noop     = []
+strict   = []
 type-def = ["regex", "once_cell", "semver"]
 
 [dependencies]
 convert_case = "0.6"
-proc-macro2 = "1"
-quote = "1"
-syn = { version = "1.0.61", features = ["fold", "full", "extra-traits"] }
+proc-macro2  = "1"
+quote        = "1"
+syn          = { version = "1.0.61", features = ["fold", "full", "extra-traits"] }
 
 [dependencies.regex]
 optional = true
-version = "1"
+version  = "1"
 
 [dependencies.once_cell]
 optional = true
-version = "1"
+version  = "1"
 
 [dependencies.semver]
 optional = true
-version = "1"
+version  = "1"

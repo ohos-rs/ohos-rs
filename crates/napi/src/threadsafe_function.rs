@@ -193,7 +193,7 @@ struct ThreadsafeFunctionCallJsBackData<T> {
 ///
 /// use std::thread;
 ///
-/// use napi::{
+/// use napi_ohos::{
 ///     threadsafe_function::{
 ///         ThreadSafeCallContext, ThreadsafeFunctionCallMode, ThreadsafeFunctionReleaseMode,
 ///     },

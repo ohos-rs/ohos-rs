@@ -1,5 +1,5 @@
 use std::convert::TryFrom;
-#[cfg(any(feature = "napi5", feature = "ohos"))]
+#[cfg(feature = "napi5")]
 use std::ffi::c_void;
 use std::ffi::CString;
 use std::ptr;

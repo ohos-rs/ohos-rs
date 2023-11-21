@@ -151,8 +151,7 @@ pub fn module_exports(_attr: TokenStream, input: TokenStream) -> TokenStream {
   };
 
   let register = quote! {
-    #[cfg_attr(not(target_os = "wasi"), napi_ohos::bindgen_prelude::ctor)]
-    #[cfg_attr(not(target_family = "wasm"), napi::bindgen_prelude::ctor)]
+    #[cfg_attr(not(target_family = "wasm"), napi_ohos::bindgen_prelude::ctor)]
     fn __napi__explicit_module_register() {
       unsafe fn register(raw_env: napi_ohos::sys::napi_env, raw_exports: napi_ohos::sys::napi_value) -> napi_ohos::Result<()> {
         use napi_ohos::{Env, JsObject, NapiValue};

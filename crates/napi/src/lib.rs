@@ -21,7 +21,7 @@
 //!
 //! ```
 //! use futures::prelude::*;
-//! use napi::{CallContext, Error, JsObject, JsString, Result, Status};
+//! use napi_ohos::{CallContext, Error, JsObject, JsString, Result, Status};
 //! use tokio;
 //!
 //! #[napi]

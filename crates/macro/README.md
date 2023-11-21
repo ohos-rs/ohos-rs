@@ -12,7 +12,7 @@ Checkout more examples in [examples](../../examples) folder
 ```rust
 #[macro_use]
 extern crate napi_derive;
-use napi::bindgen_prelude::*;
+use napi_ohos::bindgen_prelude::*;
 
 #[napi]
 fn fibonacci(n: u32) -> u32 {

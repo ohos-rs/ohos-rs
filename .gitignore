@@ -154,7 +154,6 @@ Temporary Items
 .apdisk
 
 # End of https://www.gitignore.io/api/macos
-scripts
 lib
 
 sys/.node-headers

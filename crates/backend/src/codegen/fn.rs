@@ -598,10 +598,8 @@ impl NapiFn {
 
         #[allow(clippy::all)]
         #[allow(non_snake_case)]
-        #[cfg(all(not(test), not(feature = "noop"), not(target_os = "wasi")))]
-        #[napi_ohos::bindgen_prelude::ctor]
         #[cfg(all(not(test), not(feature = "noop"), not(target_family = "wasm")))]
-        #[napi::bindgen_prelude::ctor]
+        #[napi_ohos::bindgen_prelude::ctor]
         fn #module_register_name() {
           napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
         }

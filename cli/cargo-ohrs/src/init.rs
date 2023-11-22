@@ -17,6 +17,13 @@ macro_rules! create_project_file {
   }};
 }
 
+macro_rules! create_project_dir {
+  ($dir: literal, $target: expr) => {{
+    let _ = std::fs::create_dir($target.join($dir))
+      .expect(format!("Can't create {} dir.", $dir).as_str());
+  }};
+}
+
 pub fn init(name: String) {
   let pwd = std::env::current_dir().expect("Can't get current work path");
 
@@ -26,10 +33,11 @@ pub fn init(name: String) {
     println!("{} already existed.Please change your project name.", &name);
     return;
   }
+
   fs::create_dir(&target).expect("Can't create project path.");
-  let _ = fs::create_dir(&target.join(".cargo"));
-  let _ = fs::create_dir(&target.join("scripts"));
-  let _ = fs::create_dir(&target.join("src"));
+  create_project_dir!(".cargo", &target);
+  create_project_dir!("scripts", &target);
+  create_project_dir!("src", &target);
 
   create_project_file!(
     config_file,

@@ -12,12 +12,12 @@ mod tmps;
 #[command(bin_name = "cargo")]
 enum OhosRsCli {
   #[command(about = "run init command")]
-  OHOS(Ohos),
+  OHRS(Ohrs),
 }
 
 #[derive(clap::Args)]
 #[command(author, version, about, long_about = None)]
-struct Ohos {
+struct Ohrs {
   /// build target
   #[arg(short, long)]
   build: bool,
@@ -34,7 +34,7 @@ struct Ohos {
 fn main() {
   let arg = OhosRsCli::parse();
   match arg {
-    OhosRsCli::OHOS(args) => {
+    OhosRsCli::OHRS(args) => {
       let build_flag = args.build;
       let init_flag = args.init.is_some();
       let doctor_flag = args.doctor;

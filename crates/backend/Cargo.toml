@@ -1,7 +1,6 @@
 [package]
 description  = "Codegen backend for napi-harmony procedural macro"
 edition      = "2021"
-homepage     = "https://napi.rs"
 license      = "MIT"
 name         = "napi-derive-backend-ohos"
 readme       = "README.md"

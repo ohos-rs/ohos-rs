@@ -1,5 +1,5 @@
 [package]
-authors      = ["southorange0929 <southornage0929@foxmail.com>", "LongYinan <lynweklm@gmail.com>"]
+authors      = [ "LongYinan <lynweklm@gmail.com>","southorange0929 <southornage0929@foxmail.com>"]
 description  = "Harmony N-API raw binding"
 edition      = "2021"
 include      = ["src/**/*", "Cargo.toml"]

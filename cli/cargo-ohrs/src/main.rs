@@ -19,15 +19,15 @@ enum OhosRsCli {
 #[command(author, version, about, long_about = None)]
 struct Ohos {
   /// build target
-  #[arg(short,long)]
+  #[arg(short, long)]
   build: bool,
 
   /// init project
-  #[arg(short,long)]
+  #[arg(short, long)]
   init: Option<String>,
 
   /// validate env
-  #[arg(short,long)]
+  #[arg(short, long)]
   doctor: bool,
 }
 

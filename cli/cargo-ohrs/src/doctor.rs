@@ -1,1 +1,1 @@
-pub fn doctor () {}
+pub fn doctor() {}

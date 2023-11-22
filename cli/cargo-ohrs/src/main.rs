@@ -6,7 +6,7 @@ mod init;
 mod tmps;
 
 #[derive(Parser)]
-#[command(author,version,about,long_about = None)]
+#[command(author,version,about = "A cli tool for ohos-rs to init,build,doctor & etc.",long_about = None)]
 struct Cli {
   #[command(subcommand)]
   pub command: Commands,
@@ -28,7 +28,7 @@ fn main() {
     Commands::Build => {
       build::build();
     }
-    Commands::Init {name} => {
+    Commands::Init { name } => {
       init::init(name);
     }
     Commands::Doctor => {

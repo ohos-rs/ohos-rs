@@ -93,11 +93,11 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi-ohos        = { path = '../../crates/napi' }
-napi-derive-ohos = { path = '../../crates/macro' }
+napi-ohos        = { version = "0.0.1" }
+napi-derive-ohos = { version = "0.0.1" }
 
 [build-dependencies]
-napi-build-ohos = { path = '../../crates/build' }
+napi-build-ohos = { version = "0.0.1" }
 
 "#;
 

@@ -13,7 +13,7 @@ macro_rules! create_project_file {
     $file_name
       .write_all($strs.as_bytes())
       .expect(format!("Write {} failed", $name).as_str());
-    println!("Create ${} succeed.", $name);
+    println!("Create {} succeed.", $name);
   }};
 }
 
@@ -100,9 +100,11 @@ pub fn init(name: String) {
     "lib.rs"
   );
   create_project_file!(build_file, BUILD_INIT, &target.join("build.rs"), "build.rs");
+
+  let config = CARGO_TOML.replace("entry", &name.as_str());
   create_project_file!(
     toml_file,
-    CARGO_TOML,
+    config,
     &target.join("Cargo.toml"),
     "Cargo.toml"
   );

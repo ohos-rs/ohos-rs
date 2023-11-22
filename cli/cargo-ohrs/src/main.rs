@@ -10,8 +10,8 @@ mod tmps;
 #[derive(Parser)]
 #[command(name = "cargo")]
 #[command(bin_name = "cargo")]
-enum OhosRsCli {
-  #[command(about = "run init command")]
+enum OhrsCli {
+  #[command(about = "A cli tool for ohos-rs")]
   OHRS(Ohrs),
 }
 
@@ -32,9 +32,9 @@ struct Ohrs {
 }
 
 fn main() {
-  let arg = OhosRsCli::parse();
+  let arg = OhrsCli::parse();
   match arg {
-    OhosRsCli::OHRS(args) => {
+    OhrsCli::OHRS(args) => {
       let build_flag = args.build;
       let init_flag = args.init.is_some();
       let doctor_flag = args.doctor;

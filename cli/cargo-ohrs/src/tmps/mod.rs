@@ -1,5 +1,4 @@
-pub const CARGO_CONFIG_TOML: &str = r#"
-[target.aarch64-unknown-linux-ohos]
+pub const CARGO_CONFIG_TOML: &str = r#"[target.aarch64-unknown-linux-ohos]
 ar = "$OH_SDK_HOME/native/llvm/bin/llvm-ar"
 linker = "scripts/aarch64-unknown-linux-ohos-clang.sh"
 
@@ -12,26 +11,23 @@ ar = "$OH_SDK_HOME/native/llvm/bin/llvm-ar"
 linker = "scripts/x86_64-unknown-linux-ohos-clang.sh"
 "#;
 
-pub const ARM64_C_BUILD_SHELL: &str = r#"
-#!/bin/sh
+pub const ARM64_C_BUILD_SHELL: &str = r#"#!/bin/sh
 exec $OHOS_NDK_HOME/native/llvm/bin/clang \
   -target aarch64-linux-ohos \
   --sysroot=$OHOS_NDK_HOME/native/sysroot \
   -D__MUSL__ \
   "$@"
-
 "#;
-pub const ARM64_CPP_BUILD_SHELL: &str = r#"
-#!/bin/sh
+
+pub const ARM64_CPP_BUILD_SHELL: &str = r#"#!/bin/sh
 exec $OHOS_NDK_HOME/native/llvm/bin/clang++ \
   -target aarch64-linux-ohos \
   --sysroot=$OHOS_NDK_HOME/native/sysroot \
   -D__MUSL__ \
   "$@"
-
 "#;
-pub const ARM_C_BUILD_SHELL: &str = r#"
-#!/bin/sh
+
+pub const ARM_C_BUILD_SHELL: &str = r#"#!/bin/sh
 exec $OHOS_NDK_HOME/native/llvm/bin/clang \
   -target arm-linux-ohos \
   --sysroot=$OHOS_NDK_HOME/native/sysroot \
@@ -41,10 +37,9 @@ exec $OHOS_NDK_HOME/native/llvm/bin/clang \
   -mtune=generic-armv7-a \
   -mthumb \
   "$@"
-
 "#;
-pub const ARM_CPP_BUILD_SHELL: &str = r#"
-#!/bin/sh
+
+pub const ARM_CPP_BUILD_SHELL: &str = r#"#!/bin/sh
 exec $OHOS_NDK_HOME/native/llvm/bin/clang++ \
   -target arm-linux-ohos \
   --sysroot=$OHOS_NDK_HOME/native/sysroot \
@@ -54,8 +49,8 @@ exec $OHOS_NDK_HOME/native/llvm/bin/clang++ \
   -mtune=generic-armv7-a \
   -mthumb \
   "$@"
-
 "#;
+
 pub const X86_64_C_BUILD_SHELL: &str = r#"
 #!/bin/sh
 exec $OHOS_NDK_HOME/native/llvm/bin/clang \
@@ -63,10 +58,9 @@ exec $OHOS_NDK_HOME/native/llvm/bin/clang \
   --sysroot=$OHOS_NDK_HOME/native/sysroot \
   -D__MUSL__ \
   "$@"
-
 "#;
-pub const X86_64_CPP_BUILD_SHELL: &str = r#"
-#!/bin/sh
+
+pub const X86_64_CPP_BUILD_SHELL: &str = r#"#!/bin/sh
 exec $OHOS_NDK_HOME/native/llvm/bin/clang++ \
   -target x86_64-linux-ohos \
   --sysroot=$OHOS_NDK_HOME/native/sysroot \
@@ -79,10 +73,8 @@ extern crate napi_build_ohos;
 fn main() {
   napi_build_ohos::setup();
 }
-
 "#;
-pub const CARGO_TOML: &str = r#"
-[package]
+pub const CARGO_TOML: &str = r#"[package]
 name    = "entry"
 version = "0.1.0"
 edition = "2021"
@@ -98,11 +90,9 @@ napi-derive-ohos = { version = "0.0.1" }
 
 [build-dependencies]
 napi-build-ohos = { version = "0.0.1" }
-
 "#;
 
-pub const LIB_CODE: &str = r#"
-use napi_derive_ohos::napi;
+pub const LIB_CODE: &str = r#"use napi_derive_ohos::napi;
 use napi_ohos::bindgen_prelude::pre_init;
 use napi_ohos::module_init;
 

@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::prelude::*;
+use std::os::unix::fs::PermissionsExt;
 
 use crate::tmps::{
   ARM64_CPP_BUILD_SHELL, ARM64_C_BUILD_SHELL, ARM_CPP_BUILD_SHELL, ARM_C_BUILD_SHELL, BUILD_INIT,
@@ -8,9 +9,12 @@ use crate::tmps::{
 
 macro_rules! create_project_file {
   ($file_name: ident, $strs: ident, $target: expr,$name: literal) => {{
-    let mut $file_name =
+    let mut tmp_file =
       std::fs::File::create($target).expect(format!("Create {} failed.", $name).as_str());
-    $file_name
+    let mut perms = tmp_file.metadata().unwrap().permissions();
+    perms.set_mode(0o755);
+    tmp_file.set_permissions(perms).unwrap();
+    tmp_file
       .write_all($strs.as_bytes())
       .expect(format!("Write {} failed", $name).as_str());
     println!("Create {} succeed.", $name);
@@ -102,10 +106,5 @@ pub fn init(name: String) {
   create_project_file!(build_file, BUILD_INIT, &target.join("build.rs"), "build.rs");
 
   let config = CARGO_TOML.replace("entry", &name.as_str());
-  create_project_file!(
-    toml_file,
-    config,
-    &target.join("Cargo.toml"),
-    "Cargo.toml"
-  );
+  create_project_file!(toml_file, config, &target.join("Cargo.toml"), "Cargo.toml");
 }

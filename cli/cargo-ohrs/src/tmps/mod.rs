@@ -105,3 +105,9 @@ fn init() {
   pre_init();
 }
 "#;
+
+pub const GIT_IGNORE: &str = r#"dist/
+target/
+
+Cargo.lock
+"#;

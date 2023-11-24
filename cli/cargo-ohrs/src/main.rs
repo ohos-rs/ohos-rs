@@ -20,9 +20,9 @@ struct OhrsCli {
 #[derive(Subcommand)]
 enum Commands {
   /// Project initialization
-  Init { 
+  Init {
     /// Project name,which will be created.
-    name: String 
+    name: String,
   },
   /// Project construction
   Build {
@@ -31,11 +31,11 @@ enum Commands {
     dir: String,
     /// dist file is compact default is false
     /// arm64-v8a/armeabi-v7a/x86_64
-    #[arg(long,short,default_value_t = false)]
+    #[arg(long, short, default_value_t = false)]
     compact: bool,
 
     /// build target with release mode default is false
-    #[arg(long,default_value_t = false)]
+    #[arg(long, default_value_t = false)]
     release: bool,
   },
   /// Check environments

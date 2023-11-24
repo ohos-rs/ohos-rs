@@ -4,11 +4,12 @@ use std::os::unix::fs::PermissionsExt;
 
 use crate::tmps::{
   ARM64_CPP_BUILD_SHELL, ARM64_C_BUILD_SHELL, ARM_CPP_BUILD_SHELL, ARM_C_BUILD_SHELL, BUILD_INIT,
-  CARGO_CONFIG_TOML, CARGO_TOML, LIB_CODE, X86_64_CPP_BUILD_SHELL, X86_64_C_BUILD_SHELL,
+  CARGO_CONFIG_TOML, CARGO_TOML, GIT_IGNORE, LIB_CODE, X86_64_CPP_BUILD_SHELL,
+  X86_64_C_BUILD_SHELL,
 };
 
 macro_rules! create_project_file {
-  ($file_name: ident, $strs: ident, $target: expr,$name: literal) => {{
+  ($strs: ident, $target: expr,$name: literal) => {{
     let mut tmp_file =
       std::fs::File::create($target).expect(format!("Create {} failed.", $name).as_str());
     let mut perms = tmp_file.metadata().unwrap().permissions();
@@ -44,13 +45,11 @@ pub fn init(name: String) {
   create_project_dir!("src", &target);
 
   create_project_file!(
-    config_file,
     CARGO_CONFIG_TOML,
     &target.join(".cargo").join("config.toml"),
     "config.toml"
   );
   create_project_file!(
-    arm_c_shell,
     ARM64_C_BUILD_SHELL,
     &target
       .join("scripts")
@@ -58,7 +57,6 @@ pub fn init(name: String) {
     "aarch64-unknown-linux-ohos-clang.sh"
   );
   create_project_file!(
-    arm_cpp_shell,
     ARM64_CPP_BUILD_SHELL,
     &target
       .join("scripts")
@@ -66,7 +64,6 @@ pub fn init(name: String) {
     "aarch64-unknown-linux-ohos-clang++.sh"
   );
   create_project_file!(
-    armv7_c_shell,
     ARM_C_BUILD_SHELL,
     &target
       .join("scripts")
@@ -74,7 +71,6 @@ pub fn init(name: String) {
     "armv7-unknown-linux-ohos-clang.sh"
   );
   create_project_file!(
-    armv7_cpp_shell,
     ARM_CPP_BUILD_SHELL,
     &target
       .join("scripts")
@@ -82,7 +78,6 @@ pub fn init(name: String) {
     "armv7-unknown-linux-ohos-clang++.sh"
   );
   create_project_file!(
-    x86_c_shell,
     X86_64_C_BUILD_SHELL,
     &target
       .join("scripts")
@@ -90,21 +85,16 @@ pub fn init(name: String) {
     "x86_64-unknown-linux-ohos-clang.sh"
   );
   create_project_file!(
-    x86_cpp_shell,
     X86_64_CPP_BUILD_SHELL,
     &target
       .join("scripts")
       .join("x86_64-unknown-linux-ohos-clang++.sh"),
     "x86_64-unknown-linux-ohos-clang++.sh"
   );
-  create_project_file!(
-    lib_code_file,
-    LIB_CODE,
-    &target.join("src").join("lib.rs"),
-    "lib.rs"
-  );
-  create_project_file!(build_file, BUILD_INIT, &target.join("build.rs"), "build.rs");
+  create_project_file!(LIB_CODE, &target.join("src").join("lib.rs"), "lib.rs");
+  create_project_file!(BUILD_INIT, &target.join("build.rs"), "build.rs");
+  create_project_file!(GIT_IGNORE, &target.join(".gitignore"), ".gitignore");
 
   let config = CARGO_TOML.replace("entry", &name.as_str());
-  create_project_file!(toml_file, config, &target.join("Cargo.toml"), "Cargo.toml");
+  create_project_file!(config, &target.join("Cargo.toml"), "Cargo.toml");
 }

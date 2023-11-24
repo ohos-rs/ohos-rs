@@ -26,5 +26,5 @@ cargo +nightly build --target x86_64-unknown-linux-ohos -Z build-std --release
 #### 功能
 - [x] napi-rs整体运行
 - [x] 裁剪不支持功能
-- [ ] 脚手架支持
+- [x] 脚手架支持
 - [ ] CI/CD支持

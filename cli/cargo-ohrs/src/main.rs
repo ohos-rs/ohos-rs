@@ -20,17 +20,23 @@ struct OhrsCli {
 #[derive(Subcommand)]
 enum Commands {
   /// Project initialization
-  Init { name: String },
+  Init { 
+    /// Project name,which will be created.
+    name: String 
+  },
   /// Project construction
   Build {
     /// dist target dir default is dist
-    dir: Option<String>,
+    #[arg(long,short,default_value_t = String::from("dist"))]
+    dir: String,
     /// dist file is compact default is false
     /// arm64-v8a/armeabi-v7a/x86_64
-    compact: Option<bool>,
+    #[arg(long,short,default_value_t = false)]
+    compact: bool,
 
     /// build target with release mode default is false
-    release: Option<bool>,
+    #[arg(long,default_value_t = false)]
+    release: bool,
   },
   /// Check environments
   Doctor,
@@ -47,9 +53,9 @@ fn main() {
       compact,
       release,
     } => {
-      let dist_dir = dir.clone().map_or(String::from("dist"), |v| v);
-      let compact_flag = compact.clone().map_or(false, |v| v);
-      let release_flag = release.clone().map_or(false, |v| v);
+      let dist_dir = dir.clone();
+      let compact_flag = compact.clone();
+      let release_flag = release.clone();
       build::build(dist_dir, compact_flag, release_flag);
     }
     Commands::Doctor => {

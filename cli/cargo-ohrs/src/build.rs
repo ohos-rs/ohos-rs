@@ -107,7 +107,8 @@ pub fn build(dir: String, compact: bool, release: bool) {
       if !compact {
         dist = bin_dir.join(file.file_name().unwrap());
       } else {
-        dist = bin_dir.join(format!("{}_{:?}", platform, file.file_name().unwrap()));
+        let file_name = file.file_stem().unwrap().to_str().unwrap();
+        dist = bin_dir.join(format!("{}_{}.so", file_name, platform));
       }
       move_file!(file, dist);
     }

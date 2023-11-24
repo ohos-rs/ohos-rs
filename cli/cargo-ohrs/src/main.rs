@@ -27,12 +27,10 @@ enum Commands {
     dir: Option<String>,
     /// dist file is compact default is false
     /// arm64-v8a/armeabi-v7a/x86_64
-    #[arg(default_value_t = false)]
-    compact: bool,
+    compact: Option<bool>,
 
     /// build target with release mode default is false
-    #[arg(default_value_t = false)]
-    release: bool,
+    release: Option<bool>,
   },
   /// Check environments
   Doctor,
@@ -50,8 +48,12 @@ fn main() {
       release,
     } => {
       let dist_dir = dir.clone().map_or(String::from("dist"), |v| v);
-      build::build(dist_dir, compact.clone(), release.clone());
+      let compact_flag = compact.clone().map_or(false, |v| v);
+      let release_flag = release.clone().map_or(false, |v| v);
+      build::build(dist_dir, compact_flag, release_flag);
     }
-    Commands::Doctor => {}
+    Commands::Doctor => {
+      doctor::doctor();
+    }
   }
 }

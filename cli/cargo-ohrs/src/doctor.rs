@@ -1,1 +1,3 @@
-pub fn doctor() {}
+pub fn doctor() {
+  println!("doctor run!")
+}

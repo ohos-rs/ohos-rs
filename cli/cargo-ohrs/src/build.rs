@@ -1,10 +1,14 @@
+use std::fs;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::process::{exit, Command, Stdio};
 
 macro_rules! create_dist_dir {
   ($dir: expr, $target: expr) => {{
-    let _ = std::fs::create_dir($target.join($dir))
-      .expect(format!("Can't create {} dir.", $dir).as_str());
+    if !$target.join($dir).as_path().exists() {
+      let _ = std::fs::create_dir($target.join($dir))
+        .expect(format!("Can't create {} dir.", $dir).as_str());
+    }
   }};
 }
 
@@ -18,16 +22,15 @@ macro_rules! move_file {
 }
 
 pub fn build(dir: String, compact: bool, release: bool) {
-
-  let name = "";
-
   let targets = [
-    ("arm64-v8a", "aarch64-unknown-linux-ohos"),
-    ("armeabi-v7a", "armv7-unknown-linux-ohos"),
-    ("x86_64", "x86_64-unknown-linux-ohos"),
+    ("arm64-v8a", "aarch64-unknown-linux-ohos", "arm64"),
+    ("armeabi-v7a", "armv7-unknown-linux-ohos", "arm"),
+    ("x86_64", "x86_64-unknown-linux-ohos", "x86_64"),
   ];
+  let mut mode_arg = "";
   let mut mode = "debug";
   if release {
+    mode_arg = "--release";
     mode = "release";
   }
 
@@ -43,15 +46,21 @@ pub fn build(dir: String, compact: bool, release: bool) {
     create_dist_dir!("x86_64", &bin_target_dir);
   }
 
-  for (target_dir, target) in &targets {
+  for (target_dir, target, platform) in &targets {
+    let all_args = [
+      "+nightly",
+      "build",
+      "--target",
+      target,
+      "-Z",
+      "build-std",
+      mode_arg,
+    ];
+
+    let args: Vec<_> = all_args.iter().filter(|v| !v.is_empty()).collect();
+
     let mut child = Command::new("cargo")
-      .arg("+nightly")
-      .arg("build")
-      .arg("--target")
-      .arg(target)
-      .arg("-Z")
-      .arg("build-std")
-      .arg(format!("--{}", mode))
+      .args(args)
       .stdout(Stdio::piped())
       .spawn()
       .expect("Failed to execute command");
@@ -76,11 +85,14 @@ pub fn build(dir: String, compact: bool, release: bool) {
       exit(-1);
     }
 
-    let source = pwd
-      .join("target")
-      .join("aarch64-unknown-linux-ohos")
-      .join(target)
-      .join(format!("lib${}.so", name));
+    let source = pwd.join("target").join(target).join(mode);
+
+    let files: Vec<PathBuf> = fs::read_dir(source)
+      .expect("Failed to read directory")
+      .filter_map(Result::ok)
+      .map(|entry| entry.path())
+      .filter(|path| path.is_file() && path.extension().map_or(false, |e| e == "so"))
+      .collect();
 
     let mut compact_dir = "";
 
@@ -88,8 +100,16 @@ pub fn build(dir: String, compact: bool, release: bool) {
       compact_dir = target_dir;
     }
 
-    let dist = &bin_target_dir.join(compact_dir);
-    
-    move_file!(source, dist);
+    let bin_dir = &bin_target_dir.join(compact_dir);
+
+    for file in files {
+      let dist: PathBuf;
+      if !compact {
+        dist = bin_dir.join(file.file_name().unwrap());
+      } else {
+        dist = bin_dir.join(format!("{}_{:?}", platform, file.file_name().unwrap()));
+      }
+      move_file!(file, dist);
+    }
   }
 }

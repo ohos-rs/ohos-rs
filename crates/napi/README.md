@@ -30,10 +30,13 @@ ohrs -i test
 ohrs build
 ```
 
+## 指南
+
+目前所有API基本对齐napi，你可以在[example](https://github.com/ohos-rs/example)中看到在HarmonyOS工程中的应用。
+
 ## TODO
 - [ ] CI支持
 目前鸿蒙开放对于linux下通过NDK构建的能力支持太弱，等到API10放开后支持
 
 - [ ] 鸿蒙官方底层能力包装
-
-- [ ] 示例代码开发
+如hilog，vulkan，OpenGL等能力

@@ -609,8 +609,7 @@ fn create_custom_gc(env: sys::napi_env) {
 }
 
 #[cfg(any(
-  all(feature = "napi4", not(target_family = "wasm"), not(feature = "noop")),
-  all(feature = "ohos", not(target_family = "wasm"), not(feature = "noop"))
+  all(feature = "napi4", not(target_family = "wasm"), not(feature = "noop"))
 ))]
 unsafe extern "C" fn remove_thread_id(id: *mut std::ffi::c_void) {
   let thread_id = unsafe { Box::from_raw(id.cast::<ThreadId>()) };

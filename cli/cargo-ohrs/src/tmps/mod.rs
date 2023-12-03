@@ -1,13 +1,13 @@
 pub const CARGO_CONFIG_TOML: &str = r#"[target.aarch64-unknown-linux-ohos]
-ar = "$OH_SDK_HOME/native/llvm/bin/llvm-ar"
+ar = "$OHOS_NDK_HOME/native/llvm/bin/llvm-ar"
 linker = "scripts/aarch64-unknown-linux-ohos-clang.sh"
 
 [target.armv7-unknown-linux-ohos]
-ar = "$OH_SDK_HOME/native/llvm/bin/llvm-ar"
+ar = "$OHOS_NDK_HOME/native/llvm/bin/llvm-ar"
 linker = "scripts/armv7-unknown-linux-ohos-clang.sh"
 
 [target.x86_64-unknown-linux-ohos]
-ar = "$OH_SDK_HOME/native/llvm/bin/llvm-ar"
+ar = "$OHOS_NDK_HOME/native/llvm/bin/llvm-ar"
 linker = "scripts/x86_64-unknown-linux-ohos-clang.sh"
 "#;
 

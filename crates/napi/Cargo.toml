@@ -60,9 +60,9 @@ tokio_time      = ["tokio/time"]
 ohos            = ["napi1", "napi-sys-ohos/ohos", "compat-mode"]
 
 [dependencies]
-bitflags  = "2"
-ctor      = "0.2"
-once_cell = "1.16"
+bitflags = "2"
+ctor = "0.2"
+once_cell = "1.19"
 
 [dependencies.anyhow]
 optional = true

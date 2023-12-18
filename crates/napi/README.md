@@ -21,12 +21,14 @@ cargo install ohrs
 2. 初始化项目
 
 ```shell
-ohrs -i test
+ohrs init test
 ```
 
 3. 构建产物
 
 ```shell
+cd test
+
 ohrs build
 ```
 

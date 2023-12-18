@@ -85,11 +85,11 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi-ohos        = { version = "0.0.1" }
-napi-derive-ohos = { version = "0.0.1" }
+napi-ohos        = { version = "*" }
+napi-derive-ohos = { version = "*" }
 
 [build-dependencies]
-napi-build-ohos = { version = "0.0.1" }
+napi-build-ohos = { version = "*" }
 "#;
 
 pub const LIB_CODE: &str = r#"use napi_derive_ohos::napi;
@@ -100,6 +100,7 @@ use napi_ohos::module_init;
 pub fn add(left: u32, right: u32) -> u32 {
   left + right
 }
+
 #[module_init]
 fn init() {
   pre_init();

@@ -47,14 +47,6 @@ macro_rules! napi_ast_impl {
         }
 			}
 		}
-
-    impl Napi {
-      pub fn register_name(&self) -> String {
-        match self.item {
-          $( NapiItem::$v(ref ast) => ast.register_name.to_string() ),*
-        }
-      }
-    }
   };
 }
 

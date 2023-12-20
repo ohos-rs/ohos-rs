@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+#[cfg(feature = "type-def")]
 use std::io::BufWriter;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -9,10 +10,6 @@ use napi_derive_backend_ohos::{BindgenResult, TryToTokens, REGISTER_IDENTS};
 #[cfg(feature = "type-def")]
 use napi_derive_backend_ohos::{Napi, ToTypeDef};
 use proc_macro2::{TokenStream, TokenTree};
-#[cfg(feature = "type-def")]
-use napi_derive_backend::ToTypeDef;
-use napi_derive_backend::{BindgenResult, Napi, TryToTokens};
-use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{Attribute, Item};
 
@@ -37,7 +34,7 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStrea
     prepare_type_def_file();
 
     if let Ok(wasi_register_file) = env::var("WASI_REGISTER_TMP_PATH") {
-      if let Err(_e) = remove_existed_def_file(&wasi_register_file) {
+      if let Err(_e) = fs::remove_file(wasi_register_file) {
         #[cfg(debug_assertions)]
         {
           println!("Failed to manipulate wasi register file: {:?}", _e);
@@ -70,7 +67,7 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStrea
                 .attrs
                 .iter()
                 .enumerate()
-                .find(|(_, m)| m.path().is_ident("napi"));
+                .find(|(_, m)| m.path.segments[0].ident == "napi");
               if mod_in_mod.is_some() {
                 bail_span!(
                   mod_,
@@ -83,13 +80,11 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStrea
             _ => &mut empty_attrs,
           },
         ) {
-          let napi = item.parse_napi(&mut tokens, &item_opts)?;
-          item_opts.check_used()?;
+          let napi = item.parse_napi(&mut tokens, item_opts)?;
           napi.try_to_tokens(&mut tokens)?;
 
           #[cfg(feature = "type-def")]
           output_type_def(&napi);
-          output_wasi_register_def(&napi);
         } else {
           item.to_tokens(&mut tokens);
         };
@@ -101,39 +96,30 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStrea
       .attrs
       .clone()
       .into_iter()
-      .filter(|attr| attr.path().is_ident("napi"))
+      .filter(|attr| attr.path.segments[0].ident != "napi")
       .collect();
     let mod_name = js_mod.ident;
     let visible = js_mod.vis;
     let mod_tokens = quote! { #(#js_mod_attrs)* #visible mod #mod_name { #tokens } };
     Ok(mod_tokens)
   } else {
-    let napi = item.parse_napi(&mut tokens, &opts)?;
-    opts.check_used()?;
+    let napi = item.parse_napi(&mut tokens, opts)?;
     napi.try_to_tokens(&mut tokens)?;
 
     #[cfg(feature = "type-def")]
     output_type_def(&napi);
-    output_wasi_register_def(&napi);
-    Ok(tokens)
-  }
-}
 
-fn output_wasi_register_def(napi: &Napi) {
-  if let Ok(wasi_register_file) = env::var("WASI_REGISTER_TMP_PATH") {
-    fs::OpenOptions::new()
-      .append(true)
-      .create(true)
-      .open(wasi_register_file)
-      .and_then(|file| {
-        let mut writer = BufWriter::<fs::File>::new(file);
-        let pkg_name: String = std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME is not set");
-        writer.write_all(format!("{pkg_name}: {}", napi.register_name()).as_bytes())?;
-        writer.write_all("\n".as_bytes())
-      })
-      .unwrap_or_else(|e| {
-        println!("Failed to write wasi register file: {:?}", e);
-      });
+    REGISTER_IDENTS.with(|idents| {
+      if let Ok(wasi_register_file) = env::var("WASI_REGISTER_TMP_PATH") {
+        let mut file =
+          fs::File::create(wasi_register_file).expect("Create wasi register file failed");
+        file
+          .write_all(format!("{:?}", idents.borrow()).as_bytes())
+          .expect("Write wasi register file failed");
+      }
+    });
+
+    Ok(tokens)
   }
 }
 
@@ -161,28 +147,41 @@ fn replace_napi_attr_in_mod(
   js_namespace: String,
   attrs: &mut Vec<syn::Attribute>,
 ) -> Option<BindgenAttrs> {
-  let napi_attr = attrs
+  let napi_attr = attrs.clone();
+  let napi_attr = napi_attr
     .iter()
     .enumerate()
-    .find(|(_, m)| m.path().is_ident("napi"));
-
+    .find(|(_, m)| m.path.segments[0].ident == "napi");
   if let Some((index, napi_attr)) = napi_attr {
-    // adds `namespace = #js_namespace` into `#[napi]` attribute
-    let new_attr = match &napi_attr.meta {
-      syn::Meta::Path(_) => {
-        syn::parse_quote!(#[napi(namespace = #js_namespace)])
-      }
-      syn::Meta::List(list) => {
-        let existing = list.tokens.clone();
-        syn::parse_quote!(#[napi(#existing, namespace = #js_namespace)])
-      }
-      syn::Meta::NameValue(name_value) => {
-        let existing = &name_value.value;
-        syn::parse_quote!(#[napi(#existing, namespace = #js_namespace)])
-      }
+    let attr_token_stream = napi_attr.tokens.clone();
+    let raw_attr_stream = attr_token_stream.to_string();
+    let raw_attr_stream = if !raw_attr_stream.is_empty() {
+      raw_attr_stream
+        .strip_prefix('(')
+        .unwrap()
+        .strip_suffix(')')
+        .unwrap()
+        .to_string()
+    } else {
+      raw_attr_stream
     };
+    let raw_attr_token_stream = syn::parse_str::<TokenStream>(raw_attr_stream.as_str()).unwrap();
 
-    let struct_opts = BindgenAttrs::try_from(&new_attr).unwrap();
+    let new_attr: syn::Attribute = if !raw_attr_stream.is_empty() {
+      syn::parse_quote!(
+        #[napi(#raw_attr_token_stream, namespace = #js_namespace)]
+      )
+    } else {
+      syn::parse_quote!(
+        #[napi(namespace = #js_namespace)]
+      )
+    };
+    let struct_opts: BindgenAttrs =
+      if let Some(TokenTree::Group(g)) = new_attr.tokens.into_iter().next() {
+        syn::parse2(g.stream()).ok()?
+      } else {
+        syn::parse2(quote! {}).ok()?
+      };
     attrs.remove(index);
     Some(struct_opts)
   } else {
@@ -193,11 +192,9 @@ fn replace_napi_attr_in_mod(
 #[cfg(feature = "type-def")]
 fn prepare_type_def_file() {
   if let Ok(ref type_def_file) = env::var("TYPE_DEF_TMP_PATH") {
-    use napi_derive_backend_ohos::{
-      NAPI_RS_CLI_VERSION, NAPI_RS_CLI_VERSION_WITH_SHARED_CRATES_FIX,
-    };
+    use napi_derive_backend_ohos::{NAPI_RS_CLI_VERSION, NAPI_RS_CLI_VERSION_WITH_SHARED_CRATES_FIX};
     if let Err(_e) = if *NAPI_RS_CLI_VERSION >= *NAPI_RS_CLI_VERSION_WITH_SHARED_CRATES_FIX {
-      remove_existed_def_file(type_def_file)
+      remove_existed_type_def(type_def_file)
     } else {
       fs::remove_file(type_def_file)
     } {
@@ -209,11 +206,12 @@ fn prepare_type_def_file() {
   }
 }
 
-fn remove_existed_def_file(def_file: &str) -> std::io::Result<()> {
+#[cfg(feature = "type-def")]
+fn remove_existed_type_def(type_def_file: &str) -> std::io::Result<()> {
   use std::io::{BufRead, BufReader};
 
   let pkg_name = std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME is not set");
-  if let Ok(content) = std::fs::File::open(def_file) {
+  if let Ok(content) = std::fs::File::open(type_def_file) {
     let reader = BufReader::new(content);
     let cleaned_content = reader
       .lines()
@@ -231,7 +229,14 @@ fn remove_existed_def_file(def_file: &str) -> std::io::Result<()> {
       })
       .collect::<Vec<String>>()
       .join("\n");
-    std::fs::write(def_file, format!("{cleaned_content}\n"))?;
+    let mut content = std::fs::OpenOptions::new()
+      .read(true)
+      .write(true)
+      .truncate(true)
+      .open(type_def_file)?;
+
+    content.write_all(cleaned_content.as_bytes())?;
+    content.write_all(b"\n")?;
   }
   Ok(())
 }

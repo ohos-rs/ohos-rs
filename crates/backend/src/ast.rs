@@ -28,7 +28,6 @@ pub struct NapiFn {
   pub configurable: bool,
   pub catch_unwind: bool,
   pub unsafe_: bool,
-  pub register_name: Ident,
 }
 
 #[derive(Debug, Clone)]
@@ -87,7 +86,6 @@ pub struct NapiStruct {
   pub comments: Vec<String>,
   pub implement_iterator: bool,
   pub use_custom_finalize: bool,
-  pub register_name: Ident,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -123,7 +121,6 @@ pub struct NapiImpl {
   pub iterator_return_type: Option<Type>,
   pub js_mod: Option<String>,
   pub comments: Vec<String>,
-  pub register_name: Ident,
 }
 
 #[derive(Debug, Clone)]
@@ -134,7 +131,6 @@ pub struct NapiEnum {
   pub js_mod: Option<String>,
   pub comments: Vec<String>,
   pub skip_typescript: bool,
-  pub register_name: Ident,
 }
 
 #[derive(Debug, Clone)]
@@ -168,7 +164,6 @@ pub struct NapiConst {
   pub js_mod: Option<String>,
   pub comments: Vec<String>,
   pub skip_typescript: bool,
-  pub register_name: Ident,
 }
 
 #[derive(Debug, Clone)]

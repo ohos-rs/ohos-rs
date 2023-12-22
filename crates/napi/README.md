@@ -36,6 +36,20 @@ ohrs build
 
 目前所有API基本对齐napi，你可以在[example](https://github.com/ohos-rs/example)中看到在HarmonyOS工程中的应用。
 
+## Packages
+
+| Package                                                    | Version | Description                                                                |
+|------------------------------------------------------------|---------| -------------------------------------------------------------------------- |
+| [`@ohos-rs/crc32`](https://github.com/ohos-rs/crc32-ohos)  | 0.0.1   | Fastest `CRC32` implementation using `SIMD` |
+| [`@ohos-rs/jieba`](https://github.com/ohos-rs/jieba-ohos)  | 0.0.1   | [`jieba-rs`](https://github.com/messense/jieba-rs) binding |
+
+## F&Q
+
+1. 为什么Rust构建产物体积比官方的CMAKE构建体积大？    
+因为官方cmake将STL作为了一个libc++_stared单独构建，因此目标产物较小，Rust没有做这一步。最终比较下来Rust的构建体积应该是小于cmake的
+
+2. 
+
 ## TODO
 - [ ] CI支持
 目前鸿蒙开放对于linux下通过NDK构建的能力支持太弱，等到API10放开后支持

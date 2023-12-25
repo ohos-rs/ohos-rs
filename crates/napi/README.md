@@ -46,9 +46,10 @@ ohrs build
 ## F&Q
 
 1. 为什么Rust构建产物体积比官方的CMAKE构建体积大？    
-因为官方cmake将STL作为了一个libc++_stared单独构建，因此目标产物较小，Rust没有做这一步。最终比较下来Rust的构建体积应该是小于cmake的
+Rust本身的产物体积会比C++大很多。即使使用了各种优化手段因为零抽象成本等各种原因，本身构建的代码体积就会比C++大。    
+   - 如果对于体积较为敏感的话，可以参考[min-sized-rust](https://github.com/johnthagen/min-sized-rust)进行优化。
+   - 另外可以使用NDK提供的strip工具进行优化。工具路径：`${OHOS_NDK_HOME}/native/llvm/bin/llvm-strip`
 
-2. 
 
 ## TODO
 - [ ] CI支持

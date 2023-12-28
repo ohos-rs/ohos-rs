@@ -360,6 +360,25 @@ fn extract_doc_comments(attrs: &[syn::Attribute]) -> Vec<String> {
             _ => None,
           }),
         )
+      let name_value = a.meta.require_name_value();
+      if let Ok(name) = name_value {
+        if a.path().is_ident("doc") {
+          Some(
+            // We want to filter out any Puncts so just grab the Literals
+            match &name.value {
+              syn::Expr::Lit(ExprLit {
+                lit: syn::Lit::Str(str),
+                ..
+              }) => {
+                let quoted = str.token().to_string();
+                Some(try_unescape(&quoted).unwrap_or(quoted))
+              }
+              _ => None,
+            },
+          )
+        } else {
+          None
+        }
       } else {
         None
       }

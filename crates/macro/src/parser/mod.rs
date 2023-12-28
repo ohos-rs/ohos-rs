@@ -1,11 +1,12 @@
 #[macro_use]
 pub mod attrs;
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::str::Chars;
+use std::sync::atomic::AtomicUsize;
 
-use attrs::{BindgenAttr, BindgenAttrs};
+use attrs::BindgenAttrs;
 
 use convert_case::{Case, Casing};
 use napi_derive_backend_ohos::{
@@ -13,16 +14,28 @@ use napi_derive_backend_ohos::{
   NapiEnumVariant, NapiFn, NapiFnArg, NapiFnArgKind, NapiImpl, NapiItem, NapiStruct,
   NapiStructField, NapiStructKind,
 };
-use proc_macro2::{Ident, Span, TokenStream, TokenTree};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
 use syn::ext::IdentExt;
 use syn::parse::{Parse, ParseStream, Result as SynResult};
-use syn::{Attribute, Meta, NestedMeta, PatType, PathSegment, Signature, Type, Visibility};
+use syn::spanned::Spanned;
+use syn::{Attribute, ExprLit, Meta, PatType, PathSegment, Signature, Type, Visibility};
 
 use crate::parser::attrs::{check_recorded_struct_for_impl, record_struct};
 
 thread_local! {
   static GENERATOR_STRUCT: RefCell<HashMap<String, bool>> = Default::default();
+}
+
+static REGISTER_INDEX: AtomicUsize = AtomicUsize::new(0);
+
+fn get_register_ident(name: &str) -> Ident {
+  let new_name = format!(
+    "__napi_register__{}_{}",
+    name,
+    REGISTER_INDEX.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+  );
+  Ident::new(&new_name, Span::call_site())
 }
 
 struct AnyIdent(Ident);
@@ -36,138 +49,12 @@ impl Parse for AnyIdent {
   }
 }
 
-impl Parse for BindgenAttrs {
-  fn parse(input: ParseStream) -> SynResult<Self> {
-    let mut attrs = BindgenAttrs::default();
-    if input.is_empty() {
-      return Ok(attrs);
-    }
-
-    let opts = syn::punctuated::Punctuated::<_, syn::token::Comma>::parse_terminated(input)?;
-    attrs.attrs = opts.into_iter().map(|c| (Cell::new(false), c)).collect();
-    Ok(attrs)
-  }
-}
-
-impl Parse for BindgenAttr {
-  fn parse(input: ParseStream) -> SynResult<Self> {
-    let original = input.fork();
-    let attr: AnyIdent = input.parse()?;
-    let attr = attr.0;
-    let attr_span = attr.span();
-    let attr_string = attr.to_string();
-    let raw_attr_string = format!("r#{}", attr_string);
-
-    macro_rules! parsers {
-      ($(($name:ident, $($contents:tt)*),)*) => {
-        $(
-          if attr_string == stringify!($name) || raw_attr_string == stringify!($name) {
-            parsers!(
-              @parser
-              $($contents)*
-            );
-          }
-        )*
-      };
-
-      (@parser $variant:ident(Span)) => ({
-        return Ok(BindgenAttr::$variant(attr_span));
-      });
-
-      (@parser $variant:ident(Span, Ident)) => ({
-        input.parse::<Token![=]>()?;
-        let ident = input.parse::<AnyIdent>()?.0;
-        return Ok(BindgenAttr::$variant(attr_span, ident))
-      });
-
-      (@parser $variant:ident(Span, Option<Ident>)) => ({
-        if input.parse::<Token![=]>().is_ok() {
-          let ident = input.parse::<AnyIdent>()?.0;
-          return Ok(BindgenAttr::$variant(attr_span, Some(ident)))
-        } else {
-          return Ok(BindgenAttr::$variant(attr_span, None));
-        }
-      });
-
-        (@parser $variant:ident(Span, syn::Path)) => ({
-            input.parse::<Token![=]>()?;
-            return Ok(BindgenAttr::$variant(attr_span, input.parse()?));
-        });
-
-        (@parser $variant:ident(Span, syn::Expr)) => ({
-            input.parse::<Token![=]>()?;
-            return Ok(BindgenAttr::$variant(attr_span, input.parse()?));
-        });
-
-        (@parser $variant:ident(Span, String, Span)) => ({
-          input.parse::<Token![=]>()?;
-          let (val, span) = match input.parse::<syn::LitStr>() {
-            Ok(str) => (str.value(), str.span()),
-            Err(_) => {
-              let ident = input.parse::<AnyIdent>()?.0;
-              (ident.to_string(), ident.span())
-            }
-          };
-          return Ok(BindgenAttr::$variant(attr_span, val, span))
-        });
-
-        (@parser $variant:ident(Span, Option<bool>)) => ({
-          if let Ok(_) = input.parse::<Token![=]>() {
-            let (val, _) = match input.parse::<syn::LitBool>() {
-              Ok(str) => (str.value(), str.span()),
-              Err(_) => {
-                let ident = input.parse::<AnyIdent>()?.0;
-                (true, ident.span())
-              }
-            };
-            return Ok::<BindgenAttr, syn::Error>(BindgenAttr::$variant(attr_span, Some(val)))
-          } else {
-            return Ok(BindgenAttr::$variant(attr_span, Some(true)))
-          }
-        });
-
-        (@parser $variant:ident(Span, Vec<String>, Vec<Span>)) => ({
-          input.parse::<Token![=]>()?;
-          let (vals, spans) = match input.parse::<syn::ExprArray>() {
-            Ok(exprs) => {
-              let mut vals = vec![];
-              let mut spans = vec![];
-
-              for expr in exprs.elems.iter() {
-                if let syn::Expr::Lit(syn::ExprLit {
-                  lit: syn::Lit::Str(ref str),
-                  ..
-                }) = expr {
-                  vals.push(str.value());
-                  spans.push(str.span());
-                } else {
-                  return Err(syn::Error::new(expr.span(), "expected string literals"));
-                }
-              }
-
-              (vals, spans)
-            },
-            Err(_) => {
-              let ident = input.parse::<AnyIdent>()?.0;
-              (vec![ident.to_string()], vec![ident.span()])
-            }
-          };
-          return Ok(BindgenAttr::$variant(attr_span, vals, spans))
-        });
-      }
-
-    attrgen!(parsers);
-
-    Err(original.error("unknown attribute"))
-  }
-}
-
 pub trait ConvertToAST {
-  fn convert_to_ast(&mut self, opts: BindgenAttrs) -> BindgenResult<Napi>;
+  fn convert_to_ast(&mut self, opts: &BindgenAttrs) -> BindgenResult<Napi>;
 }
 
 pub trait ParseNapi {
-  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: BindgenAttrs) -> BindgenResult<Napi>;
+  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: &BindgenAttrs) -> BindgenResult<Napi>;
 }
 
 /// This function does a few things:
@@ -185,43 +72,80 @@ fn find_ts_arg_type_and_remove_attribute(
   p: &mut PatType,
   ts_args_type: Option<&(&str, Span)>,
 ) -> BindgenResult<Option<String>> {
+  let mut ts_type_attr: Option<(usize, String)> = None;
   for (idx, attr) in p.attrs.iter().enumerate() {
-    if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-      if meta_list.path.get_ident() != Some(&format_ident!("napi")) {
-        // If this attribute is not for `napi` ignore it.
-        continue;
-      }
-
+    if attr.path().is_ident("napi") {
       if let Some((ts_args_type, _)) = ts_args_type {
         bail_span!(
-          meta_list,
+          attr,
           "Found a 'ts_args_type'=\"{}\" override. Cannot use 'ts_arg_type' at the same time since they are mutually exclusive.",
           ts_args_type
         );
       }
 
-      let nested = meta_list.nested.first();
+      match &attr.meta {
+        syn::Meta::Path(_) | syn::Meta::NameValue(_) => {
+          bail_span!(
+            attr,
+            "Expects an assignment #[napi(ts_arg_type = \"MyType\")]"
+          )
+        }
+        syn::Meta::List(list) => {
+          let mut found = false;
+          list
+            .parse_args_with(|tokens: &syn::parse::ParseBuffer<'_>| {
+              // tokens:
+              // #[napi(xxx, xxx=xxx)]
+              //        ^^^^^^^^^^^^
+              let list = tokens.parse_terminated(Meta::parse, Token![,])?;
 
-      let nm = if let Some(NestedMeta::Meta(Meta::NameValue(nm))) = nested {
-        nm
-      } else {
-        bail_span!(meta_list.nested, "Expected Name Value");
-      };
+              for meta in list {
+                if meta.path().is_ident("ts_arg_type") {
+                  match meta {
+                    Meta::Path(_) | Meta::List(_) => {
+                      return Err(syn::Error::new(
+                        meta.path().span(),
+                        "Expects an assignment (ts_arg_type = \"MyType\")",
+                      ))
+                    }
+                    Meta::NameValue(name_value) => match name_value.value {
+                      syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(str),
+                        ..
+                      }) => {
+                        let value = str.value();
+                        found = true;
+                        ts_type_attr = Some((idx, value));
+                      }
+                      _ => {
+                        return Err(syn::Error::new(
+                          name_value.value.span(),
+                          "Expects a string literal",
+                        ))
+                      }
+                    },
+                  }
+                }
+              }
 
-      if Some(&format_ident!("ts_arg_type")) != nm.path.get_ident() {
-        bail_span!(nm.path, "Did not find 'ts_arg_type'");
-      }
+              Ok(())
+            })
+            .map_err(Diagnostic::from)?;
 
-      if let syn::Lit::Str(lit) = &nm.lit {
-        p.attrs.remove(idx);
-        return Ok(Some(lit.value()));
-      } else {
-        bail_span!(nm.lit, "Expected a string literal");
+          if !found {
+            bail_span!(attr, "Expects a 'ts_arg_type'");
+          }
+        }
       }
     }
   }
 
-  Ok(None)
+  if let Some((idx, value)) = ts_type_attr {
+    p.attrs.remove(idx);
+    Ok(Some(value))
+  } else {
+    Ok(None)
+  }
 }
 
 fn get_ty(mut ty: &syn::Type) -> &syn::Type {
@@ -349,17 +273,6 @@ fn extract_doc_comments(attrs: &[syn::Attribute]) -> Vec<String> {
     .filter_map(|a| {
       // if the path segments include an ident of "doc" we know this
       // this is a doc comment
-      if a.path.segments.iter().any(|s| s.ident == "doc") {
-        Some(
-          // We want to filter out any Puncts so just grab the Literals
-          a.tokens.clone().into_iter().filter_map(|t| match t {
-            TokenTree::Literal(lit) => {
-              let quoted = lit.to_string();
-              Some(try_unescape(&quoted).unwrap_or(quoted))
-            }
-            _ => None,
-          }),
-        )
       let name_value = a.meta.require_name_value();
       if let Ok(name) = name_value {
         if a.path().is_ident("doc") {
@@ -503,6 +416,10 @@ fn extract_fn_closure_generics(
                   ));
                 }
               }
+              _ => errors.push(err_span! {
+                bound,
+                "unsupported bound in napi"
+              }),
             }
           }
         }
@@ -537,6 +454,10 @@ fn extract_fn_closure_generics(
                 ));
               }
             }
+            _ => errors.push(err_span! {
+              bound,
+              "unsupported bound in napi"
+            }),
           }
         }
       }
@@ -691,7 +612,7 @@ fn napi_fn_from_decl(
     };
 
     NapiFn {
-      name: ident,
+      name: ident.clone(),
       js_name,
       args,
       ret,
@@ -716,12 +637,13 @@ fn napi_fn_from_decl(
       configurable: opts.configurable(),
       catch_unwind: opts.catch_unwind().is_some(),
       unsafe_: sig.unsafety.is_some(),
+      register_name: get_register_ident(ident.to_string().as_str()),
     }
   })
 }
 
 impl ParseNapi for syn::Item {
-  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     match self {
       syn::Item::Fn(f) => f.parse_napi(tokens, opts),
       syn::Item::Struct(s) => s.parse_napi(tokens, opts),
@@ -737,7 +659,7 @@ impl ParseNapi for syn::Item {
 }
 
 impl ParseNapi for syn::ItemFn {
-  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     if opts.ts_type().is_some() {
       bail_span!(
         self,
@@ -757,7 +679,7 @@ impl ParseNapi for syn::ItemFn {
   }
 }
 impl ParseNapi for syn::ItemStruct {
-  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     if opts.ts_args_type().is_some()
       || opts.ts_return_type().is_some()
       || opts.skip_typescript().is_some()
@@ -791,7 +713,7 @@ impl ParseNapi for syn::ItemStruct {
 }
 
 impl ParseNapi for syn::ItemImpl {
-  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     if opts.ts_args_type().is_some()
       || opts.ts_return_type().is_some()
       || opts.skip_typescript().is_some()
@@ -824,7 +746,7 @@ impl ParseNapi for syn::ItemImpl {
 }
 
 impl ParseNapi for syn::ItemEnum {
-  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     if opts.ts_args_type().is_some()
       || opts.ts_return_type().is_some()
       || opts.ts_type().is_some()
@@ -854,7 +776,7 @@ impl ParseNapi for syn::ItemEnum {
   }
 }
 impl ParseNapi for syn::ItemConst {
-  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn parse_napi(&mut self, tokens: &mut TokenStream, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     if opts.ts_args_type().is_some()
       || opts.ts_return_type().is_some()
       || opts.ts_type().is_some()
@@ -906,10 +828,10 @@ fn fn_kind(opts: &BindgenAttrs) -> FnKind {
 }
 
 impl ConvertToAST for syn::ItemFn {
-  fn convert_to_ast(&mut self, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn convert_to_ast(&mut self, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     let func = napi_fn_from_decl(
       &mut self.sig,
-      &opts,
+      opts,
       self.attrs.clone(),
       self.vis.clone(),
       None,
@@ -922,7 +844,7 @@ impl ConvertToAST for syn::ItemFn {
 }
 
 impl ConvertToAST for syn::ItemStruct {
-  fn convert_to_ast(&mut self, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn convert_to_ast(&mut self, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     let mut errors = vec![];
 
     let vis = self.vis.clone();
@@ -994,7 +916,7 @@ impl ConvertToAST for syn::ItemStruct {
       })
     }
 
-    record_struct(&struct_name, js_name.clone(), &opts);
+    record_struct(&struct_name, js_name.clone(), opts);
     let namespace = opts.namespace().map(|(m, _)| m.to_owned());
     let implement_iterator = opts.iterator().is_some();
     GENERATOR_STRUCT.with(|inner| {
@@ -1009,7 +931,7 @@ impl ConvertToAST for syn::ItemStruct {
     Diagnostic::from_vec(errors).map(|()| Napi {
       item: NapiItem::Struct(NapiStruct {
         js_name,
-        name: struct_name,
+        name: struct_name.clone(),
         vis,
         fields,
         is_tuple,
@@ -1020,13 +942,14 @@ impl ConvertToAST for syn::ItemStruct {
         comments: extract_doc_comments(&self.attrs),
         implement_iterator,
         use_custom_finalize: opts.custom_finalize().is_some(),
+        register_name: get_register_ident(format!("{struct_name}_struct").as_str()),
       }),
     })
   }
 }
 
 impl ConvertToAST for syn::ItemImpl {
-  fn convert_to_ast(&mut self, impl_opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn convert_to_ast(&mut self, impl_opts: &BindgenAttrs) -> BindgenResult<Napi> {
     let struct_name = match get_ty(&self.self_ty) {
       syn::Type::Path(syn::TypePath {
         ref path,
@@ -1047,7 +970,7 @@ impl ConvertToAST for syn::ItemImpl {
     let mut iterator_return_type = None;
     for item in self.items.iter_mut() {
       if let Some(method) = match item {
-        syn::ImplItem::Method(m) => Some(m),
+        syn::ImplItem::Fn(m) => Some(m),
         syn::ImplItem::Type(m) => {
           if let Some((_, t, _)) = &self.trait_ {
             if let Some(PathSegment { ident, .. }) = t.segments.last() {
@@ -1108,7 +1031,7 @@ impl ConvertToAST for syn::ItemImpl {
 
     Ok(Napi {
       item: NapiItem::Impl(NapiImpl {
-        name: struct_name,
+        name: struct_name.clone(),
         js_name: struct_js_name,
         items,
         task_output_type,
@@ -1117,25 +1040,20 @@ impl ConvertToAST for syn::ItemImpl {
         iterator_return_type,
         js_mod: namespace,
         comments: extract_doc_comments(&self.attrs),
+        register_name: get_register_ident(format!("{struct_name}_impl").as_str()),
       }),
     })
   }
 }
 
 impl ConvertToAST for syn::ItemEnum {
-  fn convert_to_ast(&mut self, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn convert_to_ast(&mut self, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     match self.vis {
       Visibility::Public(_) => {}
       _ => bail_span!(self, "only public enum allowed"),
     }
 
-    self.attrs.push(Attribute {
-      pound_token: Default::default(),
-      style: syn::AttrStyle::Outer,
-      bracket_token: Default::default(),
-      path: syn::parse_quote! { derive },
-      tokens: quote! { (Copy, Clone) },
-    });
+    self.attrs.push(parse_quote!(#[derive(Copy, Clone)]));
 
     let js_name = opts
       .js_name()
@@ -1231,13 +1149,14 @@ impl ConvertToAST for syn::ItemEnum {
         js_mod: opts.namespace().map(|(m, _)| m.to_owned()),
         comments: extract_doc_comments(&self.attrs),
         skip_typescript: opts.skip_typescript().is_some(),
+        register_name: get_register_ident(self.ident.to_string().as_str()),
       }),
     })
   }
 }
 
 impl ConvertToAST for syn::ItemConst {
-  fn convert_to_ast(&mut self, opts: BindgenAttrs) -> BindgenResult<Napi> {
+  fn convert_to_ast(&mut self, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     match self.vis {
       Visibility::Public(_) => Ok(Napi {
         item: NapiItem::Const(NapiConst {
@@ -1250,6 +1169,7 @@ impl ConvertToAST for syn::ItemConst {
           js_mod: opts.namespace().map(|(m, _)| m.to_owned()),
           comments: extract_doc_comments(&self.attrs),
           skip_typescript: opts.skip_typescript().is_some(),
+          register_name: get_register_ident(self.ident.to_string().as_str()),
         }),
       }),
       _ => bail_span!(self, "only public const allowed"),

@@ -6,7 +6,7 @@ name         = "napi-derive-backend-ohos"
 readme       = "README.md"
 repository   = "https://github.com/southorange0929/napi-rs"
 rust-version = "1.65"
-version      = "0.0.1"
+version      = "0.0.2"
 
 [package.metadata.workspaces]
 independent = true
@@ -20,7 +20,7 @@ type-def = ["regex", "once_cell", "semver"]
 convert_case = "0.6"
 proc-macro2 = "1"
 quote = "1"
-syn = { version = "1.0.61", features = ["fold", "full", "extra-traits"] }
+syn = { version = "2", features = ["fold", "full", "extra-traits"] }
 
 [dependencies.regex]
 optional = true

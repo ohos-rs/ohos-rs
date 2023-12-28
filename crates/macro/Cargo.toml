@@ -12,7 +12,7 @@ name = "napi-derive-ohos"
 readme = "README.md"
 repository = "https://github.com/southorange0929/napi-rs"
 rust-version = "1.65"
-version = "0.0.1"
+version = "0.0.2"
 
 [package.metadata.workspaces]
 independent = true
@@ -30,7 +30,7 @@ convert_case = "0.6"
 napi-derive-backend-ohos = { version = "0.0.1", path = "../backend" }
 proc-macro2 = "1"
 quote = "1"
-syn = { version = "1.0.61", features = ["fold", "full", "extra-traits"] }
+syn = { version = "2", features = ["fold", "full", "extra-traits"] }
 cfg-if = "1.0"
 
 [lib]

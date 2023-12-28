@@ -3,7 +3,7 @@ use quote::ToTokens;
 use syn::spanned::Spanned;
 
 use crate::{
-  codegen::{get_intermediate_ident, get_register_ident, js_mod_to_token_stream},
+  codegen::{get_intermediate_ident, js_mod_to_token_stream},
   BindgenResult, CallbackArg, Diagnostic, FnKind, FnSelf, NapiFn, NapiFnArgKind, TryToTokens,
 };
 
@@ -67,7 +67,7 @@ impl TryToTokens for NapiFn {
           let _make_ref = |a: ::std::ptr::NonNull<napi_ohos::bindgen_prelude::sys::napi_value__>| {
             let mut node_ref = ::std::mem::MaybeUninit::uninit();
             napi_ohos::bindgen_prelude::check_status!(unsafe {
-              napi_ohos::bindgen_prelude::sys::napi_create_reference(env, a.as_ptr(), 1, node_ref.as_mut_ptr())
+                napi_ohos::bindgen_prelude::sys::napi_create_reference(env, a.as_ptr(), 1, node_ref.as_mut_ptr())
               },
               "failed to create napi ref"
             )?;
@@ -144,8 +144,6 @@ impl TryToTokens for NapiFn {
         // constructor function is called from class `factory`
         // so we should skip the original `constructor` logic
         if napi_ohos::__private::___CALL_FROM_FACTORY.with(|inner| inner.load(std::sync::atomic::Ordering::Relaxed)) {
-          return std::ptr::null_mut();
-        if napi::__private::___CALL_FROM_FACTORY.with(|inner| inner.load(std::sync::atomic::Ordering::Relaxed)) {
             #return_from_factory
         }
         #function_call_inner
@@ -574,13 +572,11 @@ impl NapiFn {
       let name_str = self.name.to_string();
       let js_name = format!("{}\0", &self.js_name);
       let name_len = self.js_name.len();
-      let module_register_name = get_register_ident(&name_str);
+      let module_register_name = &self.register_name;
       let intermediate_ident = get_intermediate_ident(&name_str);
       let js_mod_ident = js_mod_to_token_stream(self.js_mod.as_ref());
       let cb_name = Ident::new(&format!("{}_js_function", name_str), Span::call_site());
-      crate::codegen::REGISTER_IDENTS.with(|c| {
-        c.borrow_mut().push(module_register_name.to_string());
-      });
+
       quote! {
         #[allow(non_snake_case)]
         #[allow(clippy::all)]

@@ -1,6 +1,6 @@
 [package]
 name        = "ohrs"
-version     = "0.0.9"
+version     = "0.1.0"
 edition     = "2021"
 license     = "MIT OR Apache-2.0"
 description = "a cli tool for ohos-rs"
@@ -12,3 +12,4 @@ description = "a cli tool for ohos-rs"
 clap     = { version = "4.4.8", features = ["derive"] }
 fs_extra = "1.3.0"
 cargo_metadata = "0.18.1"
+once_cell = "1.19.0"

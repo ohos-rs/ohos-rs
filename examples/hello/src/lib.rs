@@ -8,7 +8,6 @@ pub fn add(left: u32, right: Option<u32>) -> u32 {
   left + r
 }
 
-
 #[module_init]
 fn init() {
   pre_init();

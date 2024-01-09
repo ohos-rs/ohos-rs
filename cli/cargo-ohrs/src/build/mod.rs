@@ -1,8 +1,9 @@
 use crate::arg::BuildArg;
-use cargo_metadata::Artifact;
+use cargo_metadata::{Package};
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use std::sync::RwLock;
+use cargo_metadata::camino::Utf8PathBuf;
 
 mod artifact;
 mod prepare;
@@ -41,7 +42,9 @@ pub struct Context<'a> {
   // 目标产物路径
   pub dist: PathBuf,
   // 构建的信息
-  pub artifact: Option<Artifact>,
+  pub package: Option<Package>,
+  // 当前构建项目的产物地址 用于支持cargo workspace的构建
+  pub cargo_build_target_dir: Option<Utf8PathBuf>
 }
 
 /// build逻辑

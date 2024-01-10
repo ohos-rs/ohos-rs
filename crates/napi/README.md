@@ -43,6 +43,11 @@ ohrs build
 | [`@ohos-rs/crc32`](https://github.com/ohos-rs/crc32-ohos)  | 0.0.1   | Fastest `CRC32` implementation using `SIMD` |
 | [`@ohos-rs/jieba`](https://github.com/ohos-rs/jieba-ohos)  | 0.0.1   | [`jieba-rs`](https://github.com/messense/jieba-rs) binding |
 
+
+## 社区
+
+你可以在 [这里](https://github.com/ohos-rs/example/issues) 提交相关问题、建议和需求场景。
+
 ## F&Q
 
 1. 为什么Rust构建产物体积比官方的CMAKE构建体积大？    

@@ -8,6 +8,7 @@ use std::sync::RwLock;
 mod artifact;
 mod prepare;
 mod run;
+mod ts;
 
 // 全局状态，在调用的时候必须重置为当前指
 pub(crate) static BUILD_ARGS: Lazy<RwLock<BuildArg>> = Lazy::new(|| RwLock::default());
@@ -60,4 +61,6 @@ pub fn build() {
     run::build(&mut ctx, &arch);
     artifact::copy_artifact(&mut ctx, &arch);
   });
+
+  ts::generate_d_ts_file(&mut ctx);
 }

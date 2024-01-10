@@ -14,7 +14,7 @@ independent = true
 [features]
 noop     = []
 strict   = []
-type-def = ["regex", "once_cell", "semver"]
+type-def = ["regex", "once_cell"]
 
 [dependencies]
 convert_case = "0.6"
@@ -27,9 +27,5 @@ optional = true
 version  = "1"
 
 [dependencies.once_cell]
-optional = true
-version  = "1"
-
-[dependencies.semver]
 optional = true
 version  = "1"

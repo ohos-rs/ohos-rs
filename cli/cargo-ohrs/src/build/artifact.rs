@@ -16,7 +16,7 @@ pub fn copy_artifact(ctx: &mut Context, target: &super::Architecture) {
 
   create_dist_dir!(bin_dir);
 
-  if let Some(package) = &ctx.package {
+  if let Some(_package) = &ctx.package {
     // 从target中解析构建产物
     let source = &ctx
       .cargo_build_target_dir

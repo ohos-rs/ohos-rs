@@ -1,6 +1,9 @@
 use crate::build::Context;
 use crate::create_dist_dir;
 use cargo_metadata::MetadataCommand;
+use sha2::{Digest, Sha256};
+use std::env;
+use std::path::PathBuf;
 
 /// 构建前初始化工作，包括获取当前运行环境等。
 pub fn prepare(ctx: &mut Context) -> Result<(), String> {
@@ -43,8 +46,22 @@ pub fn prepare(ctx: &mut Context) -> Result<(), String> {
   }
 
   // 创建目标文件夹
-  ctx.dist = ctx.pwd.join(&args.dir);
+  ctx.dist = ctx.pwd.join(&args.dist);
   create_dist_dir!(&ctx.dist);
+
+  // 设置生成.d.ts tmp file路径的环境变量
+  let tmp_dir = env::temp_dir();
+
+  let mut hasher = Sha256::new();
+  hasher.update(&pkg.manifest_path.as_str());
+  let hash_result = hasher.finalize();
+  let hash_hex = format!("{:x}", hash_result);
+  let short_hash = &hash_hex[..8];
+  let file_name = format!("{}-{}.napi_type_def.tmp", &pkg.name, short_hash);
+
+  // 拼接完整的文件路径
+  let file_path = PathBuf::from(tmp_dir).join(file_name);
+  env::set_var("TYPE_DEF_TMP_PATH", file_path.to_str().unwrap());
 
   Ok(())
 }

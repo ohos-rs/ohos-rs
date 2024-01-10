@@ -14,9 +14,9 @@ pub struct OhrsCli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-  /// Project initialization
+  /// Initialize project
   Init(InitArg),
-  /// Project construction
+  /// Build project
   Build(BuildArg),
   /// Check environments
   Doctor,
@@ -24,24 +24,27 @@ pub enum Commands {
 
 #[derive(Args)]
 pub struct InitArg {
-  /// Project name,which will be created.
+  /// Project's name.Folder will be created, if the folder is already existed and will failed.
   pub name: String,
 }
 
 #[derive(Args, Default)]
 pub struct BuildArg {
-  /// dist target dir default is dist
-  #[arg(long, short, default_value_t = String::from("dist"))]
-  pub dir: String,
+  #[arg(long,
+  short = 'd',
+  default_value_t = String::from("dist"),
+  help="Target's file will be copied to this folder.")]
+  pub dist: String,
+
   #[arg(
     long,
-    short,
+    short = 'c',
     default_value_t = false,
-    help = "dist file is compact default is false"
+    help = "Target's file is compact mode"
   )]
   pub compact: bool,
 
   /// build target with release mode default is false
-  #[arg(long, default_value_t = false)]
+  #[arg(short = 'r', long, default_value_t = false)]
   pub release: bool,
 }

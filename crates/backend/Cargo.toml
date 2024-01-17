@@ -4,7 +4,7 @@ edition      = "2021"
 license      = "MIT"
 name         = "napi-derive-backend-ohos"
 readme       = "README.md"
-repository   = "https://github.com/southorange0929/napi-rs"
+repository   = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.65"
 version      = "0.0.2"
 

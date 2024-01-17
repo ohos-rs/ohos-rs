@@ -7,7 +7,7 @@ keywords     = ["NodeJS", "FFI", "NAPI", "n-api"]
 license      = "MIT"
 name         = "napi-build-ohos"
 readme       = "README.md"
-repository   = "https://github.com/southorange0929/napi-rs"
+repository   = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.65"
 version      = "0.0.1"
 

@@ -166,6 +166,8 @@ pub mod bindgen_prelude {
     Result, Status, Task, ValueType,
   };
 
+  pub use crate::bindgen_runtime::ctor as module_init;
+
   // This function's signature must be kept in sync with the one in tokio_runtime.rs, otherwise napi
   // will fail to compile without the `tokio_rt` feature.
 
@@ -177,6 +179,7 @@ pub mod bindgen_prelude {
   }
 
   /// node support symbol napi_register_module_v1,but harmony not support.So we must call it.
+  /// 2024-01-17 update: Now, we don't need to call it in our code, it will be add to code with napi macro.
   pub fn pre_init() {
     let name = CString::new("entry").unwrap();
     let mut modules = sys::napi_module {

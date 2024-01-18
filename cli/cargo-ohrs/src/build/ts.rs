@@ -42,8 +42,18 @@ fn read_intermediate_type_file(file_path: &str) -> Vec<TypeDefLine> {
   let mut defs: Vec<TypeDefLine> = Vec::new();
   for line in lines {
     if let Ok(json_line) = line {
-      if !json_line.trim().is_empty() {
-        let json_value: TypeDefLine = serde_json::from_str(&json_line.trim()).unwrap();
+      let mut format_line = json_line.trim().to_string();
+
+      // 检查字符串是否以'{'开头
+      if !format_line.starts_with('{') {
+        // 找到第一个':'的位置
+        if let Some(start) = format_line.find(':') {
+          // 从':'的下一个位置开始切片字符串
+          format_line = format_line[start + 1..].to_string();
+        }
+      }
+      if !format_line.is_empty() {
+        let json_value: TypeDefLine = serde_json::from_str(&format_line).unwrap();
         defs.push(json_value);
       }
     }

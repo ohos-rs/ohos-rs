@@ -180,13 +180,13 @@ pub mod bindgen_prelude {
 
   /// node support symbol napi_register_module_v1,but harmony not support.So we must call it.
   /// 2024-01-17 update: Now, we don't need to call it in our code, it will be add to code with napi macro.
-  pub fn pre_init() {
-    let name = CString::new("entry").unwrap();
+  pub fn pre_init(name: &str) {
+    let s = CString::new(name).unwrap();
     let mut modules = sys::napi_module {
       nm_version: 1,
       nm_filename: ptr::null_mut(),
       nm_flags: 0,
-      nm_modname: name.as_ptr().cast(),
+      nm_modname: s.as_ptr().cast(),
       nm_priv: ptr::null_mut() as *mut _,
       nm_register_func: Some(napi_register_module_v1),
       reserved: [ptr::null_mut() as *mut _; 4],

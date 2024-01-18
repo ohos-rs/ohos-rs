@@ -12,6 +12,7 @@ extern crate quote;
 
 use std::env;
 
+use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(feature = "compat-mode")]
@@ -23,13 +24,18 @@ static IS_FIRST_NAPI_MACRO: AtomicBool = AtomicBool::new(true);
 fn auto_add_register_code() -> proc_macro2::TokenStream {
   let prepare = match IS_FIRST_NAPI_MACRO.load(Ordering::SeqCst) {
     true => {
+      // must same with target name,if not harmony os will crash.
+      // and must with default value.`cargo expand` will ignore build.rs script
+      let name = env::var("NAPI_BUILD_TARGET_NAME")
+        .map_or(String::from("entry"), |v| v)
+        .to_case(Case::Snake);
       IS_FIRST_NAPI_MACRO.store(false, Ordering::SeqCst);
       quote!(
         use napi_ohos::bindgen_prelude::*;
 
         #[module_init]
         fn napi_register_module_v1_init() {
-          pre_init();
+          pre_init(#name);
         }
       )
     }

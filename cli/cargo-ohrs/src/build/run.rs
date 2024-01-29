@@ -11,8 +11,8 @@ pub fn build(ctx: &mut Context, arch: &Architecture) {
   let ndk = env::var("OHOS_NDK_HOME").expect("OHOS_NDK_HOME not set");
 
   let ohos_c_cflags = HashMap::from([
-        ("arm64", format!("-target aarch64-linux-ohos --sysroot={}/native/sysroot -D__MUSL__", ndk)),
-        ("arm", format!("-target arm-linux-ohos --sysroot={}/native/sysroot -D__MUSL__ -march=armv7-a -mfloat-abi=softfp -mtune=generic-armv7-a -mthumb", ndk)),
+        ("arm64", format!("-target aarch64-linux-ohos -D__MUSL__")),
+        ("arm", format!("-target arm-linux-ohos -D__MUSL__ -march=armv7-a -mfloat-abi=softfp -mtune=generic-armv7-a -mthumb")),
         ("x86_64", format!("-target x86_64-linux-ohos --sysroot={}/native/sysroot -D__MUSL__", ndk)),
     ]);
 
@@ -28,7 +28,7 @@ pub fn build(ctx: &mut Context, arch: &Architecture) {
     ("RANLIB", format!("{}/native/llvm/bin/llvm-ranlib", ndk)),
     (linker, format!("{}/native/llvm/bin/clang", ndk)),
     (
-      "CFLAGS",
+      "RUSTFLAGS",
       ohos_c_cflags.get(arch.platform).unwrap().to_string(),
     ),
   ]);

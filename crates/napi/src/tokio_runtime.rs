@@ -65,11 +65,17 @@ where
 /// Runs a future to completion
 /// This is blocking, meaning that it pauses other execution until the future is complete,
 /// only use it when it is absolutely necessary, in other places use async functions instead.
-pub fn block_on<F>(fut: F) -> F::Output
-where
-  F: 'static + Send + Future<Output = ()>,
-{
+pub fn block_on<F: Future>(fut: F) -> F::Output {
   RT.read().unwrap().as_ref().unwrap().block_on(fut)
+}
+
+/// spawn_blocking on the current Tokio runtime.
+pub fn spawn_blocking<F, R>(func: F) -> tokio::task::JoinHandle<R>
+where
+  F: FnOnce() -> R + Send + 'static,
+  R: Send + 'static,
+{
+  RT.read().unwrap().as_ref().unwrap().spawn_blocking(func)
 }
 
 // This function's signature must be kept in sync with the one in lib.rs, otherwise napi

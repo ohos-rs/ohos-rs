@@ -51,8 +51,7 @@ exec $OHOS_NDK_HOME/native/llvm/bin/clang++ \
   "$@"
 "#;
 
-pub const X86_64_C_BUILD_SHELL: &str = r#"
-#!/bin/sh
+pub const X86_64_C_BUILD_SHELL: &str = r#"#!/bin/sh
 exec $OHOS_NDK_HOME/native/llvm/bin/clang \
   -target x86_64-linux-ohos \
   --sysroot=$OHOS_NDK_HOME/native/sysroot \
@@ -67,8 +66,7 @@ exec $OHOS_NDK_HOME/native/llvm/bin/clang++ \
   -D__MUSL__ \
   "$@"
 "#;
-pub const BUILD_INIT: &str = r#"
-extern crate napi_build_ohos;
+pub const BUILD_INIT: &str = r#"use napi_build_ohos;
 
 fn main() {
   napi_build_ohos::setup();
@@ -93,22 +91,17 @@ napi-build-ohos = { version = "*" }
 "#;
 
 pub const LIB_CODE: &str = r#"use napi_derive_ohos::napi;
-use napi_ohos::bindgen_prelude::pre_init;
-use napi_ohos::module_init;
 
 #[napi]
 pub fn add(left: u32, right: u32) -> u32 {
   left + right
 }
-
-#[module_init]
-fn init() {
-  pre_init();
-}
 "#;
 
 pub const GIT_IGNORE: &str = r#"dist/
 target/
+.DS_Store
+.idea/
 
 Cargo.lock
 "#;

@@ -415,7 +415,10 @@ pub unsafe extern "C" fn napi_register_module_v1(
           }
           let (ctor, props): (Vec<_>, Vec<_>) = props.iter().partition(|prop| prop.is_ctor);
 
-          let ctor = ctor.get(0).map(|c| c.raw().method.unwrap()).unwrap_or(noop);
+          let ctor = ctor
+            .first()
+            .map(|c| c.raw().method.unwrap())
+            .unwrap_or(noop);
           let raw_props: Vec<_> = props.iter().map(|prop| prop.raw()).collect();
 
           let js_class_name = CStr::from_bytes_with_nul_unchecked(js_name.as_bytes());
@@ -608,9 +611,7 @@ fn create_custom_gc(env: sys::napi_env) {
   // );
 }
 
-#[cfg(any(
-  all(feature = "napi4", not(target_family = "wasm"), not(feature = "noop"))
-))]
+#[cfg(any(all(feature = "napi4", not(target_family = "wasm"), not(feature = "noop"))))]
 unsafe extern "C" fn remove_thread_id(id: *mut std::ffi::c_void) {
   let thread_id = unsafe { Box::from_raw(id.cast::<ThreadId>()) };
   THREADS_CAN_ACCESS_ENV.borrow_mut(|m| m.insert(*thread_id, false));

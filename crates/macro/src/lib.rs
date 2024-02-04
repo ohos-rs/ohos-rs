@@ -12,9 +12,40 @@ extern crate quote;
 
 use std::env;
 
+use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
+use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(feature = "compat-mode")]
 use syn::{fold::Fold, parse_macro_input, ItemFn};
+
+// check if first napi macro expand
+static IS_FIRST_NAPI_MACRO: AtomicBool = AtomicBool::new(true);
+
+fn auto_add_register_code() -> proc_macro2::TokenStream {
+  let prepare = match IS_FIRST_NAPI_MACRO.load(Ordering::SeqCst) {
+    true => {
+      // must same with target name,if not harmony os will crash.
+      // and must with default value.`cargo expand` will ignore build.rs script
+      let name = env::var("NAPI_BUILD_TARGET_NAME")
+        .map_or(String::from("entry"), |v| v)
+        .to_case(Case::Snake);
+      IS_FIRST_NAPI_MACRO.store(false, Ordering::SeqCst);
+      quote!(
+        use napi_ohos::bindgen_prelude::*;
+
+        #[module_init]
+        fn napi_register_module_v1_init() {
+          pre_init(#name);
+        }
+      )
+    }
+    _ => {
+      quote!()
+    }
+  };
+
+  prepare
+}
 
 /// ```ignore
 /// #[napi]
@@ -29,7 +60,14 @@ pub fn napi(attr: TokenStream, input: TokenStream) -> TokenStream {
       if env::var("DEBUG_GENERATED_CODE").is_ok() {
         println!("{}", tokens);
       }
-      tokens.into()
+      let prepare = auto_add_register_code();
+      let final_token = quote!(
+        #prepare
+
+        #tokens
+      );
+
+      final_token.into()
     }
     Err(diagnostic) => {
       println!("`napi` macro expand failed.");
@@ -166,7 +204,11 @@ pub fn module_exports(_attr: TokenStream, input: TokenStream) -> TokenStream {
     }
   };
 
+  let prepare = auto_add_register_code();
+
   (quote! {
+    #prepare
+
     #[inline]
     #signature #(#fn_block)*
 

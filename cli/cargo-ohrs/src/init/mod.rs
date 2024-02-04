@@ -1,48 +1,29 @@
-use std::fs;
-use std::io::prelude::*;
-use std::os::unix::fs::PermissionsExt;
+use crate::{arg::InitArg, create_dist_dir, create_project_file};
 
-use crate::tmps::{
+mod tmp;
+
+use tmp::{
   ARM64_CPP_BUILD_SHELL, ARM64_C_BUILD_SHELL, ARM_CPP_BUILD_SHELL, ARM_C_BUILD_SHELL, BUILD_INIT,
   CARGO_CONFIG_TOML, CARGO_TOML, GIT_IGNORE, LIB_CODE, X86_64_CPP_BUILD_SHELL,
   X86_64_C_BUILD_SHELL,
 };
 
-macro_rules! create_project_file {
-  ($strs: ident, $target: expr,$name: literal) => {{
-    let mut tmp_file =
-      std::fs::File::create($target).expect(format!("Create {} failed.", $name).as_str());
-    let mut perms = tmp_file.metadata().unwrap().permissions();
-    perms.set_mode(0o755);
-    tmp_file.set_permissions(perms).unwrap();
-    tmp_file
-      .write_all($strs.as_bytes())
-      .expect(format!("Write {} failed", $name).as_str());
-    println!("Create {} succeed.", $name);
-  }};
-}
-
-macro_rules! create_project_dir {
-  ($dir: literal, $target: expr) => {{
-    let _ = std::fs::create_dir($target.join($dir))
-      .expect(format!("Can't create {} dir.", $dir).as_str());
-  }};
-}
-
-pub fn init(name: String) {
+pub fn init(arg: InitArg) {
   let pwd = std::env::current_dir().expect("Can't get current work path");
 
-  let target = pwd.join(&name);
+  let target = pwd.join(&arg.name);
 
   if target.exists() == true {
-    println!("{} already existed.Please change your project name.", &name);
+    println!(
+      "{} already existed. Please change your project name.",
+      &arg.name
+    );
     return;
   }
 
-  fs::create_dir(&target).expect("Can't create project path.");
-  create_project_dir!(".cargo", &target);
-  create_project_dir!("scripts", &target);
-  create_project_dir!("src", &target);
+  create_dist_dir!(&target.join(".cargo"));
+  create_dist_dir!(&target.join("scripts"));
+  create_dist_dir!(&target.join("src"));
 
   create_project_file!(
     CARGO_CONFIG_TOML,
@@ -95,6 +76,6 @@ pub fn init(name: String) {
   create_project_file!(BUILD_INIT, &target.join("build.rs"), "build.rs");
   create_project_file!(GIT_IGNORE, &target.join(".gitignore"), ".gitignore");
 
-  let config = CARGO_TOML.replace("entry", &name.as_str());
+  let config = CARGO_TOML.replace("entry", &arg.name.as_str());
   create_project_file!(config, &target.join("Cargo.toml"), "Cargo.toml");
 }

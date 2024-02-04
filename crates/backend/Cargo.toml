@@ -4,9 +4,9 @@ edition      = "2021"
 license      = "MIT"
 name         = "napi-derive-backend-ohos"
 readme       = "README.md"
-repository   = "https://github.com/southorange0929/napi-rs"
+repository   = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.65"
-version      = "0.0.1"
+version      = "0.0.3"
 
 [package.metadata.workspaces]
 independent = true
@@ -14,22 +14,18 @@ independent = true
 [features]
 noop     = []
 strict   = []
-type-def = ["regex", "once_cell", "semver"]
+type-def = ["regex", "once_cell"]
 
 [dependencies]
 convert_case = "0.6"
-proc-macro2 = "1"
-quote = "1"
-syn = { version = "2", features = ["fold", "full", "extra-traits"] }
+proc-macro2  = "1"
+quote        = "1"
+syn          = { version = "2", features = ["fold", "full", "extra-traits"] }
 
 [dependencies.regex]
 optional = true
 version  = "1"
 
 [dependencies.once_cell]
-optional = true
-version  = "1"
-
-[dependencies.semver]
 optional = true
 version  = "1"

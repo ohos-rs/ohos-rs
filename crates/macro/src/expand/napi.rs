@@ -2,50 +2,16 @@ use std::env;
 use std::fs;
 use std::io::BufWriter;
 use std::io::Write;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::parser::{attrs::BindgenAttrs, ParseNapi};
-use napi_derive_backend_ohos::{BindgenResult, TryToTokens, REGISTER_IDENTS};
 #[cfg(feature = "type-def")]
-use napi_derive_backend_ohos::{Napi, ToTypeDef};
-use proc_macro2::{TokenStream, TokenTree};
-#[cfg(feature = "type-def")]
-use napi_derive_backend::ToTypeDef;
-use napi_derive_backend::{BindgenResult, Napi, TryToTokens};
+use napi_derive_backend_ohos::ToTypeDef;
+use napi_derive_backend_ohos::{BindgenResult, Napi, TryToTokens};
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{Attribute, Item};
 
-/// a flag indicate whether or never at least one `napi` macro has been expanded.
-/// ```ignore
-/// if BUILT_FLAG
-///  .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-///  .is_ok() {
-///   // logic on first macro expansion
-/// }
-///
-/// ```
-static BUILT_FLAG: AtomicBool = AtomicBool::new(false);
-
 pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStream> {
-  if BUILT_FLAG
-    .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-    .is_ok()
-  {
-    // logic on first macro expansion
-    #[cfg(feature = "type-def")]
-    prepare_type_def_file();
-
-    if let Ok(wasi_register_file) = env::var("WASI_REGISTER_TMP_PATH") {
-      if let Err(_e) = remove_existed_def_file(&wasi_register_file) {
-        #[cfg(debug_assertions)]
-        {
-          println!("Failed to manipulate wasi register file: {:?}", _e);
-        }
-      }
-    }
-  }
-
   let mut item = syn::parse2::<Item>(input)?;
   let opts: BindgenAttrs = syn::parse2(attr)?;
   let mut tokens = proc_macro2::TokenStream::new();
@@ -121,10 +87,12 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStrea
 
 fn output_wasi_register_def(napi: &Napi) {
   if let Ok(wasi_register_file) = env::var("WASI_REGISTER_TMP_PATH") {
+    let _ = fs::remove_file(&wasi_register_file);
+
     fs::OpenOptions::new()
       .append(true)
       .create(true)
-      .open(wasi_register_file)
+      .open(&wasi_register_file)
       .and_then(|file| {
         let mut writer = BufWriter::<fs::File>::new(file);
         let pkg_name: String = std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME is not set");
@@ -140,11 +108,14 @@ fn output_wasi_register_def(napi: &Napi) {
 #[cfg(feature = "type-def")]
 fn output_type_def(napi: &Napi) {
   if let Ok(type_def_file) = env::var("TYPE_DEF_TMP_PATH") {
+    // just remove it and regenerate tmp file
+    let _ = fs::remove_file(&type_def_file);
+
     if let Some(type_def) = napi.to_type_def() {
       fs::OpenOptions::new()
         .append(true)
         .create(true)
-        .open(type_def_file)
+        .open(&type_def_file)
         .and_then(|file| {
           let mut writer = BufWriter::<fs::File>::new(file);
           writer.write_all(type_def.to_string().as_bytes())?;
@@ -188,50 +159,4 @@ fn replace_napi_attr_in_mod(
   } else {
     None
   }
-}
-
-#[cfg(feature = "type-def")]
-fn prepare_type_def_file() {
-  if let Ok(ref type_def_file) = env::var("TYPE_DEF_TMP_PATH") {
-    use napi_derive_backend_ohos::{
-      NAPI_RS_CLI_VERSION, NAPI_RS_CLI_VERSION_WITH_SHARED_CRATES_FIX,
-    };
-    if let Err(_e) = if *NAPI_RS_CLI_VERSION >= *NAPI_RS_CLI_VERSION_WITH_SHARED_CRATES_FIX {
-      remove_existed_def_file(type_def_file)
-    } else {
-      fs::remove_file(type_def_file)
-    } {
-      #[cfg(debug_assertions)]
-      {
-        println!("Failed to manipulate type def file: {:?}", _e);
-      }
-    }
-  }
-}
-
-fn remove_existed_def_file(def_file: &str) -> std::io::Result<()> {
-  use std::io::{BufRead, BufReader};
-
-  let pkg_name = std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME is not set");
-  if let Ok(content) = std::fs::File::open(def_file) {
-    let reader = BufReader::new(content);
-    let cleaned_content = reader
-      .lines()
-      .filter_map(|line| {
-        if let Ok(line) = line {
-          if let Some((package_name, _)) = line.split_once(':') {
-            if pkg_name == package_name {
-              return None;
-            }
-          }
-          Some(line)
-        } else {
-          None
-        }
-      })
-      .collect::<Vec<String>>()
-      .join("\n");
-    std::fs::write(def_file, format!("{cleaned_content}\n"))?;
-  }
-  Ok(())
 }

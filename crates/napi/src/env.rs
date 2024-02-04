@@ -316,9 +316,18 @@ impl Env {
   /// Provided `finalize_callback` will be called when `Buffer` got dropped.
   ///
   /// You can pass in `noop_finalize` if you have nothing to do in finalize phase.
+  ///
+  /// # Notes
+  ///
+  /// JavaScript may mutate the data passed in to this buffer when writing the buffer.
+  /// However, some JavaScript runtimes do not support external buffers (notably electron!)
+  /// in which case modifications may be lost.
+  ///
+  /// If you need to support these runtimes, you should create a buffer by other means and then
+  /// later copy the data back out.
   pub unsafe fn create_buffer_with_borrowed_data<Hint, Finalize>(
     &self,
-    mut data: *const u8,
+    mut data: *mut u8,
     length: usize,
     hint: Hint,
     finalize_callback: Finalize,
@@ -327,7 +336,7 @@ impl Env {
     Finalize: FnOnce(Hint, Env),
   {
     let mut raw_value = ptr::null_mut();
-    if data.is_null() || data == EMPTY_VEC.as_ptr() {
+    if data.is_null() || data as *const u8 == EMPTY_VEC.as_ptr() {
       return Err(Error::new(
         Status::InvalidArg,
         "Borrowed data should not be null".to_owned(),
@@ -373,7 +382,7 @@ impl Env {
         value: raw_value,
         value_type: ValueType::Object,
       }),
-      mem::ManuallyDrop::new(unsafe { Vec::from_raw_parts(data as *mut u8, length, length) }),
+      mem::ManuallyDrop::new(unsafe { Vec::from_raw_parts(data, length, length) }),
     ))
   }
 
@@ -464,7 +473,8 @@ impl Env {
           let mut underlying_data = ptr::null_mut();
           let status =
             sys::napi_create_arraybuffer(self.0, length, &mut underlying_data, &mut raw_value);
-          ptr::swap(underlying_data.cast(), data_ptr);
+          ptr::copy_nonoverlapping(underlying_data.cast(), data_ptr, length);
+          ptr::copy_nonoverlapping(data_ptr, underlying_data.cast(), length);
           status
         } else {
           status
@@ -479,7 +489,7 @@ impl Env {
         value: raw_value,
         value_type: ValueType::Object,
       }),
-      data_ptr as *mut c_void,
+      data_ptr.cast(),
       length,
     ))
   }
@@ -490,9 +500,18 @@ impl Env {
   /// Provided `finalize_callback` will be called when `Buffer` got dropped.
   ///
   /// You can pass in `noop_finalize` if you have nothing to do in finalize phase.
+  ///
+  /// # Notes
+  ///
+  /// JavaScript may mutate the data passed in to this buffer when writing the buffer.
+  /// However, some JavaScript runtimes do not support external buffers (notably electron!)
+  /// in which case modifications may be lost.
+  ///
+  /// If you need to support these runtimes, you should create a buffer by other means and then
+  /// later copy the data back out.
   pub unsafe fn create_arraybuffer_with_borrowed_data<Hint, Finalize>(
     &self,
-    mut data: *const u8,
+    data: *mut u8,
     length: usize,
     hint: Hint,
     finalize_callback: Finalize,
@@ -530,7 +549,7 @@ impl Env {
         let mut underlying_data = ptr::null_mut();
         let status =
           sys::napi_create_arraybuffer(self.0, length, &mut underlying_data, &mut raw_value);
-        data = underlying_data.cast();
+        ptr::copy_nonoverlapping(data, underlying_data.cast(), length);
         finalize(hint, *self);
         check_status!(status)?;
       } else {
@@ -797,36 +816,6 @@ impl Env {
     }
   }
 
-  pub fn unwrap_from_ref<T: 'static>(&self, js_ref: &Ref<()>) -> Result<&'static mut T> {
-    unsafe {
-      let mut unknown_tagged_object: *mut c_void = ptr::null_mut();
-      check_status!(sys::napi_unwrap(
-        self.0,
-        js_ref.raw_value,
-        &mut unknown_tagged_object,
-      ))?;
-
-      let type_id = unknown_tagged_object as *const TypeId;
-      if *type_id == TypeId::of::<T>() {
-        let tagged_object = unknown_tagged_object as *mut TaggedObject<T>;
-        (*tagged_object).object.as_mut().ok_or_else(|| {
-          Error::new(
-            Status::InvalidArg,
-            "Invalid argument, nothing attach to js_object".to_owned(),
-          )
-        })
-      } else {
-        Err(Error::new(
-          Status::InvalidArg,
-          format!(
-            "Invalid argument, {} on unwrap is not the type of wrapped object",
-            type_name::<T>()
-          ),
-        ))
-      }
-    }
-  }
-
   pub fn drop_wrapped<T: 'static>(&self, js_object: &JsObject) -> Result<()> {
     unsafe {
       let mut unknown_tagged_object = ptr::null_mut();
@@ -866,7 +855,6 @@ impl Env {
       raw_ref,
       count: 1,
       inner: (),
-      raw_value,
     })
   }
 
@@ -884,7 +872,6 @@ impl Env {
       raw_ref,
       count: ref_count,
       inner: (),
-      raw_value,
     })
   }
 
@@ -1093,7 +1080,7 @@ impl Env {
     T: 'static + Send,
     V: 'static + ToNapiValue,
     F: 'static + Send + Future<Output = Result<T>>,
-    R: 'static + Send + FnOnce(&mut Env, T) -> Result<V>,
+    R: 'static + FnOnce(&mut Env, T) -> Result<V>,
   >(
     &self,
     fut: F,
@@ -1576,7 +1563,7 @@ pub(crate) unsafe extern "C" fn trampoline_setter<
   let closure: &F = Box::leak(unsafe { Box::from_raw(closure_data_ptr.cast()) });
   let env = unsafe { Env::from_raw(raw_env) };
   raw_args
-    .get(0)
+    .first()
     .ok_or_else(|| Error::new(Status::InvalidArg, "Missing argument in property setter"))
     .and_then(|value| unsafe { V::from_napi_value(raw_env, *value) })
     .and_then(|value| {

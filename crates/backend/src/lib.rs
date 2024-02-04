@@ -14,8 +14,6 @@ pub use ast::*;
 pub use codegen::*;
 pub use error::{BindgenResult, Diagnostic};
 #[cfg(feature = "type-def")]
-pub use semver;
-#[cfg(feature = "type-def")]
 pub use typegen::*;
 
 #[derive(Debug)]

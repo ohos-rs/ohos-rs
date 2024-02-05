@@ -1,0 +1,28 @@
+# Action name
+name: Simple Test Action
+
+# Here, this action will be enabled on all pushes.
+# Modify this to fit your needs.
+on:
+  push
+
+# Jobs section
+jobs:
+  simple-test:
+    runs-on: ubuntu-latest
+    container:
+      image: southorange/ohrs-base:v4
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: lint-cargo-cache
+
+      - name: Run hello
+        shell: bash
+        run: cargo install ohrs && cd examples/hello && ohrs build

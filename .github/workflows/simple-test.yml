@@ -16,5 +16,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run hello
-        shell: bash
-        run: rustup default nightly && cargo install ohrs && cd examples/hello && ohrs build
+        run: cargo install ohrs && cd examples/hello && ohrs build

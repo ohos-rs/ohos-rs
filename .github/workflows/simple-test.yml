@@ -11,17 +11,9 @@ jobs:
   simple-test:
     runs-on: ubuntu-latest
     container:
-      image: southorange/ohrs-base:v4
+      image: southorange/ohos-base:v4
     steps:
       - uses: actions/checkout@v4
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: lint-cargo-cache
 
       - name: Run hello
         shell: bash

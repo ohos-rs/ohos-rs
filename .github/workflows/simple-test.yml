@@ -15,5 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run hello
-        run: cargo install ohrs && cd examples/hello && ohrs build
+      - name: install
+        run: rustup default nightly && cargo install ohrs && ls -a /root/.cargo/bin
+      
+      - name: Run build
+        run: cd examples/hello && ohrs build

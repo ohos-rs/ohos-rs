@@ -16,4 +16,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: install
-        run: sudo -i && cargo install ohrs && cd examples/hello && ohrs build
+        run: su - root && cargo install ohrs && cd examples/hello && ohrs build

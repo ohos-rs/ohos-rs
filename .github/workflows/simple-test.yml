@@ -17,4 +17,4 @@ jobs:
 
       - name: Run hello
         shell: bash
-        run: cargo install ohrs && cd examples/hello && ohrs build
+        run: rustup default nightly && cargo install ohrs && cd examples/hello && ohrs build

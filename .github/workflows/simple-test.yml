@@ -16,4 +16,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: install
-        run: su - root && cargo install ohrs && cd examples/hello && ohrs build
+        run: echo "${HOME}/.cargo/bin" >> $GITHUB_PATH && rustup default nightly && rustup component add rust-src && cargo install ohrs && cd examples/hello && ohrs build

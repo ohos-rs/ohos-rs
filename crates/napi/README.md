@@ -36,6 +36,12 @@ ohrs build
 
 目前所有API基本对齐napi，你可以在[example](https://github.com/ohos-rs/example)中看到在HarmonyOS工程中的应用。
 
+能力支持：
+
+- 脚手架支持（支持workspace模式）
+- CI 能力支持
+- [Harmony native binding](https://github.com/ohos-rs/ohos-native-bindings)
+
 ## Packages
 
 | Package                                                    | Version | Description                                                                |
@@ -62,10 +68,3 @@ Rust本身的产物体积会比C++大很多。即使使用了各种优化手段�
 
 3. 为什么 `Buffer` 在 Native 和 ArkTS 之间无法直接传递？    
 ArkTS侧的 buffer实现跟Native侧的 Buffer实现不一致，导致在跨语言传递的时候出现问题。已向官方提相关问题，待修复即可。
-
-## TODO
-- [ ] CI支持
-目前鸿蒙开放对于linux下通过NDK构建的能力支持太弱，等到API10放开后支持
-
-- [ ] 鸿蒙官方底层能力包装
-如hilog，vulkan，OpenGL等能力

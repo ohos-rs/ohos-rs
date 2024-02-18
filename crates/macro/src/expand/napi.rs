@@ -173,6 +173,6 @@ fn replace_napi_attr_in_mod(
 #[cfg(feature = "type-def")]
 fn prepare_type_def_file() {
   if let Ok(ref type_def_file) = env::var("TYPE_DEF_TMP_PATH") {
-    fs::remove_file(type_def_file);
+    let _ = fs::remove_file(type_def_file);
   }
 }

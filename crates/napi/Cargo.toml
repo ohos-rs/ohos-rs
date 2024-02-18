@@ -89,8 +89,8 @@ version  = "1"
 
 [dependencies.serde_json]
 optional = true
-version = "1"
+version  = "1"
 
 [dependencies.indexmap]
 optional = true
-version = "2"
+version  = "2"

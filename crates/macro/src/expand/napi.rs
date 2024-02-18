@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::io::BufWriter;
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::parser::{attrs::BindgenAttrs, ParseNapi};
 #[cfg(feature = "type-def")]
@@ -11,7 +12,18 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{Attribute, Item};
 
+static BUILT_FLAG: AtomicBool = AtomicBool::new(false);
+
 pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStream> {
+  if BUILT_FLAG
+    .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+    .is_ok()
+  {
+    // logic on first macro expansion just remove it and regenerate tmp file
+    #[cfg(feature = "type-def")]
+    prepare_type_def_file();
+  }
+
   let mut item = syn::parse2::<Item>(input)?;
   let opts: BindgenAttrs = syn::parse2(attr)?;
   let mut tokens = proc_macro2::TokenStream::new();
@@ -108,9 +120,6 @@ fn output_wasi_register_def(napi: &Napi) {
 #[cfg(feature = "type-def")]
 fn output_type_def(napi: &Napi) {
   if let Ok(type_def_file) = env::var("TYPE_DEF_TMP_PATH") {
-    // just remove it and regenerate tmp file
-    let _ = fs::remove_file(&type_def_file);
-
     if let Some(type_def) = napi.to_type_def() {
       fs::OpenOptions::new()
         .append(true)
@@ -158,5 +167,12 @@ fn replace_napi_attr_in_mod(
     Some(struct_opts)
   } else {
     None
+  }
+}
+
+#[cfg(feature = "type-def")]
+fn prepare_type_def_file() {
+  if let Ok(ref type_def_file) = env::var("TYPE_DEF_TMP_PATH") {
+    fs::remove_file(type_def_file);
   }
 }

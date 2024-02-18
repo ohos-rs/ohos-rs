@@ -105,7 +105,7 @@ fn process_type_def(
       }
     } else {
       exports.push(namespace.clone());
-      dts += &format!("pub mod {} {{\n", namespace);
+      dts += &format!("export namespace {} {{\n", namespace);
       for def in defs {
         dts += &pretty_print(&def, const_enum, 2);
         dts.push('\n');

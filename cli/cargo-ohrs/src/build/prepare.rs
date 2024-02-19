@@ -5,10 +5,10 @@ use sha2::{Digest, Sha256};
 use std::env;
 use std::path::PathBuf;
 
-/// 构建前初始化工作，包括获取当前运行环境等。
+/// 构建前初始化工作，包括获取当前运行环境等。  
 pub fn prepare(ctx: &mut Context) -> Result<(), String> {
   let args = super::BUILD_ARGS.read().unwrap();
-  ctx.pwd = std::env::current_dir().unwrap();
+  ctx.pwd = env::current_dir().unwrap();
 
   // 判断当前构建环境以及获取metadata信息
   let cargo_file = ctx.pwd.join("./Cargo.toml");
@@ -62,6 +62,10 @@ pub fn prepare(ctx: &mut Context) -> Result<(), String> {
   // 拼接完整的文件路径
   let file_path = PathBuf::from(tmp_dir).join(file_name);
   env::set_var("TYPE_DEF_TMP_PATH", file_path.to_str().unwrap());
+
+  // 获取 ndk 环境变量配置
+  let ndk = env::var("OHOS_NDK_HOME").expect("Can't get OHOS_NDK_HOME.");
+  ctx.ndk = ndk;
 
   Ok(())
 }

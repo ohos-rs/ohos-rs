@@ -46,11 +46,14 @@ pub struct Context<'a> {
   pub package: Option<Package>,
   // 当前构建项目的产物地址 用于支持cargo workspace的构建
   pub cargo_build_target_dir: Option<Utf8PathBuf>,
+  // ndk 路径
+  pub ndk: String,
 }
 
 /// build逻辑
 pub fn build() {
   let mut ctx = Context::default();
+
   prepare::prepare(&mut ctx).unwrap();
 
   let arm64 = Architecture::new("arm64-v8a", "aarch64-unknown-linux-ohos", "arm64");

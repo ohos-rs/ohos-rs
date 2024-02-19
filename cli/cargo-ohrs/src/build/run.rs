@@ -1,30 +1,34 @@
 use crate::build::{Architecture, Context};
-use convert_case::{Case, Casing};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::env;
 use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
-static TARGET: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
+static TARGET: Lazy<HashMap<&str, (&str, &str)>> = Lazy::new(|| {
   HashMap::from([
-    ("arm64-v8a", "aarch64-linux-ohos"),
-    ("armeabi-v7a", "arm-linux-ohos"),
-    ("x86_64", "x86_64-linux-ohos"),
+    (
+      "arm64-v8a",
+      ("aarch64-linux-ohos", "AARCH64_UNKNOWN_LINUX_OHOS"),
+    ),
+    (
+      "armeabi-v7a",
+      ("arm-linux-ohos", "ARMV7_UNKNOWN_LINUX_OHOS"),
+    ),
+    ("x86_64", ("x86_64-linux-ohos", "X86_64_UNKNOWN_LINUX_OHOS")),
   ])
 });
 
 pub fn build(ctx: &mut Context, arch: &Architecture) {
-  println!("{}", &ctx.ndk);
-  let linker_name = format!("CARGO_TARGET_{}_LINKER", arch.target).to_case(Case::UpperSnake);
+  let t = TARGET.get(arch.arch).unwrap();
+  let linker_name = format!("CARGO_TARGET_{}_LINKER", t.1);
   let ran_path = format!("{}/native/llvm/bin/llvm-ranlib", &ctx.ndk);
   let ar_path = format!("{}/native/llvm/bin/llvm-ar", &ctx.ndk);
   let cc_path = format!("{}/native/llvm/bin/clang", &ctx.ndk);
   let cxx_path = format!("{}/native/llvm/bin/clang++", &ctx.ndk);
   let mut rustflags = format!(
     "-Clink-args=-target {} --sysroot={}/native/sysroot -D__MUSL__",
-    TARGET.get(arch.arch).unwrap(),
-    &ctx.ndk
+    t.0, &ctx.ndk
   );
 
   if arch.arch == "armeabi-v7a" {

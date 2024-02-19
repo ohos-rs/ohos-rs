@@ -237,8 +237,6 @@ fn correct_string_indent(src: &str, indent: usize) -> String {
 
   result
 }
-
-//  生成构建产物
 pub fn generate_d_ts_file(ctx: &mut Context) {
   let tmp_file = env::var("TYPE_DEF_TMP_PATH").unwrap();
   let (dts, _exports) = process_type_def(&tmp_file, true, DEFAULT_TYPE_DEF_HEADER);

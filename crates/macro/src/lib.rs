@@ -29,7 +29,6 @@ fn auto_add_register_code() -> proc_macro2::TokenStream {
       let name = env::var("NAPI_BUILD_TARGET_NAME")
         .map_or(String::from("entry"), |v| v)
         .to_case(Case::Snake);
-      println!("current build target name:{}", name);
       IS_FIRST_NAPI_MACRO.store(false, Ordering::SeqCst);
       quote!(
         #[napi_ohos::bindgen_prelude::module_init]

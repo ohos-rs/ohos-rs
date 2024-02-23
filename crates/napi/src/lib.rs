@@ -34,14 +34,6 @@
 //! }
 //! ```
 //!
-//! ***Tokio channel in `napi-rs` buffer size is default `100`.***
-//!
-//! ***You can adjust it via `NAPI_RS_TOKIO_CHANNEL_BUFFER_SIZE` environment variable***
-//!
-//! ```
-//! NAPI_RS_TOKIO_CHANNEL_BUFFER_SIZE=1000 node ./app.js
-//! ```
-//!
 //! ### latin1
 //!
 //! Decode latin1 string from JavaScript using [encoding_rs](https://docs.rs/encoding_rs).
@@ -154,8 +146,6 @@ macro_rules! assert_type_of {
 pub use crate::bindgen_runtime::ctor as module_init;
 
 pub mod bindgen_prelude {
-  use std::{ffi::CString, ptr};
-
   #[cfg(all(feature = "compat-mode", not(feature = "noop")))]
   pub use crate::bindgen_runtime::register_module_exports;
   #[cfg(feature = "tokio_rt")]
@@ -176,24 +166,6 @@ pub mod bindgen_prelude {
   #[cfg(not(all(feature = "tokio_rt", feature = "napi4")))]
   pub fn within_runtime_if_available<F: FnOnce() -> T, T>(f: F) -> T {
     f()
-  }
-
-  /// node support symbol napi_register_module_v1,but harmony not support.So we must call it.
-  /// 2024-01-17 update: Now, we don't need to call it in our code, it will be add to code with napi macro.
-  pub fn pre_init(name: &str) {
-    let s = CString::new(name).unwrap();
-    let mut modules = sys::napi_module {
-      nm_version: 1,
-      nm_filename: ptr::null_mut(),
-      nm_flags: 0,
-      nm_modname: s.as_ptr().cast(),
-      nm_priv: ptr::null_mut() as *mut _,
-      nm_register_func: Some(napi_register_module_v1),
-      reserved: [ptr::null_mut() as *mut _; 4],
-    };
-    unsafe {
-      sys::napi_module_register(&mut modules);
-    }
   }
 }
 

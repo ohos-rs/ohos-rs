@@ -10,7 +10,7 @@ use std::sync::{
 #[cfg(all(feature = "napi4", not(feature = "noop"), not(target_family = "wasm")))]
 use crate::bindgen_prelude::{CUSTOM_GC_TSFN, CUSTOM_GC_TSFN_DESTROYED, THREADS_CAN_ACCESS_ENV};
 pub use crate::js_values::TypedArrayType;
-use crate::{check_status, sys, Error, Result, Status};
+use crate::{check_status, sys, Error, Result, Status, ValueType};
 
 use super::{FromNapiValue, ToNapiValue, TypeName, ValidateNapiValue};
 
@@ -466,11 +466,6 @@ macro_rules! impl_from_slice {
         let mut data = ptr::null_mut();
         let mut array_buffer = ptr::null_mut();
         let mut byte_offset = 0;
-        let mut ref_ = ptr::null_mut();
-        check_status!(
-          unsafe { sys::napi_create_reference(env, napi_val, 1, &mut ref_) },
-          "Failed to create reference from Buffer"
-        )?;
         check_status!(
           unsafe {
             sys::napi_get_typedarray_info(
@@ -491,7 +486,100 @@ macro_rules! impl_from_slice {
             format!("Expected $name, got {}", typed_array_type),
           ));
         }
-        Ok(unsafe { core::slice::from_raw_parts_mut(data as *mut $rust_type, length) })
+        Ok(if length == 0 {
+          &mut []
+        } else {
+          unsafe { core::slice::from_raw_parts_mut(data as *mut $rust_type, length) }
+        })
+      }
+    }
+
+    impl FromNapiValue for &[$rust_type] {
+      unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+        let mut typed_array_type = 0;
+        let mut length = 0;
+        let mut data = ptr::null_mut();
+        let mut array_buffer = ptr::null_mut();
+        let mut byte_offset = 0;
+        check_status!(
+          unsafe {
+            sys::napi_get_typedarray_info(
+              env,
+              napi_val,
+              &mut typed_array_type,
+              &mut length,
+              &mut data,
+              &mut array_buffer,
+              &mut byte_offset,
+            )
+          },
+          "Get TypedArray info failed"
+        )?;
+        if typed_array_type != $typed_array_type as i32 {
+          return Err(Error::new(
+            Status::InvalidArg,
+            format!("Expected $name, got {}", typed_array_type),
+          ));
+        }
+        Ok(if length == 0 {
+          &[]
+        } else {
+          unsafe { core::slice::from_raw_parts_mut(data as *mut $rust_type, length) }
+        })
+      }
+    }
+
+    impl TypeName for &mut [$rust_type] {
+      fn type_name() -> &'static str {
+        concat!("TypedArray<", stringify!($rust_type), ">")
+      }
+
+      fn value_type() -> crate::ValueType {
+        crate::ValueType::Object
+      }
+    }
+
+    impl TypeName for &[$rust_type] {
+      fn type_name() -> &'static str {
+        concat!("TypedArray<", stringify!($rust_type), ">")
+      }
+
+      fn value_type() -> crate::ValueType {
+        crate::ValueType::Object
+      }
+    }
+
+    impl ValidateNapiValue for &[$rust_type] {
+      unsafe fn validate(env: sys::napi_env, napi_val: sys::napi_value) -> Result<sys::napi_value> {
+        let mut is_typed_array = false;
+        check_status!(
+          unsafe { sys::napi_is_typedarray(env, napi_val, &mut is_typed_array) },
+          "Failed to validate napi typed array"
+        )?;
+        if !is_typed_array {
+          return Err(Error::new(
+            Status::InvalidArg,
+            "Expected a TypedArray value".to_owned(),
+          ));
+        }
+        Ok(ptr::null_mut())
+      }
+    }
+
+    impl ValidateNapiValue for &mut [$rust_type] {
+      unsafe fn validate(env: sys::napi_env, napi_val: sys::napi_value) -> Result<sys::napi_value> {
+        let mut is_typed_array = false;
+        check_status!(
+          unsafe { sys::napi_is_typedarray(env, napi_val, &mut is_typed_array) },
+          "Failed to validate napi typed array"
+        )?;
+        if !is_typed_array {
+          return Err(Error::new(
+            Status::InvalidArg,
+            "Expected a TypedArray value".to_owned(),
+          ));
+        }
+        Ok(ptr::null_mut())
       }
     }
   };
@@ -559,8 +647,169 @@ impl_typed_array!(BigUint64Array, u64, TypedArrayType::BigUint64);
 #[cfg(feature = "napi6")]
 impl_from_slice!(BigUint64Array, u64, TypedArrayType::BigUint64);
 
+/// Zero copy Uint8ClampedArray slice shared between Rust and Node.js.
+/// It can only be used in non-async context and the lifetime is bound to the fn closure.
+/// If you want to use Node.js `Uint8ClampedArray` in async context or want to extend the lifetime, use `Uint8ClampedArray` instead.
+pub struct Uint8ClampedSlice<'scope> {
+  pub(crate) inner: &'scope mut [u8],
+  raw_value: sys::napi_value,
+}
+
+impl<'scope> FromNapiValue for Uint8ClampedSlice<'scope> {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let mut typed_array_type = 0;
+    let mut length = 0;
+    let mut data = ptr::null_mut();
+    let mut array_buffer = ptr::null_mut();
+    let mut byte_offset = 0;
+    check_status!(
+      unsafe {
+        sys::napi_get_typedarray_info(
+          env,
+          napi_val,
+          &mut typed_array_type,
+          &mut length,
+          &mut data,
+          &mut array_buffer,
+          &mut byte_offset,
+        )
+      },
+      "Get TypedArray info failed"
+    )?;
+    if typed_array_type != TypedArrayType::Uint8Clamped as i32 {
+      return Err(Error::new(
+        Status::InvalidArg,
+        format!("Expected $name, got {}", typed_array_type),
+      ));
+    }
+    Ok(Self {
+      inner: if length == 0 {
+        &mut []
+      } else {
+        unsafe { core::slice::from_raw_parts_mut(data.cast(), length) }
+      },
+      raw_value: napi_val,
+    })
+  }
+}
+
+impl ToNapiValue for Uint8ClampedSlice<'_> {
+  #[allow(unused_variables)]
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    Ok(val.raw_value)
+  }
+}
+
+impl TypeName for Uint8ClampedSlice<'_> {
+  fn type_name() -> &'static str {
+    "Uint8ClampedArray"
+  }
+
+  fn value_type() -> ValueType {
+    ValueType::Object
+  }
+}
+
+impl ValidateNapiValue for Uint8ClampedSlice<'_> {
+  unsafe fn validate(env: sys::napi_env, napi_val: sys::napi_value) -> Result<sys::napi_value> {
+    let mut is_typedarray = false;
+    check_status!(
+      unsafe { sys::napi_is_typedarray(env, napi_val, &mut is_typedarray) },
+      "Failed to validate typed buffer"
+    )?;
+    if !is_typedarray {
+      return Err(Error::new(
+        Status::InvalidArg,
+        "Expected a TypedArray value".to_owned(),
+      ));
+    }
+    Ok(ptr::null_mut())
+  }
+}
+
+impl AsRef<[u8]> for Uint8ClampedSlice<'_> {
+  fn as_ref(&self) -> &[u8] {
+    self.inner
+  }
+}
+
+impl<'scope> Deref for Uint8ClampedSlice<'scope> {
+  type Target = [u8];
+
+  fn deref(&self) -> &Self::Target {
+    self.inner
+  }
+}
+
+impl<'scope> DerefMut for Uint8ClampedSlice<'scope> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    self.inner
+  }
+}
+
 impl<T: Into<Vec<u8>>> From<T> for Uint8Array {
   fn from(data: T) -> Self {
     Uint8Array::new(data.into())
+  }
+}
+
+impl<T: Into<Vec<u8>>> From<T> for Uint8ClampedArray {
+  fn from(data: T) -> Self {
+    Uint8ClampedArray::new(data.into())
+  }
+}
+
+impl<T: Into<Vec<u16>>> From<T> for Uint16Array {
+  fn from(data: T) -> Self {
+    Uint16Array::new(data.into())
+  }
+}
+
+impl<T: Into<Vec<u32>>> From<T> for Uint32Array {
+  fn from(data: T) -> Self {
+    Uint32Array::new(data.into())
+  }
+}
+
+impl<T: Into<Vec<i8>>> From<T> for Int8Array {
+  fn from(data: T) -> Self {
+    Int8Array::new(data.into())
+  }
+}
+
+impl<T: Into<Vec<i16>>> From<T> for Int16Array {
+  fn from(data: T) -> Self {
+    Int16Array::new(data.into())
+  }
+}
+
+impl<T: Into<Vec<i32>>> From<T> for Int32Array {
+  fn from(data: T) -> Self {
+    Int32Array::new(data.into())
+  }
+}
+
+impl<T: Into<Vec<f32>>> From<T> for Float32Array {
+  fn from(data: T) -> Self {
+    Float32Array::new(data.into())
+  }
+}
+
+impl<T: Into<Vec<f64>>> From<T> for Float64Array {
+  fn from(data: T) -> Self {
+    Float64Array::new(data.into())
+  }
+}
+
+#[cfg(feature = "napi6")]
+impl<T: Into<Vec<i64>>> From<T> for BigInt64Array {
+  fn from(data: T) -> Self {
+    BigInt64Array::new(data.into())
+  }
+}
+#[cfg(feature = "napi6")]
+impl<T: Into<Vec<u64>>> From<T> for BigUint64Array {
+  fn from(data: T) -> Self {
+    BigUint64Array::new(data.into())
   }
 }

@@ -27,7 +27,7 @@ type-def    = ["napi-derive-backend-ohos/type-def"]
 
 [dependencies]
 convert_case             = "0.6"
-napi-derive-backend-ohos = { version = "0.0.5", path = "../backend" }
+napi-derive-backend-ohos = { version = "0.0.6", path = "../backend" }
 proc-macro2              = "1"
 quote                    = "1"
 syn                      = { version = "2", features = ["fold", "full", "extra-traits"] }

@@ -14,3 +14,7 @@ napi-derive-ohos = { path = '../../crates/macro' }
 
 [build-dependencies]
 napi-build-ohos = { path = '../../crates/build' }
+
+
+[profile.release]
+lto = true

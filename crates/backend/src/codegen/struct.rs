@@ -151,18 +151,6 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
     impl napi_ohos::bindgen_prelude::ValidateNapiValue for &mut #name {
       #validate
     }
-
-    impl napi_ohos::NapiRaw for &#name {
-      unsafe fn raw(&self) -> napi_ohos::sys::napi_value {
-        unreachable!()
-      }
-    }
-
-    impl napi_ohos::NapiRaw for &mut #name {
-      unsafe fn raw(&self) -> napi_ohos::sys::napi_value {
-        unreachable!()
-      }
-    }
   }
 }
 
@@ -317,7 +305,6 @@ impl NapiStruct {
                 let env = env.raw();
                 #iterator_implementation
               }
-              napi_ohos::bindgen_prelude::Reference::<#name>::from_value_ptr(wrapped_value as *mut std::ffi::c_void, env.raw())
               napi_ohos::bindgen_prelude::Reference::<#name>::from_value_ptr(wrapped_value.cast(), env.raw())
             }
           } else {
@@ -516,7 +503,7 @@ impl NapiStruct {
                 if let Some(#alias_ident) = #alias_ident {
                   obj.set(#field_js_name, #alias_ident)?;
                 } else {
-                  obj.set(#field_js_name, napi::bindgen_prelude::Null)?;
+                  obj.set(#field_js_name, napi_ohos::bindgen_prelude::Null)?;
                 }
               },
             });
@@ -547,7 +534,7 @@ impl NapiStruct {
                 if let Some(arg #i) = arg #i {
                   obj.set(#field_js_name, arg #i)?;
                 } else {
-                  obj.set(#field_js_name, napi::bindgen_prelude::Null)?;
+                  obj.set(#field_js_name, napi_ohos::bindgen_prelude::Null)?;
                 }
               },
             });

@@ -318,7 +318,7 @@ impl NapiStruct {
                 #iterator_implementation
               }
               napi_ohos::bindgen_prelude::Reference::<#name>::from_value_ptr(wrapped_value as *mut std::ffi::c_void, env.raw())
-              napi::bindgen_prelude::Reference::<#name>::from_value_ptr(wrapped_value.cast(), env.raw())
+              napi_ohos::bindgen_prelude::Reference::<#name>::from_value_ptr(wrapped_value.cast(), env.raw())
             }
           } else {
             Err(napi_ohos::bindgen_prelude::Error::new(

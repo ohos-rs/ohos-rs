@@ -1,6 +1,4 @@
-pub const BUILD_INIT: &str = r#"use napi_build_ohos;
-
-fn main() {
+pub const BUILD_INIT: &str = r#"fn main() {
   napi_build_ohos::setup();
 }
 "#;
@@ -20,6 +18,9 @@ napi-derive-ohos = { version = "*" }
 
 [build-dependencies]
 napi-build-ohos = { version = "*" }
+
+[profile.release]
+lto = true
 "#;
 
 pub const LIB_CODE: &str = r#"use napi_derive_ohos::napi;

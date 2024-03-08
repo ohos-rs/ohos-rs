@@ -3,11 +3,13 @@ use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::Package;
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
+use std::thread;
 
 mod artifact;
 mod prepare;
 mod run;
+mod strip;
 mod ts;
 
 // 全局状态，在调用的时候必须重置为当前指
@@ -48,22 +50,35 @@ pub struct Context<'a> {
   pub cargo_build_target_dir: Option<Utf8PathBuf>,
   // ndk 路径
   pub ndk: String,
+  // 所有产物的文件路径 避免重复获取
+  pub dist_files: Vec<PathBuf>,
 }
 
 /// build逻辑
 pub fn build() {
-  let mut ctx = Context::default();
+  let ctx = Arc::new(RwLock::new(Context::default()));
 
-  prepare::prepare(&mut ctx).unwrap();
+  prepare::prepare(ctx.clone()).unwrap();
 
   let arm64 = Architecture::new("arm64-v8a", "aarch64-unknown-linux-ohos", "arm64");
   let arm = Architecture::new("armeabi-v7a", "armv7-unknown-linux-ohos", "arm");
   let x86 = Architecture::new("x86_64", "x86_64-unknown-linux-ohos", "x86_64");
 
   [arm64, arm, x86].map(|arch| {
-    run::build(&mut ctx, &arch);
-    artifact::copy_artifact(&mut ctx, &arch);
+    run::build(ctx.clone(), &arch);
+    artifact::copy_artifact(ctx.clone(), &arch);
   });
 
-  ts::generate_d_ts_file(&mut ctx);
+  let mut threads = vec![];
+
+  let ts_ctx = ctx.clone();
+  threads.push(thread::spawn(move || {
+    ts::generate_d_ts_file(ts_ctx);
+  }));
+
+  strip::strip(ctx.clone(), &mut threads);
+
+  for t in threads {
+    t.join().unwrap();
+  }
 }

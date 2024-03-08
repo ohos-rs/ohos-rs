@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::env;
 use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
+use std::sync::{Arc, RwLock};
 
 static TARGET: Lazy<HashMap<&str, (&str, &str)>> = Lazy::new(|| {
   HashMap::from([
@@ -19,7 +20,8 @@ static TARGET: Lazy<HashMap<&str, (&str, &str)>> = Lazy::new(|| {
   ])
 });
 
-pub fn build(ctx: &mut Context, arch: &Architecture) {
+pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
+  let ctx = c.read().unwrap();
   let t = TARGET.get(arch.arch).unwrap();
   let linker_name = format!("CARGO_TARGET_{}_LINKER", t.1);
   let ran_path = format!("{}/native/llvm/bin/llvm-ranlib", &ctx.ndk);

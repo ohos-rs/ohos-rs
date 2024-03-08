@@ -91,7 +91,7 @@ pub mod ValueType {
   pub const napi_object: i32 = 6;
   pub const napi_function: i32 = 7;
   pub const napi_external: i32 = 8;
-  #[cfg(any(feature = "ohos", feature = "napi6"))]
+  #[cfg(feature = "napi4")]
   pub const napi_bigint: i32 = 9;
 }
 
@@ -234,30 +234,30 @@ pub struct napi_async_work__ {
 }
 pub type napi_async_work = *mut napi_async_work__;
 
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct napi_threadsafe_function__ {
   _unused: [u8; 0],
 }
 
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 pub type napi_threadsafe_function = *mut napi_threadsafe_function__;
 
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 pub type napi_threadsafe_function_release_mode = i32;
 
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 pub mod ThreadsafeFunctionReleaseMode {
   use super::napi_threadsafe_function_release_mode;
   pub const release: napi_threadsafe_function_release_mode = 0;
   pub const abort: napi_threadsafe_function_release_mode = 1;
 }
 
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 pub type napi_threadsafe_function_call_mode = i32;
 
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 pub mod ThreadsafeFunctionCallMode {
   use super::napi_threadsafe_function_call_mode;
 

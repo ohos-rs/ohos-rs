@@ -5,6 +5,7 @@ mod build;
 mod doctor;
 mod init;
 mod marco;
+mod publish;
 
 fn main() {
   let cli = arg::OhrsCli::parse();

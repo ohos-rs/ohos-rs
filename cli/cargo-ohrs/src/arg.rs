@@ -24,16 +24,25 @@ pub enum Commands {
 
 #[derive(Args)]
 pub struct InitArg {
-  /// Project's name.Folder will be created, if the folder is already existed and will failed.
+  /// Project's name.Folder will be created, if the folder is already existed and will fail.
   pub name: String,
+  #[arg(
+    default_value_t = false,
+    short = 'p',
+    long,
+    help = "init with ohpm package"
+  )]
+  pub package: bool,
+  #[arg(num_args(0..=1), requires("package"), help = "ohpm package's name.if not set,will use project's name")]
+  pub package_name: Option<String>,
 }
 
 #[derive(Args, Default)]
 pub struct BuildArg {
   #[arg(long,
-  short = 'd',
-  default_value_t = String::from("dist"),
-  help="Target's file will be copied to this folder.")]
+    short = 'd',
+    default_value_t = String::from("dist"),
+    help = "Target's file will be copied to this folder.")]
   pub dist: String,
 
   #[arg(
@@ -47,4 +56,10 @@ pub struct BuildArg {
   /// build target with release mode default is false
   #[arg(short = 'r', long, default_value_t = false)]
   pub release: bool,
+}
+
+#[derive(Args, Default)]
+pub struct PublishArg {
+    #[arg(long,help = "ohpm's token, will use it to publish.")]
+    pub token: String
 }

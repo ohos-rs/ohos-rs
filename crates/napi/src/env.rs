@@ -1,17 +1,14 @@
 use std::any::{type_name, TypeId};
 use std::convert::TryInto;
 use std::ffi::CString;
-#[cfg(any(
-  all(feature = "tokio_rt", feature = "napi4"),
-  all(feature = "tokio_rt", feature = "ohos")
-))]
+#[cfg(all(feature = "tokio_rt", feature = "napi4"))]
 use std::future::Future;
 use std::mem;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 
 use crate::bindgen_runtime::FromNapiValue;
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 use crate::bindgen_runtime::ToNapiValue;
 use crate::{
   async_work::{self, AsyncWorkPromise},
@@ -28,7 +25,7 @@ use crate::async_cleanup_hook::AsyncCleanupHook;
 use crate::cleanup_env::{CleanupEnvHook, CleanupEnvHookData};
 #[cfg(feature = "serde-json")]
 use crate::js_values::{De, Ser};
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 use crate::threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunction};
 #[cfg(feature = "napi3")]
 use crate::JsError;
@@ -102,21 +99,21 @@ impl Env {
   }
 
   /// [n_api_napi_create_bigint_int64](https://nodejs.org/api/n-api.html#n_api_napi_create_bigint_int64)
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_i64(&self, value: i64) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_bigint_int64(self.0, value, &mut raw_value) })?;
     Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_u64(&self, value: u64) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_bigint_uint64(self.0, value, &mut raw_value) })?;
     Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_i128(&self, value: i128) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     let sign_bit = i32::from(value <= 0);
@@ -127,7 +124,7 @@ impl Env {
     Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_u128(&self, value: u128) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     let words = &value as *const u128 as *const u64;
@@ -138,7 +135,7 @@ impl Env {
   /// [n_api_napi_create_bigint_words](https://nodejs.org/api/n-api.html#n_api_napi_create_bigint_words)
   ///
   /// The resulting BigInt will be negative when sign_bit is true.
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_words(&self, sign_bit: bool, words: Vec<u64>) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     let len = words.len();
@@ -1017,7 +1014,7 @@ impl Env {
       .map_err(|e| Error::new(Status::InvalidArg, format!("{}", e)))
   }
 
-  #[cfg(any(feature = "napi2", feature = "ohos"))]
+  #[cfg(feature = "napi2")]
   pub fn get_uv_event_loop(&self) -> Result<*mut sys::uv_loop_s> {
     let mut uv_loop: *mut sys::uv_loop_s = ptr::null_mut();
     check_status!(unsafe { sys::napi_get_uv_event_loop(self.0, &mut uv_loop) })?;
@@ -1059,7 +1056,7 @@ impl Env {
     })
   }
 
-  #[cfg(any(feature = "napi4", feature = "ohos"))]
+  #[cfg(feature = "napi4")]
   pub fn create_threadsafe_function<
     T: Send,
     V: ToNapiValue,
@@ -1073,10 +1070,7 @@ impl Env {
     ThreadsafeFunction::create(self.0, func.0.value, max_queue_size, callback)
   }
 
-  #[cfg(any(
-    all(feature = "tokio_rt", feature = "napi4"),
-    all(feature = "tokio_rt", feature = "ohos")
-  ))]
+  #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
   pub fn execute_tokio_future<
     T: 'static + Send,
     V: 'static + ToNapiValue,
@@ -1096,10 +1090,7 @@ impl Env {
     Ok(unsafe { JsObject::from_raw_unchecked(self.0, promise) })
   }
 
-  #[cfg(any(
-    all(feature = "tokio_rt", feature = "napi4"),
-    all(feature = "tokio_rt", feature = "ohos")
-  ))]
+  #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
   pub fn spawn_future<
     T: 'static + Send + ToNapiValue,
     F: 'static + Send + Future<Output = Result<T>>,
@@ -1117,7 +1108,7 @@ impl Env {
   }
 
   /// Creates a deferred promise, which can be resolved or rejected from a background thread.
-  #[cfg(any(feature = "napi4", feature = "ohos"))]
+  #[cfg(feature = "napi4")]
   pub fn create_deferred<Data: ToNapiValue, Resolver: FnOnce(Env) -> Result<Data>>(
     &self,
   ) -> Result<(JsDeferred<Data, Resolver>, JsObject)> {
@@ -1129,7 +1120,7 @@ impl Env {
   /// This API allocates a JavaScript Date object.
   ///
   /// JavaScript Date objects are described in [Section 20.3](https://tc39.github.io/ecma262/#sec-date-objects) of the ECMAScript Language Specification.
-  #[cfg(any(feature = "napi5", feature = "ohos"))]
+  #[cfg(feature = "napi5")]
   pub fn create_date(&self, time: f64) -> Result<JsDate> {
     let mut js_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_date(self.0, time, &mut js_value) })?;

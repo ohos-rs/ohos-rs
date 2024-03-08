@@ -303,10 +303,10 @@ pub struct napi_module {
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub enum napi_qos_t {
-    napi_qos_background,
-    napi_qos_utility,
-    napi_qos_default,
-    napi_qos_user_initiated
+  napi_qos_background,
+  napi_qos_utility,
+  napi_qos_default,
+  napi_qos_user_initiated,
 }

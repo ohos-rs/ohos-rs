@@ -92,9 +92,9 @@ pub enum TypedArrayType {
   Uint32,
   Float32,
   Float64,
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   BigInt64,
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   BigUint64,
 
   /// compatible with higher versions
@@ -113,9 +113,9 @@ impl From<sys::napi_typedarray_type> for TypedArrayType {
       sys::TypedarrayType::uint32_array => Self::Uint32,
       sys::TypedarrayType::float32_array => Self::Float32,
       sys::TypedarrayType::float64_array => Self::Float64,
-      #[cfg(any(feature = "napi6", feature = "ohos"))]
+      #[cfg(feature = "napi6")]
       sys::TypedarrayType::bigint64_array => Self::BigInt64,
-      #[cfg(any(feature = "napi6", feature = "ohos"))]
+      #[cfg(feature = "napi6")]
       sys::TypedarrayType::biguint64_array => Self::BigUint64,
       _ => Self::Unknown,
     }
@@ -318,9 +318,9 @@ impl_as_ref!(u32, TypedArrayType::Uint32);
 impl_as_ref!(i32, TypedArrayType::Int32);
 impl_as_ref!(f32, TypedArrayType::Float32);
 impl_as_ref!(f64, TypedArrayType::Float64);
-#[cfg(any(feature = "napi6", feature = "ohos"))]
+#[cfg(feature = "napi6")]
 impl_as_ref!(i64, TypedArrayType::BigInt64);
-#[cfg(any(feature = "napi6", feature = "ohos"))]
+#[cfg(feature = "napi6")]
 impl_as_ref!(u64, TypedArrayType::BigUint64);
 
 impl JsDataView {

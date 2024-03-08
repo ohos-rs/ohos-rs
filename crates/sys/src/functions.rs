@@ -787,10 +787,17 @@ mod ohos {
   generate!(
     extern "C" {
       // same with napi_run_script but script should be `abc` file
-      fn napi_run_script_path(env: napi_env, script: napi_value, result: *mut napi_value)
-      -> napi_status;
+      fn napi_run_script_path(
+        env: napi_env,
+        script: napi_value,
+        result: *mut napi_value,
+      ) -> napi_status;
       // set async_work queue
-      fn napi_queue_async_work_with_qos(env: napi_env,work: napi_async_work,qos: napi_qos_t) -> napi_status;
+      fn napi_queue_async_work_with_qos(
+        env: napi_env,
+        work: napi_async_work,
+        qos: napi_qos_t,
+      ) -> napi_status;
     }
   );
 }

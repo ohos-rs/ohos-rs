@@ -1,5 +1,5 @@
 use std::result::Result as StdResult;
-#[cfg(any(feature = "napi6", feature = "ohos"))]
+#[cfg(feature = "napi6")]
 use std::slice;
 
 use serde::{ser, Serialize, Serializer};
@@ -93,7 +93,7 @@ impl<'env> Serializer for Ser<'env> {
     self.0.create_int64(v as _).map(|js_number| js_number.0)
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
     // https://github.com/napi-rs/napi-rs/issues/1470
     // serde_json::Value by default uses u64 for positive integers. This results in napirs using a BigInt instead of a number when converting to a js value.
@@ -122,7 +122,7 @@ impl<'env> Serializer for Ser<'env> {
     self.0.create_string(v.to_string().as_str()).map(|v| v.0)
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   fn serialize_u128(self, v: u128) -> Result<Self::Ok> {
     let words_ref = &v as *const _;
     let words = unsafe { slice::from_raw_parts(words_ref as *const u64, 2) };
@@ -145,7 +145,7 @@ impl<'env> Serializer for Ser<'env> {
     self.0.create_string(v.to_string().as_str()).map(|v| v.0)
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   fn serialize_i128(self, v: i128) -> Result<Self::Ok> {
     let words_ref = &(v as u128) as *const _;
     let words = unsafe { slice::from_raw_parts(words_ref as *const u64, 2) };

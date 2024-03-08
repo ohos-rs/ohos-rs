@@ -301,3 +301,12 @@ pub struct napi_module {
   pub nm_priv: *mut c_void,
   pub reserved: [*mut c_void; 4usize],
 }
+
+#[repr(C)]
+#[derive(Copy,Clone)]
+pub enum napi_qos_t {
+    napi_qos_background,
+    napi_qos_utility,
+    napi_qos_default,
+    napi_qos_user_initiated
+}

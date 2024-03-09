@@ -44,11 +44,12 @@ mod napi1 {
         length: usize,
         result: *mut napi_value,
       ) -> napi_status;
-      fn napi_create_symbol(
-        env: napi_env,
-        description: napi_value,
-        result: *mut napi_value,
-      ) -> napi_status;
+      // harmony not support symbol
+      // fn napi_create_symbol(
+      //   env: napi_env,
+      //   description: napi_value,
+      //   result: *mut napi_value,
+      // ) -> napi_status;
       fn napi_create_function(
         env: napi_env,
         utf8name: *const c_char,

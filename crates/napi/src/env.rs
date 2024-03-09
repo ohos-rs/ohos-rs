@@ -199,26 +199,27 @@ impl Env {
     Ok(unsafe { JsString::from_raw_unchecked(self.0, raw_value) })
   }
 
-  pub fn create_symbol_from_js_string(&self, description: JsString) -> Result<JsSymbol> {
-    let mut result = ptr::null_mut();
-    check_status!(unsafe { sys::napi_create_symbol(self.0, description.0.value, &mut result) })?;
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  }
+  // harmony not support symbol
+  // pub fn create_symbol_from_js_string(&self, description: JsString) -> Result<JsSymbol> {
+  //   let mut result = ptr::null_mut();
+  //   check_status!(unsafe { sys::napi_create_symbol(self.0, description.0.value, &mut result) })?;
+  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  // }
 
-  pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol> {
-    let mut result = ptr::null_mut();
-    check_status!(unsafe {
-      sys::napi_create_symbol(
-        self.0,
-        description
-          .and_then(|desc| self.create_string(desc).ok())
-          .map(|string| string.0.value)
-          .unwrap_or(ptr::null_mut()),
-        &mut result,
-      )
-    })?;
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  }
+  // pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol> {
+  //   let mut result = ptr::null_mut();
+  //   check_status!(unsafe {
+  //     sys::napi_create_symbol(
+  //       self.0,
+  //       description
+  //         .and_then(|desc| self.create_string(desc).ok())
+  //         .map(|string| string.0.value)
+  //         .unwrap_or(ptr::null_mut()),
+  //       &mut result,
+  //     )
+  //   })?;
+  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  // }
 
   pub fn create_object(&self) -> Result<JsObject> {
     let mut raw_value = ptr::null_mut();

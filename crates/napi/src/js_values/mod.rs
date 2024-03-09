@@ -81,20 +81,20 @@ impl TypeName for JsNull {
 
 impl ValidateNapiValue for JsNull {}
 
-#[derive(Clone, Copy)]
-pub struct JsSymbol(pub(crate) Value);
+// #[derive(Clone, Copy)]
+// pub struct JsSymbol(pub(crate) Value);
 
-impl TypeName for JsSymbol {
-  fn type_name() -> &'static str {
-    "symbol"
-  }
+// impl TypeName for JsSymbol {
+//   fn type_name() -> &'static str {
+//     "symbol"
+//   }
 
-  fn value_type() -> ValueType {
-    ValueType::Symbol
-  }
-}
+//   fn value_type() -> ValueType {
+//     ValueType::Symbol
+//   }
+// }
 
-impl ValidateNapiValue for JsSymbol {}
+// impl ValidateNapiValue for JsSymbol {}
 
 pub struct JsExternal(pub(crate) Value);
 
@@ -660,7 +660,7 @@ impl_js_value_methods!(JsGlobal);
 impl_js_value_methods!(JsDate);
 impl_js_value_methods!(JsFunction);
 impl_js_value_methods!(JsExternal);
-impl_js_value_methods!(JsSymbol);
+// impl_js_value_methods!(JsSymbol);
 impl_js_value_methods!(JsTimeout);
 impl_js_value_methods!(JSON);
 
@@ -690,7 +690,7 @@ impl_napi_value_trait!(JsDate, Object);
 impl_napi_value_trait!(JsTimeout, Object);
 impl_napi_value_trait!(JsFunction, Function);
 impl_napi_value_trait!(JsExternal, External);
-impl_napi_value_trait!(JsSymbol, Symbol);
+// impl_napi_value_trait!(JsSymbol, Symbol);
 
 impl NapiValue for JsUnknown {
   unsafe fn from_raw(env: sys::napi_env, value: sys::napi_value) -> Result<Self> {

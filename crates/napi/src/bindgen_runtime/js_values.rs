@@ -48,7 +48,7 @@ pub use object::*;
 #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
 pub use promise::*;
 pub use string::*;
-pub use symbol::*;
+// pub use symbol::*;
 pub use task::*;
 pub use value_ref::*;
 

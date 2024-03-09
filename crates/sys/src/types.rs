@@ -87,7 +87,7 @@ pub mod ValueType {
   pub const napi_boolean: i32 = 2;
   pub const napi_number: i32 = 3;
   pub const napi_string: i32 = 4;
-  pub const napi_symbol: i32 = 5;
+  // pub const napi_symbol: i32 = 5;
   pub const napi_object: i32 = 6;
   pub const napi_function: i32 = 7;
   pub const napi_external: i32 = 8;

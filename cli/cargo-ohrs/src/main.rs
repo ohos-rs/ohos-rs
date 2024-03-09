@@ -23,5 +23,8 @@ fn main() {
     arg::Commands::Doctor => {
       doctor::doctor();
     }
+    arg::Commands::Publish(publish_arg) => {
+      publish::publish(publish_arg)
+    }
   }
 }

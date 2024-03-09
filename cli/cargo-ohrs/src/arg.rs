@@ -20,6 +20,8 @@ pub enum Commands {
   Build(BuildArg),
   /// Check environments
   Doctor,
+  /// Publish ohpm's package
+  Publish(PublishArg)
 }
 
 #[derive(Args)]

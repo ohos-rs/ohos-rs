@@ -62,6 +62,6 @@ pub struct BuildArg {
 
 #[derive(Args, Default)]
 pub struct PublishArg {
-    #[arg(long,help = "ohpm's token, will use it to publish.")]
-    pub token: String
+  #[arg(long, help = "ohpm's token, will use it to publish.")]
+  pub token: String,
 }

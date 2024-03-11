@@ -1,3 +1,5 @@
+mod tgz;
+
 use std::process::Command;
 use crate::arg::PublishArg;
 

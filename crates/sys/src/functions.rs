@@ -488,13 +488,13 @@ mod napi1 {
 #[cfg(feature = "napi2")]
 mod napi2 {
   use super::super::types::*;
-  use std::os::raw::c_int;
 
   generate!(
     extern "C" {
       fn napi_get_uv_event_loop(env: napi_env, loop_: *mut *mut uv_loop_s) -> napi_status;
 
-      fn uv_run(loop_: *mut uv_loop_s, mode: uv_run_mode) -> c_int;
+      // uv_run should be removed, which is provided by libuv. If you need to use it, please add ffi and link libuv.so
+      // fn uv_run(loop_: *mut uv_loop_s, mode: uv_run_mode) -> c_int;
     }
   );
 }

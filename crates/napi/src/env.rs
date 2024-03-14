@@ -1249,17 +1249,17 @@ impl Env {
     })
   }
 
-  #[cfg(feature = "napi9")]
-  pub fn symbol_for(&self, description: &str) -> Result<JsSymbol> {
-    let mut result = ptr::null_mut();
-    let len = description.len();
-    let description = CString::new(description)?;
-    check_status!(unsafe {
-      sys::node_api_symbol_for(self.0, description.as_ptr(), len, &mut result)
-    })?;
-
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  }
+  // #[cfg(feature = "napi9")]
+  // pub fn symbol_for(&self, description: &str) -> Result<JsSymbol> {
+  //   let mut result = ptr::null_mut();
+  //   let len = description.len();
+  //   let description = CString::new(description)?;
+  //   check_status!(unsafe {
+  //     sys::node_api_symbol_for(self.0, description.as_ptr(), len, &mut result)
+  //   })?;
+  //
+  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  // }
 
   #[cfg(feature = "napi9")]
   /// This API retrieves the file path of the currently running JS module as a URL. For a file on

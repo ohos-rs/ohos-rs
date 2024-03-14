@@ -31,19 +31,20 @@ impl<T: Task> AsyncTask<T> {
     }
   }
 
-  pub fn with_signal(task: T, signal: AbortSignal) -> Self {
-    Self {
-      inner: task,
-      abort_signal: Some(signal),
-    }
-  }
-
-  pub fn with_optional_signal(task: T, signal: Option<AbortSignal>) -> Self {
-    Self {
-      inner: task,
-      abort_signal: signal,
-    }
-  }
+  // abort signal should be hidden, AbortController is not supported yet.
+  // pub fn with_signal(task: T, signal: AbortSignal) -> Self {
+  //   Self {
+  //     inner: task,
+  //     abort_signal: Some(signal),
+  //   }
+  // }
+  //
+  // pub fn with_optional_signal(task: T, signal: Option<AbortSignal>) -> Self {
+  //   Self {
+  //     inner: task,
+  //     abort_signal: signal,
+  //   }
+  // }
 }
 
 /// <https://developer.mozilla.org/zh-CN/docs/Web/API/AbortController>

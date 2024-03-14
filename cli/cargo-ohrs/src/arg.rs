@@ -21,7 +21,9 @@ pub enum Commands {
   /// Check environments
   Doctor,
   /// Publish ohpm's package
-  Publish(PublishArg)
+  Publish(PublishArg),
+  /// Generate har package
+  Artifact(ArtifactArg),
 }
 
 #[derive(Args)]
@@ -64,4 +66,14 @@ pub struct BuildArg {
 pub struct PublishArg {
   #[arg(long, help = "ohpm's token, will use it to publish.")]
   pub token: String,
+}
+
+#[derive(Args, Default)]
+pub struct ArtifactArg {
+  #[arg(
+    long,
+    default_value_t = String::from("package"),
+    help = "The package name of the generated har, default is package"
+  )]
+  pub name: String,
 }

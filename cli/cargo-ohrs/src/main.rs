@@ -1,6 +1,7 @@
 use clap::Parser;
 
 mod arg;
+mod artifact;
 mod build;
 mod doctor;
 mod init;
@@ -23,8 +24,7 @@ fn main() {
     arg::Commands::Doctor => {
       doctor::doctor();
     }
-    arg::Commands::Publish(publish_arg) => {
-      publish::publish(publish_arg)
-    }
+    arg::Commands::Publish(publish_arg) => publish::publish(publish_arg),
+    arg::Commands::Artifact(artifact_arg) => artifact::artifact(artifact_arg),
   }
 }

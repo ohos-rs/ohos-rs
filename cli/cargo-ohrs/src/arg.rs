@@ -72,4 +72,11 @@ pub struct ArtifactArg {
     help = "The package name of the generated har, default is package"
   )]
   pub name: String,
+
+  #[arg(long,
+    short = 'd',
+    default_value_t = String::from("dist"),
+    help = "This folder will copy to package/libs"
+  )]
+  pub dist: String,
 }

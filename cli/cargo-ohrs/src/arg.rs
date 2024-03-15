@@ -19,6 +19,7 @@ pub enum Commands {
   /// Build project
   Build(BuildArg),
   /// Check environments
+  /// TODO: need to implement
   Doctor,
   /// Publish ohpm's package
   Publish(PublishArg),
@@ -49,14 +50,6 @@ pub struct BuildArg {
     help = "Target's file will be copied to this folder.")]
   pub dist: String,
 
-  #[arg(
-    long,
-    short = 'c',
-    default_value_t = false,
-    help = "Target's file is compact mode"
-  )]
-  pub compact: bool,
-
   /// build target with release mode default is false
   #[arg(short = 'r', long, default_value_t = false)]
   pub release: bool,
@@ -66,6 +59,9 @@ pub struct BuildArg {
 pub struct PublishArg {
   #[arg(long, help = "ohpm's token, will use it to publish.")]
   pub token: String,
+
+  #[arg(long, help = "har package's path,default is $PWD/package.har")]
+  pub package: Option<String>,
 }
 
 #[derive(Args, Default)]

@@ -6,11 +6,7 @@ use std::path::PathBuf;
 /// 构建目标产物文件夹 & 复制目标文件
 pub fn copy_artifact(ctx: &mut Context, target: &super::Architecture) {
   let args = super::BUILD_ARGS.read().unwrap();
-  let mut compact_dir = "";
-
-  if !args.compact {
-    compact_dir = &target.arch;
-  }
+  let mut compact_dir = &target.arch;
 
   let bin_dir = &ctx.dist.join(compact_dir);
 
@@ -32,13 +28,7 @@ pub fn copy_artifact(ctx: &mut Context, target: &super::Architecture) {
       .collect();
 
     for file in files {
-      let dist: PathBuf;
-      if !args.compact {
-        dist = bin_dir.join(file.file_name().unwrap());
-      } else {
-        let file_name = file.file_stem().unwrap().to_str().unwrap();
-        dist = bin_dir.join(format!("{}_{}.so", file_name, &target.platform));
-      }
+      let dist: PathBuf = bin_dir.join(file.file_name().unwrap());
       move_file!(file, dist);
     }
   }

@@ -57,12 +57,11 @@ pub struct BuildArg {
   #[arg(
     short = 's',
     long,
-    default_value("true"),
-    default_missing_value("true"),
     num_args(0..=1),
     require_equals(true),
+    default_missing_value("true"),
     help = "Use llvm-strip to reduce the binary size, which is true by default in release mode.",
     action = clap::ArgAction::Set
   )]
-  pub strip: bool,
+  pub strip: Option<bool>,
 }

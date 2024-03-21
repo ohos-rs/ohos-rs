@@ -49,10 +49,12 @@ pub fn artifact(args: ArtifactArg) {
     return;
   }
 
+  println!("{:?}",(&pwd).join(&args.dist));
+  println!("{:?}",(&package_source).join("lib"));
   // copy dist
   let mut op = CopyOptions::new();
   op.overwrite = true;
-  fs_extra::dir::copy((&pwd).join(&args.dist), (&package_source).join("lib"), &op).unwrap();
+  fs_extra::dir::copy((&pwd).join(&args.dist), (&package_source).join("libs"), &op).unwrap();
 
   let package_path = PathBuf::from(&pwd).join(format!("{}.har", args.name));
 

@@ -3,7 +3,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicPtr, AtomicU8, Ordering};
 
-use super::{FromNapiValue, ToNapiValue, TypeName};
+use super::{FromNapiValue, ToNapiValue, TypeName, Unknown};
 use crate::{
   async_work, check_status, sys, Env, Error, JsError, JsObject, NapiValue, Status, Task,
 };
@@ -66,7 +66,7 @@ impl FromNapiValue for AbortSignal {
       raw_deferred: raw_promise.clone(),
       status: task_status.clone(),
     };
-    let js_env = unsafe { Env::from_raw(env) };
+    let js_env = Env::from_raw(env);
     check_status!(unsafe {
       sys::napi_wrap(
         env,
@@ -77,7 +77,10 @@ impl FromNapiValue for AbortSignal {
         ptr::null_mut(),
       )
     })?;
-    signal.set_named_property("onabort", js_env.create_function("onabort", on_abort)?)?;
+    signal.set_named_property(
+      "onabort",
+      js_env.create_function::<Unknown, Unknown>("onabort", on_abort)?,
+    )?;
     Ok(AbortSignal {
       raw_work: async_work_inner,
       raw_deferred: raw_promise,

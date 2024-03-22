@@ -246,7 +246,6 @@ fn correct_string_indent(src: &str, indent: usize) -> String {
 pub fn generate_d_ts_file(c: Arc<RwLock<Context>>) {
   let ctx = c.read().unwrap();
   let tmp_file = env::var("TYPE_DEF_TMP_PATH").unwrap();
-  println!("tmp:{:?}", &tmp_file);
   let (dts, _exports) = process_type_def(&tmp_file, true, DEFAULT_TYPE_DEF_HEADER);
   let dest_file_path = ctx.dist.join("index.d.ts");
   create_project_file!(dts, dest_file_path, "index.d.ts");

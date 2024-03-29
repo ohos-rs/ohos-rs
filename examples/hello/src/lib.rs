@@ -1,23 +1,43 @@
 use napi_derive_ohos::napi;
+use napi_ohos::{
+  bindgen_prelude::*,
+  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode, UnknownReturnValue},
+};
 
 #[napi]
-pub fn add(left: u32, right: Option<u32>) -> u32 {
-  let r = right.unwrap_or(10);
-  left + r
+pub fn sum(left: i32, right: i32) -> i32 {
+  left + right
 }
 
 #[napi]
-pub fn get_string() -> String {
-  String::from("hello world")
+pub fn threadsafe_function_fatal_mode(
+  v: bool,
+  cb: ThreadsafeFunction<bool, UnknownReturnValue, false>,
+) -> Result<()> {
+  match v {
+    true => {
+      cb.call(true, ThreadsafeFunctionCallMode::NonBlocking);
+      Ok(())
+    }
+    false => Err(Error::new(
+      Status::GenericFailure,
+      "ThrowFromNative".to_owned(),
+    )),
+  }
 }
 
 #[napi]
-pub struct Test(String);
+pub struct Utils;
 
 #[napi]
-impl Test {
+impl Utils {
   #[napi(constructor)]
-  pub fn new(s: String) -> Self {
-    Test(s)
+  pub fn new() -> Self {
+    Self
+  }
+
+  #[napi]
+  pub fn sum(&self, left: i32, right: i32) -> i32 {
+    left + right
   }
 }

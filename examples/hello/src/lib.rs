@@ -1,5 +1,9 @@
 use napi_derive_ohos::napi;
-use napi_ohos::{bindgen_prelude::*, JsNumber, threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode, UnknownReturnValue}};
+use napi_ohos::{
+  bindgen_prelude::*,
+  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode, UnknownReturnValue},
+  JsNumber,
+};
 
 #[napi]
 pub fn sum(left: i32, right: i32) -> i32 {

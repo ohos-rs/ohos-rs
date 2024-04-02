@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
+mod abort_tmp;
 mod artifact;
 mod prepare;
 mod run;

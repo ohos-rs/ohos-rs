@@ -1,3 +1,8 @@
+// `AbortSignal`,`AbortController` are defined here to prevent a dependency on the `dom` library which disagrees with node runtime.
+// The definition for `AbortSignal` is taken from @types/node-fetch (https://github.com/DefinitelyTyped/DefinitelyTyped) for
+// maximal compatibility with node-fetch.
+// Original node-fetch definitions are under MIT License.
+// this content is forked from node-abort-controller
 pub const ABORT_TS: &str = r#"export class AbortSignal {
   aborted: boolean;
   reason?: any;

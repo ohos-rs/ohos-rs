@@ -381,17 +381,18 @@ impl Env {
     ))
   }
 
-  #[cfg(not(target_family = "wasm"))]
+  // #[cfg(not(target_family = "wasm"))]
+  // harmony don't need to call it
   /// This function gives V8 an indication of the amount of externally allocated memory that is kept alive by JavaScript objects (i.e. a JavaScript object that points to its own memory allocated by a native module).
   ///
   /// Registering externally allocated memory will trigger global garbage collections more often than it would otherwise.
   ///
   /// ***ATTENTION ⚠️***, do not use this with `create_buffer_with_data/create_arraybuffer_with_data`, since these two functions already called the `adjust_external_memory` internal.
-  pub fn adjust_external_memory(&mut self, size: i64) -> Result<i64> {
-    let mut changed = 0i64;
-    check_status!(unsafe { sys::napi_adjust_external_memory(self.0, size, &mut changed) })?;
-    Ok(changed)
-  }
+  // pub fn adjust_external_memory(&mut self, size: i64) -> Result<i64> {
+  //   let mut changed = 0i64;
+  //   check_status!(unsafe { sys::napi_adjust_external_memory(self.0, size, &mut changed) })?;
+  //   Ok(changed)
+  // }
 
   #[cfg(target_family = "wasm")]
   #[allow(unused_variables)]
@@ -926,14 +927,15 @@ impl Env {
         &mut object_value,
       )
     })?;
-    if let Some(changed) = size_hint {
-      if changed != 0 {
-        let mut adjusted_value = 0i64;
-        check_status!(unsafe {
-          sys::napi_adjust_external_memory(self.0, changed, &mut adjusted_value)
-        })?;
-      }
-    };
+    // harmony don't need to call it
+    // if let Some(changed) = size_hint {
+    //   if changed != 0 {
+    //     let mut adjusted_value = 0i64;
+    //     check_status!(unsafe {
+    //       sys::napi_adjust_external_memory(self.0, changed, &mut adjusted_value)
+    //     })?;
+    //   }
+    // };
     Ok(unsafe { JsExternal::from_raw_unchecked(self.0, object_value) })
   }
 
@@ -1381,25 +1383,25 @@ unsafe extern "C" fn drop_buffer(
 }
 
 pub(crate) unsafe extern "C" fn raw_finalize<T>(
-  env: sys::napi_env,
+  _env: sys::napi_env,
   finalize_data: *mut c_void,
-  finalize_hint: *mut c_void,
+  _finalize_hint: *mut c_void,
 ) {
   let tagged_object = finalize_data as *mut TaggedObject<T>;
   drop(unsafe { Box::from_raw(tagged_object) });
-  if !finalize_hint.is_null() {
-    let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut Option<i64>) };
-    if let Some(changed) = size_hint {
-      if changed != 0 {
-        let mut adjusted = 0i64;
-        let status = unsafe { sys::napi_adjust_external_memory(env, -changed, &mut adjusted) };
-        debug_assert!(
-          status == sys::Status::napi_ok,
-          "Calling napi_adjust_external_memory failed"
-        );
-      }
-    };
-  }
+  // if !finalize_hint.is_null() {
+  //   let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut Option<i64>) };
+  //   if let Some(changed) = size_hint {
+  //     if changed != 0 {
+  //       let mut adjusted = 0i64;
+  //       let status = unsafe { sys::napi_adjust_external_memory(env, -changed, &mut adjusted) };
+  //       debug_assert!(
+  //         status == sys::Status::napi_ok,
+  //         "Calling napi_adjust_external_memory failed"
+  //       );
+  //     }
+  //   };
+  // }
 }
 
 #[cfg(feature = "napi6")]

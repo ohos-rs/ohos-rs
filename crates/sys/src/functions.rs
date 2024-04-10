@@ -409,11 +409,11 @@ mod napi1 {
       fn napi_is_promise(env: napi_env, value: napi_value, is_promise: *mut bool) -> napi_status;
       // fn napi_run_script(env: napi_env, script: napi_value, result: *mut napi_value)
       //   -> napi_status;
-      fn napi_adjust_external_memory(
-        env: napi_env,
-        change_in_bytes: i64,
-        adjusted_value: *mut i64,
-      ) -> napi_status;
+      // fn napi_adjust_external_memory(
+      //   env: napi_env,
+      //   change_in_bytes: i64,
+      //   adjusted_value: *mut i64,
+      // ) -> napi_status;
       fn napi_module_register(mod_: *mut napi_module);
       fn napi_fatal_error(
         location: *const c_char,

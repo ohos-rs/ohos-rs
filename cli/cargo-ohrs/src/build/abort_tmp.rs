@@ -29,7 +29,7 @@ pub const ABORT_TS: &str = r#"export class AbortSignal {
         }
   ) => void;
 
-  dispatchEvent: (event: any) => boolean;
+  dispatchEvent: (event: any) => void;
 
   onabort: null | ((this: AbortSignal, event: any) => void);
 

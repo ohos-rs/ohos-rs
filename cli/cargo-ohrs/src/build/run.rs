@@ -43,7 +43,17 @@ pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
   );
 
   let mut path = env::var("PATH").unwrap();
-  path = format!("{}:{}", &path, &bin_path);
+  // for windows, path need to use ; as split symbol
+  // for unix, should use : 
+  #[cfg(target_os = "windows")]
+  {
+    path = format!("{};{}", &path, &bin_path);
+  }
+  #[cfg(not(target_os = "windows"))]
+  {
+    path = format!("{}:{}", &path, &bin_path);
+  }
+
   let args =
     env::var("CARGO_RUSTFLAGS").unwrap_or(env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default());
 

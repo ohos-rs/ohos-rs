@@ -28,10 +28,34 @@ pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
   let ar_path = format!("{}/native/llvm/bin/llvm-ar", &ctx.ndk);
   let cc_path = format!("{}/native/llvm/bin/clang", &ctx.ndk);
   let cxx_path = format!("{}/native/llvm/bin/clang++", &ctx.ndk);
+  let as_path = format!("{}/native/llvm/bin/llvm-as", &ctx.ndk);
+  let ld_path = format!("{}/native/llvm/bin/ld.lld", &ctx.ndk);
+  let strip_path = format!("{}/native/llvm/bin/llvm-strip", &ctx.ndk);
+  let obj_dump_path = format!("{}/native/llvm/bin/llvm-objdump", &ctx.ndk);
+  let obj_copy_path = format!("{}/native/llvm/bin/llvm-objcopy", &ctx.ndk);
+  let nm_path = format!("{}/native/llvm/bin/llvm-nm", &ctx.ndk);
+  let bin_path = format!("{}/native/llvm/bin", &ctx.ndk);
+  // for bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
+  // let lib_path = format!("{}/native/llvm/lib", &ctx.ndk);
   let mut rustflags = format!(
     "-Clink-args=-target {} --sysroot={}/native/sysroot -D__MUSL__",
     t.0, &ctx.ndk
   );
+
+  let mut path = env::var("PATH").unwrap();
+  // for windows, path need to use ; as split symbol
+  // for unix, should use : 
+  #[cfg(target_os = "windows")]
+  {
+    path = format!("{};{}", &path, &bin_path);
+  }
+  #[cfg(not(target_os = "windows"))]
+  {
+    path = format!("{}:{}", &path, &bin_path);
+  }
+
+  let args =
+    env::var("CARGO_RUSTFLAGS").unwrap_or(env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default());
 
   if arch.arch == "armeabi-v7a" {
     rustflags = format!(
@@ -39,19 +63,25 @@ pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
       rustflags
     );
   }
+  rustflags = format!("{} {}", rustflags, args);
 
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
+    // ("LIBCLANG_PATH",&lib_path),
+    // ("CLANG_PATH",&cc_path),
     ("CC", &cc_path),
     ("CXX", &cxx_path),
     ("RANLIB", &ran_path),
     ("AR", &ar_path),
+    ("AS", &as_path),
+    ("LD", &ld_path),
+    ("STRIP", &strip_path),
+    ("OBJDUMP", &obj_dump_path),
+    ("OBJCOPY", &obj_copy_path),
+    ("NM", &nm_path),
     ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
+    ("PATH", &path),
   ]);
-
-  (&prepare_env).iter().for_each(|(k, v)| {
-    env::set_var(k, v);
-  });
 
   let mut args = ctx.init_args.clone();
   args.extend(["--target", &arch.target]);

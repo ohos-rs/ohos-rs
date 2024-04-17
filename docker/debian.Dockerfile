@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 debian:stable
+FROM --platform=linux/x86_64 debian:stable
 
 ENV LANG=en_US.utf8 \
 	RUSTUP_DIST_SERVER="https://rsproxy.cn" \
@@ -15,6 +15,7 @@ RUN mkdir ~/harmony && mkdir ~/sdk \
 	ca-certificates \
 	unzip \
 	curl \
+	libssl-dev \
 	gcc \
     gcc-multilib \
 	&& rm -rf /var/lib/apt/lists/* \

@@ -12,10 +12,13 @@ RUN mkdir ~/harmony && mkdir ~/sdk \
 	&& cd ~/harmony \
 	&& apt-get update \
 	&& apt-get install -y --no-install-recommends locales \
+	pkg-config \
 	ca-certificates \
 	unzip \
 	curl \
+	openssl \
 	libssl-dev \
+	git \
 	gcc \
     gcc-multilib \
 	&& rm -rf /var/lib/apt/lists/* \

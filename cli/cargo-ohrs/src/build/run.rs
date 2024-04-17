@@ -44,7 +44,7 @@ pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
 
   let mut path = env::var("PATH").unwrap();
   // for windows, path need to use ; as split symbol
-  // for unix, should use : 
+  // for unix, should use :
   #[cfg(target_os = "windows")]
   {
     path = format!("{};{}", &path, &bin_path);

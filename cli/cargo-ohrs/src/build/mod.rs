@@ -20,6 +20,7 @@ pub(crate) static BUILD_ARGS: Lazy<RwLock<BuildArg>> = Lazy::new(|| RwLock::defa
 pub struct Architecture<'a> {
   arch: &'a str,
   target: &'a str,
+  #[allow(dead_code)]
   platform: &'a str,
 }
 

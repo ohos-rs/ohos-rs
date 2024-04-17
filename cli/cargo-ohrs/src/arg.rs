@@ -44,14 +44,6 @@ pub struct InitArg {
 
 #[derive(Args, Default)]
 pub struct BuildArg {
-  #[arg(long,
-    short = 'd',
-    default_value_t = String::from("dist"),
-    help = "Target's file will be copied to this folder.")]
-  pub dist: String,
-
-  /// build target with release mode default is false
-  #[arg(short = 'r', long, default_value_t = false)]
   #[arg(
     short = 'd',
     long,
@@ -59,14 +51,6 @@ pub struct BuildArg {
     help="Target's file will be copied to this folder. "
   )]
   pub dist: String,
-
-  #[arg(
-    long,
-    short = 'c',
-    default_value_t = false,
-    help = "The product file use compact mode"
-  )]
-  pub compact: bool,
 
   #[arg(
     short = 'r',

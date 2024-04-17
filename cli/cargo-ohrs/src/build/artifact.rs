@@ -2,9 +2,11 @@ use crate::build::Context;
 use crate::{create_dist_dir, move_file};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
 
 /// 构建目标产物文件夹 & 复制目标文件
-pub fn copy_artifact(ctx: &mut Context, target: &super::Architecture) {
+pub fn copy_artifact(c: Arc<RwLock<Context>>, target: &super::Architecture) {
+  let mut ctx = c.write().unwrap();
   let args = super::BUILD_ARGS.read().unwrap();
   let mut compact_dir = &target.arch;
 
@@ -29,6 +31,14 @@ pub fn copy_artifact(ctx: &mut Context, target: &super::Architecture) {
 
     for file in files {
       let dist: PathBuf = bin_dir.join(file.file_name().unwrap());
+      let dist: PathBuf;
+      if !args.compact {
+        dist = bin_dir.join(file.file_name().unwrap());
+      } else {
+        let file_name = file.file_stem().unwrap().to_str().unwrap();
+        dist = bin_dir.join(format!("{}_{}.so", file_name, &target.platform));
+      }
+      (*ctx).dist_files.push(dist.clone());
       move_file!(file, dist);
     }
   }

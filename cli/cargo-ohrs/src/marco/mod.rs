@@ -19,13 +19,19 @@ macro_rules! move_file {
 macro_rules! create_project_file {
   ($strs: ident, $target: expr,$name: literal) => {{
     use std::io::prelude::*;
+    #[cfg(not(target_os = "windows"))]
     use std::os::unix::fs::PermissionsExt;
 
     let mut tmp_file =
       std::fs::File::create($target).expect(format!("Create {} failed.", $name).as_str());
-    let mut perms = tmp_file.metadata().unwrap().permissions();
-    perms.set_mode(0o755);
-    tmp_file.set_permissions(perms).unwrap();
+    // Windows don't need to set permissions
+    // In another reason, we don't need to set perimissions anymore, becase we don't hava any bash file.
+    #[cfg(not(target_os = "windows"))]
+    {
+      let mut perms = tmp_file.metadata().unwrap().permissions();
+      perms.set_mode(0o755);
+      tmp_file.set_permissions(perms).unwrap();
+    }
     tmp_file
       .write_all($strs.as_bytes())
       .expect(format!("Write {} failed", $name).as_str());

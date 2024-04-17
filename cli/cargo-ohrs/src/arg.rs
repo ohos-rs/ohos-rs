@@ -52,7 +52,40 @@ pub struct BuildArg {
 
   /// build target with release mode default is false
   #[arg(short = 'r', long, default_value_t = false)]
+  #[arg(
+    short = 'd',
+    long,
+    default_value_t = String::from("dist"),
+    help="Target's file will be copied to this folder. "
+  )]
+  pub dist: String,
+
+  #[arg(
+    long,
+    short = 'c',
+    default_value_t = false,
+    help = "The product file use compact mode"
+  )]
+  pub compact: bool,
+
+  #[arg(
+    short = 'r',
+    long,
+    default_value_t = false,
+    help = "Whether to build in release mode, the default is false."
+  )]
   pub release: bool,
+
+  #[arg(
+    short = 's',
+    long,
+    num_args(0..=1),
+    require_equals(true),
+    default_missing_value("true"),
+    help = "Use llvm-strip to reduce the binary size, which is true by default in release mode.",
+    action = clap::ArgAction::Set
+  )]
+  pub strip: Option<bool>,
 }
 
 #[derive(Args, Default)]

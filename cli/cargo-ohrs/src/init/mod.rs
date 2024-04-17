@@ -59,7 +59,7 @@ pub fn init(arg: InitArg) {
     );
 
     let export = format!(
-      r#"export * from "lib{:?}.so""#,
+      r#"export * from "lib{}.so""#,
       (&arg.name).replace("-", "_")
     );
     create_project_file!(

@@ -14,8 +14,6 @@ jobs:
       image: southorange/ohos-base:v4
     steps:
       - uses: actions/checkout@v4
-      - name: prepare
-        run: apt-get install libssl-dev
 
       - name: install
         # GitHub action can't run with root user, so rust's toolchain need to re-install.

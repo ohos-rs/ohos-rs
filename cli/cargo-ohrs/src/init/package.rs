@@ -44,13 +44,13 @@ ohpm install @pkg
 ## API
 
 ```ts
-# todo
+// todo
 ```
 
 ## Usage
 
 ```ts
-# todo
+// todo
 ```
 "#;
 

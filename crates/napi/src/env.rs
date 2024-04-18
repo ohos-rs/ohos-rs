@@ -1,18 +1,32 @@
 use std::any::{type_name, TypeId};
 use std::convert::TryInto;
 use std::ffi::CString;
-#[cfg(any(
-  all(feature = "tokio_rt", feature = "napi4"),
-  all(feature = "tokio_rt", feature = "ohos")
-))]
+#[cfg(all(feature = "tokio_rt", feature = "napi4"))]
 use std::future::Future;
 use std::mem;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 
-use crate::bindgen_runtime::FromNapiValue;
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "serde-json")]
+use serde::de::DeserializeOwned;
+#[cfg(feature = "serde-json")]
+use serde::Serialize;
+
+#[cfg(feature = "napi8")]
+use crate::async_cleanup_hook::AsyncCleanupHook;
+#[cfg(feature = "napi5")]
+use crate::bindgen_runtime::FunctionCallContext;
+#[cfg(feature = "napi4")]
 use crate::bindgen_runtime::ToNapiValue;
+use crate::bindgen_runtime::{FromNapiValue, Function, JsValuesTupleIntoVec, Unknown};
+#[cfg(feature = "napi3")]
+use crate::cleanup_env::{CleanupEnvHook, CleanupEnvHookData};
+#[cfg(feature = "serde-json")]
+use crate::js_values::{De, Ser};
+#[cfg(feature = "napi4")]
+use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
+#[cfg(feature = "napi3")]
+use crate::JsError;
 use crate::{
   async_work::{self, AsyncWorkPromise},
   check_status,
@@ -21,21 +35,6 @@ use crate::{
   task::Task,
   Error, ExtendedErrorInfo, NodeVersion, Result, Status, ValueType,
 };
-
-#[cfg(feature = "napi8")]
-use crate::async_cleanup_hook::AsyncCleanupHook;
-#[cfg(feature = "napi3")]
-use crate::cleanup_env::{CleanupEnvHook, CleanupEnvHookData};
-#[cfg(feature = "serde-json")]
-use crate::js_values::{De, Ser};
-#[cfg(any(feature = "napi4", feature = "ohos"))]
-use crate::threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunction};
-#[cfg(feature = "napi3")]
-use crate::JsError;
-#[cfg(feature = "serde-json")]
-use serde::de::DeserializeOwned;
-#[cfg(feature = "serde-json")]
-use serde::Serialize;
 
 pub type Callback = unsafe extern "C" fn(sys::napi_env, sys::napi_callback_info) -> sys::napi_value;
 
@@ -61,7 +60,7 @@ impl From<sys::napi_env> for Env {
 
 impl Env {
   #[allow(clippy::missing_safety_doc)]
-  pub unsafe fn from_raw(env: sys::napi_env) -> Self {
+  pub fn from_raw(env: sys::napi_env) -> Self {
     Env(env)
   }
 
@@ -102,43 +101,59 @@ impl Env {
   }
 
   /// [n_api_napi_create_bigint_int64](https://nodejs.org/api/n-api.html#n_api_napi_create_bigint_int64)
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_i64(&self, value: i64) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_bigint_int64(self.0, value, &mut raw_value) })?;
     Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_u64(&self, value: u64) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_bigint_uint64(self.0, value, &mut raw_value) })?;
     Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_i128(&self, value: i128) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     let sign_bit = i32::from(value <= 0);
-    let words = &value as *const i128 as *const u64;
+    if cfg!(target_endian = "little") {
+      let words = &value as *const i128 as *const u64;
+      check_status!(unsafe {
+        sys::napi_create_bigint_words(self.0, sign_bit, 2, words, &mut raw_value)
+      })?;
+      return Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 2));
+    }
+
+    let arr: [u64; 2] = [value as _, (value >> 64) as _];
+    let words = &arr as *const u64;
     check_status!(unsafe {
       sys::napi_create_bigint_words(self.0, sign_bit, 2, words, &mut raw_value)
     })?;
-    Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
+    Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 2))
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_u128(&self, value: u128) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
-    let words = &value as *const u128 as *const u64;
+    if cfg!(target_endian = "little") {
+      let words = &value as *const u128 as *const u64;
+      check_status!(unsafe { sys::napi_create_bigint_words(self.0, 0, 2, words, &mut raw_value) })?;
+      return Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 2));
+    }
+
+    let arr: [u64; 2] = [value as _, (value >> 64) as _];
+    let words = &arr as *const u64;
     check_status!(unsafe { sys::napi_create_bigint_words(self.0, 0, 2, words, &mut raw_value) })?;
-    Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
+    Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 2))
   }
 
   /// [n_api_napi_create_bigint_words](https://nodejs.org/api/n-api.html#n_api_napi_create_bigint_words)
   ///
   /// The resulting BigInt will be negative when sign_bit is true.
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   pub fn create_bigint_from_words(&self, sign_bit: bool, words: Vec<u64>) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     let len = words.len();
@@ -192,36 +207,32 @@ impl Env {
   pub fn create_string_latin1(&self, chars: &[u8]) -> Result<JsString> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
-      sys::napi_create_string_latin1(
-        self.0,
-        chars.as_ptr() as *const _,
-        chars.len(),
-        &mut raw_value,
-      )
+      sys::napi_create_string_latin1(self.0, chars.as_ptr().cast(), chars.len(), &mut raw_value)
     })?;
     Ok(unsafe { JsString::from_raw_unchecked(self.0, raw_value) })
   }
 
-  pub fn create_symbol_from_js_string(&self, description: JsString) -> Result<JsSymbol> {
-    let mut result = ptr::null_mut();
-    check_status!(unsafe { sys::napi_create_symbol(self.0, description.0.value, &mut result) })?;
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  }
+  // harmony not support symbol
+  // pub fn create_symbol_from_js_string(&self, description: JsString) -> Result<JsSymbol> {
+  //   let mut result = ptr::null_mut();
+  //   check_status!(unsafe { sys::napi_create_symbol(self.0, description.0.value, &mut result) })?;
+  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  // }
 
-  pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol> {
-    let mut result = ptr::null_mut();
-    check_status!(unsafe {
-      sys::napi_create_symbol(
-        self.0,
-        description
-          .and_then(|desc| self.create_string(desc).ok())
-          .map(|string| string.0.value)
-          .unwrap_or(ptr::null_mut()),
-        &mut result,
-      )
-    })?;
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  }
+  // pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol> {
+  //   let mut result = ptr::null_mut();
+  //   check_status!(unsafe {
+  //     sys::napi_create_symbol(
+  //       self.0,
+  //       description
+  //         .and_then(|desc| self.create_string(desc).ok())
+  //         .map(|string| string.0.value)
+  //         .unwrap_or(ptr::null_mut()),
+  //       &mut result,
+  //     )
+  //   })?;
+  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  // }
 
   pub fn create_object(&self) -> Result<JsObject> {
     let mut raw_value = ptr::null_mut();
@@ -386,17 +397,18 @@ impl Env {
     ))
   }
 
-  #[cfg(not(target_family = "wasm"))]
+  // #[cfg(not(target_family = "wasm"))]
+  // harmony don't need to call it
   /// This function gives V8 an indication of the amount of externally allocated memory that is kept alive by JavaScript objects (i.e. a JavaScript object that points to its own memory allocated by a native module).
   ///
   /// Registering externally allocated memory will trigger global garbage collections more often than it would otherwise.
   ///
   /// ***ATTENTION ⚠️***, do not use this with `create_buffer_with_data/create_arraybuffer_with_data`, since these two functions already called the `adjust_external_memory` internal.
-  pub fn adjust_external_memory(&mut self, size: i64) -> Result<i64> {
-    let mut changed = 0i64;
-    check_status!(unsafe { sys::napi_adjust_external_memory(self.0, size, &mut changed) })?;
-    Ok(changed)
-  }
+  // pub fn adjust_external_memory(&mut self, size: i64) -> Result<i64> {
+  //   let mut changed = 0i64;
+  //   check_status!(unsafe { sys::napi_adjust_external_memory(self.0, size, &mut changed) })?;
+  //   Ok(changed)
+  // }
 
   #[cfg(target_family = "wasm")]
   #[allow(unused_variables)]
@@ -574,14 +586,17 @@ impl Env {
   /// The newly created function is not automatically visible from script after this call.
   ///
   /// Instead, a property must be explicitly set on any object that is visible to JavaScript, in order for the function to be accessible from script.
-  pub fn create_function(&self, name: &str, callback: Callback) -> Result<JsFunction> {
+  pub fn create_function<Args: JsValuesTupleIntoVec, Return>(
+    &self,
+    name: &str,
+    callback: Callback,
+  ) -> Result<Function<Args, Return>> {
     let mut raw_result = ptr::null_mut();
     let len = name.len();
-    let name = CString::new(name)?;
     check_status!(unsafe {
       sys::napi_create_function(
         self.0,
-        name.as_ptr(),
+        name.as_ptr().cast(),
         len,
         Some(callback),
         ptr::null_mut(),
@@ -589,26 +604,29 @@ impl Env {
       )
     })?;
 
-    Ok(unsafe { JsFunction::from_raw_unchecked(self.0, raw_result) })
+    unsafe { Function::<Args, Return>::from_napi_value(self.0, raw_result) }
   }
 
   #[cfg(feature = "napi5")]
-  pub fn create_function_from_closure<R, F>(&self, name: &str, callback: F) -> Result<JsFunction>
+  pub fn create_function_from_closure<Args: JsValuesTupleIntoVec, Return, F>(
+    &self,
+    name: &str,
+    callback: F,
+  ) -> Result<Function<Args, Return>>
   where
-    F: 'static + Fn(crate::CallContext<'_>) -> Result<R>,
-    R: ToNapiValue,
+    Return: ToNapiValue,
+    F: 'static + Fn(FunctionCallContext) -> Result<Return>,
   {
     let closure_data_ptr = Box::into_raw(Box::new(callback));
 
     let mut raw_result = ptr::null_mut();
     let len = name.len();
-    let name = CString::new(name)?;
     check_status!(unsafe {
       sys::napi_create_function(
         self.0,
-        name.as_ptr(),
+        name.as_ptr().cast(),
         len,
-        Some(trampoline::<R, F>),
+        Some(trampoline::<Return, F>),
         closure_data_ptr.cast(), // We let it borrow the data here
         &mut raw_result,
       )
@@ -633,7 +651,7 @@ impl Env {
       )
     })?;
 
-    Ok(unsafe { JsFunction::from_raw_unchecked(self.0, raw_result) })
+    unsafe { Function::from_napi_value(self.0, raw_result) }
   }
 
   /// This API retrieves a napi_extended_error_info structure with information about the last error that occurred.
@@ -744,12 +762,12 @@ impl Env {
   }
 
   /// Create JavaScript class
-  pub fn define_class(
+  pub fn define_class<Args: JsValuesTupleIntoVec>(
     &self,
     name: &str,
     constructor_cb: Callback,
     properties: &[Property],
-  ) -> Result<JsFunction> {
+  ) -> Result<Function<Args, Unknown>> {
     let mut raw_result = ptr::null_mut();
     let raw_properties = properties
       .iter()
@@ -759,7 +777,7 @@ impl Env {
     check_status!(unsafe {
       sys::napi_define_class(
         self.0,
-        c_name.as_ptr() as *const c_char,
+        c_name.as_ptr().cast(),
         name.len(),
         Some(constructor_cb),
         ptr::null_mut(),
@@ -769,18 +787,23 @@ impl Env {
       )
     })?;
 
-    Ok(unsafe { JsFunction::from_raw_unchecked(self.0, raw_result) })
+    unsafe { Function::from_napi_value(self.0, raw_result) }
   }
 
   #[allow(clippy::needless_pass_by_ref_mut)]
-  pub fn wrap<T: 'static>(&self, js_object: &mut JsObject, native_object: T) -> Result<()> {
+  pub fn wrap<T: 'static>(
+    &self,
+    js_object: &mut JsObject,
+    native_object: T,
+    size_hint: Option<usize>,
+  ) -> Result<()> {
     check_status!(unsafe {
       sys::napi_wrap(
         self.0,
         js_object.0.value,
         Box::into_raw(Box::new(TaggedObject::new(native_object))).cast(),
-        Some(raw_finalize::<T>),
-        ptr::null_mut(),
+        Some(raw_finalize::<TaggedObject<T>>),
+        Box::into_raw(Box::new(size_hint.unwrap_or(0) as i64)).cast(),
         ptr::null_mut(),
       )
     })
@@ -905,6 +928,7 @@ impl Env {
     Ok(unsafe { T::from_raw_unchecked(self.0, js_value) })
   }
 
+  #[deprecated(since = "3.0.0", note = "Please use `External::new` instead")]
   /// If `size_hint` provided, `Env::adjust_external_memory` will be called under the hood.
   ///
   /// If no `size_hint` provided, global garbage collections will be triggered less times than expected.
@@ -920,22 +944,24 @@ impl Env {
       sys::napi_create_external(
         self.0,
         Box::into_raw(Box::new(TaggedObject::new(native_object))).cast(),
-        Some(raw_finalize::<T>),
-        Box::into_raw(Box::new(size_hint)).cast(),
+        Some(raw_finalize::<TaggedObject<T>>),
+        Box::into_raw(Box::new(size_hint.unwrap_or(0))).cast(),
         &mut object_value,
       )
     })?;
-    if let Some(changed) = size_hint {
-      if changed != 0 {
-        let mut adjusted_value = 0i64;
-        check_status!(unsafe {
-          sys::napi_adjust_external_memory(self.0, changed, &mut adjusted_value)
-        })?;
-      }
-    };
+    // harmony don't need to call it
+    // if let Some(changed) = size_hint {
+    //   if changed != 0 {
+    //     let mut adjusted_value = 0i64;
+    //     check_status!(unsafe {
+    //       sys::napi_adjust_external_memory(self.0, changed, &mut adjusted_value)
+    //     })?;
+    //   }
+    // };
     Ok(unsafe { JsExternal::from_raw_unchecked(self.0, object_value) })
   }
 
+  #[deprecated(since = "3.0.0", note = "Please use `&External` instead")]
   pub fn get_value_external<T: 'static>(&self, js_external: &JsExternal) -> Result<&mut T> {
     unsafe {
       let mut unknown_tagged_object = ptr::null_mut();
@@ -996,10 +1022,11 @@ impl Env {
   /// - Unlike `eval`, this function does not allow the script to access the current lexical scope, and therefore also does not allow to access the [module scope](https://nodejs.org/api/modules.html#the-module-scope), meaning that pseudo-globals such as require will not be available.
   /// - The script can access the [global scope](https://nodejs.org/api/globals.html). Function and `var` declarations in the script will be added to the [global](https://nodejs.org/api/globals.html#global) object. Variable declarations made using `let` and `const` will be visible globally, but will not be added to the global object.
   /// - The value of this is [global](https://nodejs.org/api/globals.html) within the script.
+  /// - file should be `abc` file in HarmonyOS
   pub fn run_script<S: AsRef<str>, V: FromNapiValue>(&self, script: S) -> Result<V> {
     let s = self.create_string(script.as_ref())?;
     let mut raw_value = ptr::null_mut();
-    check_status!(unsafe { sys::napi_run_script(self.0, s.raw(), &mut raw_value) })?;
+    check_status!(unsafe { sys::napi_run_script_path(self.0, s.raw(), &mut raw_value) })?;
     unsafe { V::from_napi_value(self.0, raw_value) }
   }
 
@@ -1016,7 +1043,7 @@ impl Env {
       .map_err(|e| Error::new(Status::InvalidArg, format!("{}", e)))
   }
 
-  #[cfg(any(feature = "napi2", feature = "ohos"))]
+  #[cfg(feature = "napi2")]
   pub fn get_uv_event_loop(&self) -> Result<*mut sys::uv_loop_s> {
     let mut uv_loop: *mut sys::uv_loop_s = ptr::null_mut();
     check_status!(unsafe { sys::napi_get_uv_event_loop(self.0, &mut uv_loop) })?;
@@ -1058,24 +1085,26 @@ impl Env {
     })
   }
 
-  #[cfg(any(feature = "napi4", feature = "ohos"))]
+  #[cfg(feature = "napi4")]
+  #[deprecated(
+    since = "2.17.0",
+    note = "Please use `Function::build_threadsafe_function` instead"
+  )]
+  #[allow(deprecated)]
   pub fn create_threadsafe_function<
     T: Send,
     V: ToNapiValue,
-    R: 'static + Send + FnMut(ThreadSafeCallContext<T>) -> Result<Vec<V>>,
+    R: 'static + Send + FnMut(ThreadsafeCallContext<T>) -> Result<Vec<V>>,
   >(
     &self,
     func: &JsFunction,
-    max_queue_size: usize,
+    _max_queue_size: usize,
     callback: R,
   ) -> Result<ThreadsafeFunction<T>> {
-    ThreadsafeFunction::create(self.0, func.0.value, max_queue_size, callback)
+    ThreadsafeFunction::create(self.0, func.0.value, callback)
   }
 
-  #[cfg(any(
-    all(feature = "tokio_rt", feature = "napi4"),
-    all(feature = "tokio_rt", feature = "ohos")
-  ))]
+  #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
   pub fn execute_tokio_future<
     T: 'static + Send,
     V: 'static + ToNapiValue,
@@ -1095,10 +1124,7 @@ impl Env {
     Ok(unsafe { JsObject::from_raw_unchecked(self.0, promise) })
   }
 
-  #[cfg(any(
-    all(feature = "tokio_rt", feature = "napi4"),
-    all(feature = "tokio_rt", feature = "ohos")
-  ))]
+  #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
   pub fn spawn_future<
     T: 'static + Send + ToNapiValue,
     F: 'static + Send + Future<Output = Result<T>>,
@@ -1116,7 +1142,7 @@ impl Env {
   }
 
   /// Creates a deferred promise, which can be resolved or rejected from a background thread.
-  #[cfg(any(feature = "napi4", feature = "ohos"))]
+  #[cfg(feature = "napi4")]
   pub fn create_deferred<Data: ToNapiValue, Resolver: FnOnce(Env) -> Result<Data>>(
     &self,
   ) -> Result<(JsDeferred<Data, Resolver>, JsObject)> {
@@ -1128,7 +1154,7 @@ impl Env {
   /// This API allocates a JavaScript Date object.
   ///
   /// JavaScript Date objects are described in [Section 20.3](https://tc39.github.io/ecma262/#sec-date-objects) of the ECMAScript Language Specification.
-  #[cfg(any(feature = "napi5", feature = "ohos"))]
+  #[cfg(feature = "napi5")]
   pub fn create_date(&self, time: f64) -> Result<JsDate> {
     let mut js_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_date(self.0, time, &mut js_value) })?;
@@ -1256,17 +1282,17 @@ impl Env {
     })
   }
 
-  #[cfg(feature = "napi9")]
-  pub fn symbol_for(&self, description: &str) -> Result<JsSymbol> {
-    let mut result = ptr::null_mut();
-    let len = description.len();
-    let description = CString::new(description)?;
-    check_status!(unsafe {
-      sys::node_api_symbol_for(self.0, description.as_ptr(), len, &mut result)
-    })?;
-
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  }
+  // #[cfg(feature = "napi9")]
+  // pub fn symbol_for(&self, description: &str) -> Result<JsSymbol> {
+  //   let mut result = ptr::null_mut();
+  //   let len = description.len();
+  //   let description = CString::new(description)?;
+  //   check_status!(unsafe {
+  //     sys::node_api_symbol_for(self.0, description.as_ptr(), len, &mut result)
+  //   })?;
+  //
+  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  // }
 
   #[cfg(feature = "napi9")]
   /// This API retrieves the file path of the currently running JS module as a URL. For a file on
@@ -1380,25 +1406,24 @@ unsafe extern "C" fn drop_buffer(
 }
 
 pub(crate) unsafe extern "C" fn raw_finalize<T>(
-  env: sys::napi_env,
+  _env: sys::napi_env,
   finalize_data: *mut c_void,
-  finalize_hint: *mut c_void,
+  _finalize_hint: *mut c_void,
 ) {
-  let tagged_object = finalize_data as *mut TaggedObject<T>;
+  let tagged_object = finalize_data as *mut T;
   drop(unsafe { Box::from_raw(tagged_object) });
+  #[cfg(not(any(target_family = "wasm", feature = "ohos")))]
   if !finalize_hint.is_null() {
-    let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut Option<i64>) };
-    if let Some(changed) = size_hint {
-      if changed != 0 {
-        let mut adjusted = 0i64;
-        let status = unsafe { sys::napi_adjust_external_memory(env, -changed, &mut adjusted) };
-        debug_assert!(
-          status == sys::Status::napi_ok,
-          "Calling napi_adjust_external_memory failed"
-        );
-      }
-    };
-  }
+    let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut i64) };
+    if size_hint != 0 {
+      let mut adjusted = 0i64;
+      let status = unsafe { sys::napi_adjust_external_memory(env, -size_hint, &mut adjusted) };
+      debug_assert!(
+        status == sys::Status::napi_ok,
+        "Calling napi_adjust_external_memory failed"
+      );
+    }
+  };
 }
 
 #[cfg(feature = "napi6")]
@@ -1413,7 +1438,7 @@ unsafe extern "C" fn set_instance_finalize_callback<T, Hint, F>(
 {
   let (value, callback) = unsafe { *Box::from_raw(finalize_data as *mut (TaggedObject<T>, F)) };
   let hint = unsafe { *Box::from_raw(finalize_hint as *mut Hint) };
-  let env = unsafe { Env::from_raw(raw_env) };
+  let env = Env::from_raw(raw_env);
   callback(FinalizeContext {
     value: value.object.unwrap(),
     hint,
@@ -1435,7 +1460,7 @@ unsafe extern "C" fn raw_finalize_with_custom_callback<Hint, Finalize>(
   Finalize: FnOnce(Hint, Env),
 {
   let (hint, callback) = unsafe { *Box::from_raw(finalize_hint as *mut (Hint, Finalize)) };
-  callback(hint, unsafe { Env::from_raw(env) });
+  callback(hint, Env::from_raw(env));
 }
 
 #[cfg(feature = "napi8")]
@@ -1459,22 +1484,20 @@ unsafe extern "C" fn async_finalize<Arg, F>(
 
 #[cfg(feature = "napi5")]
 pub(crate) unsafe extern "C" fn trampoline<
-  R: ToNapiValue,
-  F: Fn(crate::CallContext) -> Result<R>,
+  Return: ToNapiValue,
+  F: Fn(FunctionCallContext) -> Result<Return>,
 >(
   raw_env: sys::napi_env,
   cb_info: sys::napi_callback_info,
 ) -> sys::napi_value {
-  use crate::CallContext;
+  // Fast path for 4 arguments or less.
+  let mut argc = 4;
+  let mut raw_args = Vec::with_capacity(4);
+  let mut raw_this = ptr::null_mut();
+  let mut closure_data_ptr = ptr::null_mut();
 
-  let (raw_this, raw_args, closure_data_ptr, argc) = {
-    // Fast path for 4 arguments or less.
-    let mut argc = 4;
-    let mut raw_args = Vec::with_capacity(4);
-    let mut raw_this = ptr::null_mut();
-    let mut closure_data_ptr = ptr::null_mut();
-
-    let status = unsafe {
+  check_status!(
+    unsafe {
       sys::napi_get_cb_info(
         raw_env,
         cb_info,
@@ -1483,45 +1506,45 @@ pub(crate) unsafe extern "C" fn trampoline<
         &mut raw_this,
         &mut closure_data_ptr,
       )
-    };
-    debug_assert!(
-      Status::from(status) == Status::Ok,
-      "napi_get_cb_info failed"
-    );
-
+    },
+    "napi_get_cb_info failed"
+  )
+  .and_then(|_| {
     // Arguments length greater than 4, resize the vector.
     if argc > 4 {
       raw_args = vec![ptr::null_mut(); argc];
-      let status = unsafe {
-        sys::napi_get_cb_info(
-          raw_env,
-          cb_info,
-          &mut argc,
-          raw_args.as_mut_ptr(),
-          &mut raw_this,
-          &mut closure_data_ptr,
-        )
-      };
-      debug_assert!(
-        Status::from(status) == Status::Ok,
+      check_status!(
+        unsafe {
+          sys::napi_get_cb_info(
+            raw_env,
+            cb_info,
+            &mut argc,
+            raw_args.as_mut_ptr(),
+            &mut raw_this,
+            &mut closure_data_ptr,
+          )
+        },
         "napi_get_cb_info failed"
-      );
+      )?;
     } else {
       unsafe { raw_args.set_len(argc) };
     }
-
-    (raw_this, raw_args, closure_data_ptr, argc)
-  };
-
-  let closure: &F = Box::leak(unsafe { Box::from_raw(closure_data_ptr.cast()) });
-  let mut env = unsafe { Env::from_raw(raw_env) };
-  let call_context = CallContext::new(&mut env, cb_info, raw_this, raw_args.as_slice(), argc);
-  closure(call_context)
-    .and_then(|ret: R| unsafe { <R as ToNapiValue>::to_napi_value(env.0, ret) })
-    .unwrap_or_else(|e| {
-      unsafe { JsError::from(e).throw_into(raw_env) };
-      ptr::null_mut()
+    Ok((raw_this, raw_args, closure_data_ptr, argc))
+  })
+  .and_then(|(raw_this, raw_args, closure_data_ptr, _argc)| {
+    let closure: &F = Box::leak(unsafe { Box::from_raw(closure_data_ptr.cast()) });
+    let mut env = Env::from_raw(raw_env);
+    closure(FunctionCallContext {
+      env: &mut env,
+      this: raw_this,
+      args: raw_args.as_slice(),
     })
+  })
+  .and_then(|ret| unsafe { <Return as ToNapiValue>::to_napi_value(raw_env, ret) })
+  .unwrap_or_else(|e| {
+    unsafe { JsError::from(e).throw_into(raw_env) };
+    ptr::null_mut()
+  })
 }
 
 #[cfg(feature = "napi5")]
@@ -1561,7 +1584,7 @@ pub(crate) unsafe extern "C" fn trampoline_setter<
   };
 
   let closure: &F = Box::leak(unsafe { Box::from_raw(closure_data_ptr.cast()) });
-  let env = unsafe { Env::from_raw(raw_env) };
+  let env = Env::from_raw(raw_env);
   raw_args
     .first()
     .ok_or_else(|| Error::new(Status::InvalidArg, "Missing argument in property setter"))
@@ -1612,7 +1635,7 @@ pub(crate) unsafe extern "C" fn trampoline_getter<
   };
 
   let closure: &F = Box::leak(unsafe { Box::from_raw(closure_data_ptr.cast()) });
-  let env = unsafe { Env::from_raw(raw_env) };
+  let env = Env::from_raw(raw_env);
   closure(env, unsafe {
     crate::bindgen_runtime::Object::from_raw_unchecked(raw_env, raw_this)
   })

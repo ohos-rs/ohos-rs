@@ -114,10 +114,24 @@ fn process_type_def(
     }
   }
 
+  let mut has_import = false;
+
   let buffer_reg = Regex::new(r"\bBuffer\b").unwrap();
   if buffer_reg.is_match(&dts) {
+    has_import = true;
     dts = buffer_reg.replace_all(&dts, "buffer.Buffer").to_string();
-    header.push_str("import buffer from '@ohos.buffer';\n\n\n");
+    header.push_str("import buffer from '@ohos.buffer';\n");
+  }
+
+  let abort_reg = Regex::new(r"\bAbortSignal\b").unwrap();
+  if abort_reg.is_match(&dts) {
+    has_import = true;
+    header.push_str(super::abort_tmp::ABORT_TS);
+    println!("OHOS-RS:::: For AbortController, you can use @ohos-rs/abort-controller.");
+  }
+
+  if has_import {
+    header.push_str("\n\n");
   }
 
   if dts.contains("ExternalObject<") {

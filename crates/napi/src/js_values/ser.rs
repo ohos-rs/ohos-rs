@@ -1,6 +1,4 @@
 use std::result::Result as StdResult;
-#[cfg(any(feature = "napi6", feature = "ohos"))]
-use std::slice;
 
 use serde::{ser, Serialize, Serializer};
 
@@ -93,7 +91,7 @@ impl<'env> Serializer for Ser<'env> {
     self.0.create_int64(v as _).map(|js_number| js_number.0)
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
     // https://github.com/napi-rs/napi-rs/issues/1470
     // serde_json::Value by default uses u64 for positive integers. This results in napirs using a BigInt instead of a number when converting to a js value.
@@ -122,14 +120,9 @@ impl<'env> Serializer for Ser<'env> {
     self.0.create_string(v.to_string().as_str()).map(|v| v.0)
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   fn serialize_u128(self, v: u128) -> Result<Self::Ok> {
-    let words_ref = &v as *const _;
-    let words = unsafe { slice::from_raw_parts(words_ref as *const u64, 2) };
-    self
-      .0
-      .create_bigint_from_words(false, words.to_vec())
-      .map(|v| v.raw)
+    self.0.create_bigint_from_u128(v).map(|v| v.raw)
   }
 
   #[cfg(all(
@@ -145,14 +138,9 @@ impl<'env> Serializer for Ser<'env> {
     self.0.create_string(v.to_string().as_str()).map(|v| v.0)
   }
 
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   fn serialize_i128(self, v: i128) -> Result<Self::Ok> {
-    let words_ref = &(v as u128) as *const _;
-    let words = unsafe { slice::from_raw_parts(words_ref as *const u64, 2) };
-    self
-      .0
-      .create_bigint_from_words(v < 0, words.to_vec())
-      .map(|v| v.raw)
+    self.0.create_bigint_from_i128(v).map(|v| v.raw)
   }
 
   fn serialize_unit(self) -> Result<Self::Ok> {
@@ -308,7 +296,7 @@ impl ser::SerializeSeq for SeqSerializer {
   where
     T: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.array.0.env) };
+    let env = Env::from_raw(self.array.0.env);
     self.array.set_element(
       self.current_index as _,
       JsUnknown(value.serialize(Ser::new(&env))?),
@@ -331,7 +319,7 @@ impl ser::SerializeTuple for SeqSerializer {
   where
     T: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.array.0.env) };
+    let env = Env::from_raw(self.array.0.env);
     self.array.set_element(
       self.current_index as _,
       JsUnknown(value.serialize(Ser::new(&env))?),
@@ -354,7 +342,7 @@ impl ser::SerializeTupleStruct for SeqSerializer {
   where
     T: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.array.0.env) };
+    let env = Env::from_raw(self.array.0.env);
     self.array.set_element(
       self.current_index as _,
       JsUnknown(value.serialize(Ser::new(&env))?),
@@ -377,7 +365,7 @@ impl ser::SerializeTupleVariant for SeqSerializer {
   where
     T: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.array.0.env) };
+    let env = Env::from_raw(self.array.0.env);
     self.array.set_element(
       self.current_index as _,
       JsUnknown(value.serialize(Ser::new(&env))?),
@@ -405,7 +393,7 @@ impl ser::SerializeMap for MapSerializer {
   where
     T: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.obj.0.env) };
+    let env = Env::from_raw(self.obj.0.env);
     self.key = JsString(key.serialize(Ser::new(&env))?);
     Ok(())
   }
@@ -414,7 +402,7 @@ impl ser::SerializeMap for MapSerializer {
   where
     T: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.obj.0.env) };
+    let env = Env::from_raw(self.obj.0.env);
     self.obj.set_property(
       JsString(Value {
         env: self.key.0.env,
@@ -435,7 +423,7 @@ impl ser::SerializeMap for MapSerializer {
     K: Serialize,
     V: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.obj.0.env) };
+    let env = Env::from_raw(self.obj.0.env);
     self.obj.set_property(
       JsString(key.serialize(Ser::new(&env))?),
       JsUnknown(value.serialize(Ser::new(&env))?),
@@ -461,7 +449,7 @@ impl ser::SerializeStruct for StructSerializer {
   where
     T: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.obj.0.env) };
+    let env = Env::from_raw(self.obj.0.env);
     self
       .obj
       .set_named_property(key, JsUnknown(value.serialize(Ser::new(&env))?))?;
@@ -482,7 +470,7 @@ impl ser::SerializeStructVariant for StructSerializer {
   where
     T: Serialize,
   {
-    let env = unsafe { Env::from_raw(self.obj.0.env) };
+    let env = Env::from_raw(self.obj.0.env);
     self
       .obj
       .set_named_property(key, JsUnknown(value.serialize(Ser::new(&env))?))?;

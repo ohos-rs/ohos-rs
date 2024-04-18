@@ -29,6 +29,9 @@ pub struct Reference<T: 'static> {
   finalize_callbacks: Rc<Cell<*mut dyn FnOnce()>>,
 }
 
+unsafe impl<T: Send> Send for Reference<T> {}
+unsafe impl<T: Sync> Sync for Reference<T> {}
+
 impl<T> Drop for Reference<T> {
   fn drop(&mut self) {
     let rc_strong_count = Rc::strong_count(&self.finalize_callbacks);
@@ -78,7 +81,7 @@ impl<T: 'static> Reference<T> {
       let finalize_callbacks_raw = unsafe { Rc::from_raw(finalize_callbacks_ptr) };
       let finalize_callbacks = finalize_callbacks_raw.clone();
       // Leak the raw finalize callbacks
-      Rc::into_raw(finalize_callbacks_raw);
+      let _ = Rc::into_raw(finalize_callbacks_raw);
       Ok(Self {
         raw: wrapped_value.cast(),
         napi_ref,

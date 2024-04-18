@@ -10,11 +10,11 @@ pub enum ValueType {
   Boolean = 2,
   Number = 3,
   String = 4,
-  Symbol = 5,
+  // Symbol = 5,
   Object = 6,
   Function = 7,
   External = 8,
-  #[cfg(any(feature = "napi6", feature = "ohos"))]
+  #[cfg(feature = "napi6")]
   BigInt = 9,
   Unknown = 1024,
 }
@@ -29,7 +29,7 @@ impl Display for ValueType {
 impl From<i32> for ValueType {
   fn from(value: i32) -> ValueType {
     match value {
-      #[cfg(any(feature = "napi6", feature = "ohos"))]
+      #[cfg(feature = "napi6")]
       sys::ValueType::napi_bigint => ValueType::BigInt,
       sys::ValueType::napi_boolean => ValueType::Boolean,
       sys::ValueType::napi_external => ValueType::External,
@@ -38,7 +38,7 @@ impl From<i32> for ValueType {
       sys::ValueType::napi_number => ValueType::Number,
       sys::ValueType::napi_object => ValueType::Object,
       sys::ValueType::napi_string => ValueType::String,
-      sys::ValueType::napi_symbol => ValueType::Symbol,
+      // sys::ValueType::napi_symbol => ValueType::Symbol,
       sys::ValueType::napi_undefined => ValueType::Undefined,
       _ => ValueType::Unknown,
     }

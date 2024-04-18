@@ -21,7 +21,7 @@ pub fn copy_artifact(c: Arc<RwLock<Context>>, target: &super::Architecture) {
       .join(&target.target)
       .join(&ctx.mode);
 
-    // support dynamic and static library 
+    // support dynamic and static library
     let files: Vec<PathBuf> = fs::read_dir(source)
       .expect("Failed to read directory")
       .filter_map(Result::ok)

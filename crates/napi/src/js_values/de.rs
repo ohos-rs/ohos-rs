@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use serde::de::Visitor;
 use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, Unexpected, VariantAccess};
 
-#[cfg(any(feature = "napi6", feature = "ohos"))]
+#[cfg(feature = "napi6")]
 use crate::JsBigInt;
 use crate::{type_of, NapiValue, Value, ValueType};
 use crate::{
@@ -53,7 +53,7 @@ impl<'x, 'de, 'env> serde::de::Deserializer<'x> for &'de mut De<'env> {
           visitor.visit_map(&mut deserializer)
         }
       }
-      #[cfg(any(feature = "napi6", feature = "ohos"))]
+      #[cfg(feature = "napi6")]
       ValueType::BigInt => {
         let mut js_bigint = unsafe { JsBigInt::from_raw(self.0.env, self.0.value)? };
 

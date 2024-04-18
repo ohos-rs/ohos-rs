@@ -9,9 +9,10 @@ name         = "napi-sys-ohos"
 readme       = "README.md"
 repository   = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.65"
-version      = "0.0.1"
+version      = "1.0.0-beta.0"
 
 [features]
+dyn-symbols  = ["libloading"]
 experimental = []
 napi1        = []
 napi2        = ["napi1"]
@@ -22,10 +23,13 @@ napi6        = ["napi5"]
 napi7        = ["napi6"]
 napi8        = ["napi7"]
 napi9        = ["napi8"]
-ohos         = ["napi1"]
+ohos         = ["napi8"]
 
 [package.metadata.workspaces]
 independent = true
 
-[target.'cfg(windows)'.dependencies.libloading]
-version = "0.8"
+[dependencies]
+libloading = { version = "0.8", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+libloading = "0.8"

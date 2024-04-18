@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use std::convert::TryFrom;
 #[cfg(feature = "napi5")]
 use std::ffi::c_void;
@@ -15,13 +17,13 @@ mod de;
 mod ser;
 
 mod arraybuffer;
-#[cfg(any(feature = "napi6", feature = "ohos"))]
+#[cfg(feature = "napi6")]
 mod bigint;
 mod boolean;
 mod buffer;
-#[cfg(any(feature = "ohos", feature = "napi5"))]
+#[cfg(feature = "napi5")]
 mod date;
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 mod deferred;
 mod either;
 mod escapable_handle_scope;
@@ -37,15 +39,15 @@ mod value;
 mod value_ref;
 
 pub use arraybuffer::*;
-#[cfg(any(feature = "napi6", feature = "ohos"))]
+#[cfg(feature = "napi6")]
 pub use bigint::JsBigInt;
 pub use boolean::JsBoolean;
 pub use buffer::*;
-#[cfg(any(feature = "napi5", feature = "ohos"))]
+#[cfg(feature = "napi5")]
 pub use date::*;
 #[cfg(feature = "serde-json")]
 pub(crate) use de::De;
-#[cfg(any(feature = "napi4", feature = "ohos"))]
+#[cfg(feature = "napi4")]
 pub use deferred::*;
 pub use either::Either;
 pub use escapable_handle_scope::EscapableHandleScope;
@@ -81,20 +83,20 @@ impl TypeName for JsNull {
 
 impl ValidateNapiValue for JsNull {}
 
-#[derive(Clone, Copy)]
-pub struct JsSymbol(pub(crate) Value);
+// #[derive(Clone, Copy)]
+// pub struct JsSymbol(pub(crate) Value);
 
-impl TypeName for JsSymbol {
-  fn type_name() -> &'static str {
-    "symbol"
-  }
+// impl TypeName for JsSymbol {
+//   fn type_name() -> &'static str {
+//     "symbol"
+//   }
 
-  fn value_type() -> ValueType {
-    ValueType::Symbol
-  }
-}
+//   fn value_type() -> ValueType {
+//     ValueType::Symbol
+//   }
+// }
 
-impl ValidateNapiValue for JsSymbol {}
+// impl ValidateNapiValue for JsSymbol {}
 
 pub struct JsExternal(pub(crate) Value);
 
@@ -656,11 +658,11 @@ impl_js_value_methods!(JsNumber);
 impl_js_value_methods!(JsString);
 impl_js_value_methods!(JsObject);
 impl_js_value_methods!(JsGlobal);
-#[cfg(any(feature = "napi5", feature = "ohos"))]
+#[cfg(feature = "napi5")]
 impl_js_value_methods!(JsDate);
 impl_js_value_methods!(JsFunction);
 impl_js_value_methods!(JsExternal);
-impl_js_value_methods!(JsSymbol);
+// impl_js_value_methods!(JsSymbol);
 impl_js_value_methods!(JsTimeout);
 impl_js_value_methods!(JSON);
 
@@ -685,12 +687,12 @@ impl_napi_value_trait!(JsNumber, Number);
 impl_napi_value_trait!(JsString, String);
 impl_napi_value_trait!(JsObject, Object);
 impl_napi_value_trait!(JsGlobal, Object);
-#[cfg(any(feature = "napi5", feature = "ohos"))]
+#[cfg(feature = "napi5")]
 impl_napi_value_trait!(JsDate, Object);
 impl_napi_value_trait!(JsTimeout, Object);
 impl_napi_value_trait!(JsFunction, Function);
 impl_napi_value_trait!(JsExternal, External);
-impl_napi_value_trait!(JsSymbol, Symbol);
+// impl_napi_value_trait!(JsSymbol, Symbol);
 
 impl NapiValue for JsUnknown {
   unsafe fn from_raw(env: sys::napi_env, value: sys::napi_value) -> Result<Self> {

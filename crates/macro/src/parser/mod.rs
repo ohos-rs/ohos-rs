@@ -559,7 +559,7 @@ fn napi_fn_from_decl(
     }
   };
 
-  Diagnostic::from_vec(errors).map(|_| {
+  Diagnostic::from_vec(errors).and_then(|_| {
     let js_name = if let Some(prop_name) = opts.getter() {
       opts.js_name().map_or_else(
         || {
@@ -611,7 +611,16 @@ fn napi_fn_from_decl(
       false
     };
 
-    NapiFn {
+    let kind = fn_kind(opts);
+
+    if !matches!(kind, FnKind::Normal) && parent.is_none() {
+      bail_span!(
+        sig.ident,
+        "Only fn in impl block can be marked as factory, constructor, getter or setter"
+      );
+    }
+
+    Ok(NapiFn {
       name: ident.clone(),
       js_name,
       args,
@@ -619,7 +628,7 @@ fn napi_fn_from_decl(
       is_ret_result,
       is_async: asyncness.is_some(),
       vis,
-      kind: fn_kind(opts),
+      kind,
       fn_self,
       parent: parent.cloned(),
       comments: extract_doc_comments(&attrs),
@@ -638,7 +647,7 @@ fn napi_fn_from_decl(
       catch_unwind: opts.catch_unwind().is_some(),
       unsafe_: sig.unsafety.is_some(),
       register_name: get_register_ident(ident.to_string().as_str()),
-    }
+    })
   })
 }
 
@@ -1062,26 +1071,48 @@ impl ConvertToAST for syn::ItemEnum {
       .map_or_else(|| self.ident.to_string(), |(s, _)| s.to_string());
 
     let variants = match opts.string_enum() {
-      Some(_) => self
-        .variants
-        .iter()
-        .map(|v| {
-          if !matches!(v.fields, syn::Fields::Unit) {
-            bail_span!(v.fields, "Structured enum is not supported in #[napi]")
+      Some(case) => {
+        let case = case.map(|c| Ok::<Case, Diagnostic>(match c.0.as_str() {
+          "lowercase" => Case::Flat,
+          "UPPERCASE" => Case::UpperFlat,
+          "PascalCase" => Case::Pascal,
+          "camelCase" => Case::Camel,
+          "snake_case" => Case::Snake,
+          "SCREAMING_SNAKE_CASE" => Case::UpperSnake,
+          "kebab-case" => Case::Kebab,
+          "SCREAMING-KEBAB-CASE" => Case::UpperKebab,
+          _ => {
+            bail_span!(self, "Unknown string enum case. Possible values are \"lowercase\", \"UPPERCASE\", \"PascalCase\", \"camelCase\", \"snake_case\", \"SCREAMING_SNAKE_CASE\", \"kebab-case\", or \"SCREAMING-KEBAB-CASE\"")
           }
-          if matches!(&v.discriminant, Some((_, _))) {
-            bail_span!(
-              v.fields,
-              "Literal values are not supported with string enum in #[napi]"
-            )
-          }
-          Ok(NapiEnumVariant {
-            name: v.ident.clone(),
-            val: NapiEnumValue::String(v.ident.to_string()),
-            comments: extract_doc_comments(&v.attrs),
+        })).transpose()?;
+
+        self
+          .variants
+          .iter()
+          .map(|v| {
+            if !matches!(v.fields, syn::Fields::Unit) {
+              bail_span!(v.fields, "Structured enum is not supported in #[napi]")
+            }
+            if matches!(&v.discriminant, Some((_, _))) {
+              bail_span!(
+                v.fields,
+                "Literal values are not supported with string enum in #[napi]"
+              )
+            }
+
+            let mut val = v.ident.to_string();
+            if let Some(case) = case {
+              val = val.to_case(case)
+            };
+
+            Ok(NapiEnumVariant {
+              name: v.ident.clone(),
+              val: NapiEnumValue::String(val),
+              comments: extract_doc_comments(&v.attrs),
+            })
           })
-        })
-        .collect::<BindgenResult<Vec<NapiEnumVariant>>>()?,
+          .collect::<BindgenResult<Vec<NapiEnumVariant>>>()?
+      }
       None => {
         let mut last_variant_val: i32 = -1;
 

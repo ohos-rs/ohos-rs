@@ -4,7 +4,7 @@ use crate::{
   bindgen_runtime::Null, check_status, sys, type_of, Error, JsObject, Result, Status, ValueType,
 };
 
-#[cfg(any(feature = "napi6", feature = "ohos"))]
+#[cfg(feature = "napi6")]
 use super::BigInt;
 use super::{FromNapiValue, Object, ToNapiValue};
 
@@ -41,7 +41,7 @@ impl FromNapiValue for Value {
           Value::Object(unsafe { Map::<String, Value>::from_napi_value(env, napi_val)? })
         }
       }
-      #[cfg(any(feature = "napi6", feature = "ohos"))]
+      #[cfg(feature = "napi6")]
       ValueType::BigInt => todo!(),
       ValueType::Null => Value::Null,
       ValueType::Function => {
@@ -113,11 +113,11 @@ impl FromNapiValue for Map<String, Value> {
 
 impl ToNapiValue for Number {
   unsafe fn to_napi_value(env: sys::napi_env, n: Self) -> Result<sys::napi_value> {
-    #[cfg(any(feature = "napi6", feature = "ohos"))]
+    #[cfg(feature = "napi6")]
     const MAX_SAFE_INT: i64 = 9007199254740991i64; // 2 ^ 53 - 1
     if n.is_i64() {
       let n = n.as_i64().unwrap();
-      #[cfg(any(feature = "napi6", feature = "ohos"))]
+      #[cfg(feature = "napi6")]
       {
         if !(-MAX_SAFE_INT..=MAX_SAFE_INT).contains(&n) {
           return unsafe { BigInt::to_napi_value(env, BigInt::from(n)) };
@@ -130,12 +130,12 @@ impl ToNapiValue for Number {
     } else {
       let n = n.as_u64().unwrap();
       if n > u32::MAX as u64 {
-        #[cfg(any(feature = "napi6", feature = "ohos"))]
+        #[cfg(feature = "napi6")]
         {
           return unsafe { BigInt::to_napi_value(env, BigInt::from(n)) };
         }
 
-        #[cfg(not(any(feature = "napi6", feature = "ohos")))]
+        #[cfg(feature = "napi6")]
         return unsafe { String::to_napi_value(env, n.to_string()) };
       } else {
         unsafe { u32::to_napi_value(env, n as u32) }

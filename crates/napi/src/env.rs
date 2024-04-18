@@ -1412,20 +1412,7 @@ pub(crate) unsafe extern "C" fn raw_finalize<T>(
 ) {
   let tagged_object = finalize_data as *mut T;
   drop(unsafe { Box::from_raw(tagged_object) });
-  // if !finalize_hint.is_null() {
-  //   let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut Option<i64>) };
-  //   if let Some(changed) = size_hint {
-  //     if changed != 0 {
-  //       let mut adjusted = 0i64;
-  //       let status = unsafe { sys::napi_adjust_external_memory(env, -changed, &mut adjusted) };
-  //       debug_assert!(
-  //         status == sys::Status::napi_ok,
-  //         "Calling napi_adjust_external_memory failed"
-  //       );
-  //     }
-  //   };
-  // }
-  #[cfg(not(target_family = "wasm"))]
+  #[cfg(not(any(target_family = "wasm", feature = "ohos")))]
   if !finalize_hint.is_null() {
     let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut i64) };
     if size_hint != 0 {

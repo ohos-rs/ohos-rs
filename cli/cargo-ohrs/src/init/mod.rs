@@ -58,10 +58,7 @@ pub fn init(arg: InitArg) {
       "package/LICENSE"
     );
 
-    let export = format!(
-      r#"export * from "lib{}.so""#,
-      (&arg.name).replace("-", "_")
-    );
+    let export = format!(r#"export * from "lib{}.so""#, (&arg.name).replace("-", "_"));
     create_project_file!(
       export,
       &target.join("package").join("index.ets"),

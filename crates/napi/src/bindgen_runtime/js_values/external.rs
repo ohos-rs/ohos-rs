@@ -152,24 +152,7 @@ impl<T: 'static> ToNapiValue for External<T> {
       },
       "Create external value failed"
     )?;
-
-    // let mut adjusted_external_memory_size = std::mem::MaybeUninit::new(0);
-    //
-    // if val.size_hint != 0 {
-    //   check_status!(
-    //     unsafe {
-    //       sys::napi_adjust_external_memory(
-    //         env,
-    //         val.size_hint as i64,
-    //         adjusted_external_memory_size.as_mut_ptr(),
-    //       )
-    //     },
-    //     "Adjust external memory failed"
-    //   )?;
-    // };
-    //
-    // val.adjusted_size = unsafe { adjusted_external_memory_size.assume_init() };
-    #[cfg(not(target_family = "wasm"))]
+    #[cfg(not(any(target_family = "wasm", feature = "ohos")))]
     {
       let mut adjusted_external_memory_size = std::mem::MaybeUninit::new(0);
 

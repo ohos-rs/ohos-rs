@@ -19,13 +19,27 @@ pub enum Commands {
   /// Build project
   Build(BuildArg),
   /// Check environments
+  /// TODO: need to implement
   Doctor,
+  /// Publish ohpm's package
+  Publish(PublishArg),
+  /// Generate har package
+  Artifact(ArtifactArg),
 }
 
 #[derive(Args)]
 pub struct InitArg {
-  /// Project's name.Folder will be created, if the folder is already existed and will failed.
+  /// Project's name.Folder will be created, if the folder is already existed and will fail.
   pub name: String,
+  #[arg(
+    default_value_t = false,
+    short = 'p',
+    long,
+    help = "init with ohpm package"
+  )]
+  pub package: bool,
+  #[arg(num_args(0..=1), requires("package"), help = "ohpm package's name.if not set,will use project's name")]
+  pub package_name: Option<String>,
 }
 
 #[derive(Args, Default)]
@@ -37,14 +51,6 @@ pub struct BuildArg {
     help="Target's file will be copied to this folder. "
   )]
   pub dist: String,
-
-  #[arg(
-    long,
-    short = 'c',
-    default_value_t = false,
-    help = "The product file use compact mode"
-  )]
-  pub compact: bool,
 
   #[arg(
     short = 'r',
@@ -64,4 +70,30 @@ pub struct BuildArg {
     action = clap::ArgAction::Set
   )]
   pub strip: Option<bool>,
+}
+
+#[derive(Args, Default)]
+pub struct PublishArg {
+  #[arg(long, help = "ohpm's token, will use it to publish.")]
+  pub token: String,
+
+  #[arg(long, help = "har package's path,default is $PWD/package.har")]
+  pub package: Option<String>,
+}
+
+#[derive(Args, Default)]
+pub struct ArtifactArg {
+  #[arg(
+    long,
+    default_value_t = String::from("package"),
+    help = "The package name of the generated har, default is package"
+  )]
+  pub name: String,
+
+  #[arg(long,
+    short = 'd',
+    default_value_t = String::from("dist"),
+    help = "This folder will copy to package/libs"
+  )]
+  pub dist: String,
 }

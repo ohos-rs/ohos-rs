@@ -91,7 +91,6 @@ fn process_type_def(
       for def in defs {
         dts += &pretty_print(&def, const_enum, 0);
         dts.push('\n');
-        dts.push('\n');
         match def.kind {
           TypeDefKind::Const | TypeDefKind::Enum | TypeDefKind::Fn | TypeDefKind::Struct => {
             exports.push(def.name.clone());
@@ -111,7 +110,7 @@ fn process_type_def(
         dts += &pretty_print(&def, const_enum, 2);
         dts.push('\n');
       }
-      dts.push_str("}\n\n");
+      dts.push_str("}\n");
     }
   }
 
@@ -156,7 +155,7 @@ export class ExternalObject<T> {
 // Helper function to preprocess type definitions
 fn preprocess_type_def(defs: Vec<TypeDefLine>) -> HashMap<String, Vec<TypeDefLine>> {
   let mut namespace_grouped: HashMap<String, Vec<TypeDefLine>> = HashMap::new();
-  let mut class_defs: HashMap<String, TypeDefLine> = HashMap::new();
+  let mut class_defs: HashMap<String, (String, TypeDefLine)> = HashMap::new();
 
   for def in defs {
     let namespace = def
@@ -171,13 +170,14 @@ fn preprocess_type_def(defs: Vec<TypeDefLine>) -> HashMap<String, Vec<TypeDefLin
 
     match def.kind {
       TypeDefKind::Struct => {
-        group.push(def.clone());
-        class_defs.insert(def.name.clone(), def);
+        class_defs.insert(def.name.clone(), (namespace, def));
       }
       TypeDefKind::Impl => {
         if let Some(class_def) = class_defs.get_mut(&def.name) {
-          class_def.def.push('\n');
-          class_def.def += &def.def;
+          if !class_def.1.def.is_empty() {
+            class_def.1.def += "\n";
+          }
+          class_def.1.def += &def.def;
         }
       }
       _ => {
@@ -185,6 +185,11 @@ fn preprocess_type_def(defs: Vec<TypeDefLine>) -> HashMap<String, Vec<TypeDefLin
       }
     }
   }
+
+  class_defs.iter().for_each(|(_, (n, t))| {
+    let group = namespace_grouped.get_mut(n).unwrap();
+    group.push(t.clone());
+  });
 
   namespace_grouped
 }

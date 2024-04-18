@@ -36,5 +36,7 @@ target/
 .DS_Store
 .idea/
 
+*.har
+
 Cargo.lock
 "#;

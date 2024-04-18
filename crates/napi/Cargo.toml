@@ -60,6 +60,7 @@ tokio_sync         = ["tokio/sync"]
 tokio_test_util    = ["tokio/test-util"]
 tokio_time         = ["tokio/time"]
 ohos               = ["napi8", "napi-sys-ohos/ohos", "compat-mode"]
+dyn-symbols = ["napi-sys/dyn-symbols"]
 
 [dependencies]
 bitflags  = "2"

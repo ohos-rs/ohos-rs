@@ -119,19 +119,35 @@ impl Env {
   pub fn create_bigint_from_i128(&self, value: i128) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     let sign_bit = i32::from(value <= 0);
-    let words = &value as *const i128 as *const u64;
+    if cfg!(target_endian = "little") {
+      let words = &value as *const i128 as *const u64;
+      check_status!(unsafe {
+        sys::napi_create_bigint_words(self.0, sign_bit, 2, words, &mut raw_value)
+      })?;
+      return Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 2));
+    }
+
+    let arr: [u64; 2] = [value as _, (value >> 64) as _];
+    let words = &arr as *const u64;
     check_status!(unsafe {
       sys::napi_create_bigint_words(self.0, sign_bit, 2, words, &mut raw_value)
     })?;
-    Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
+    Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 2))
   }
 
   #[cfg(feature = "napi6")]
   pub fn create_bigint_from_u128(&self, value: u128) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
-    let words = &value as *const u128 as *const u64;
+    if cfg!(target_endian = "little") {
+      let words = &value as *const u128 as *const u64;
+      check_status!(unsafe { sys::napi_create_bigint_words(self.0, 0, 2, words, &mut raw_value) })?;
+      return Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 2));
+    }
+
+    let arr: [u64; 2] = [value as _, (value >> 64) as _];
+    let words = &arr as *const u64;
     check_status!(unsafe { sys::napi_create_bigint_words(self.0, 0, 2, words, &mut raw_value) })?;
-    Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
+    Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 2))
   }
 
   /// [n_api_napi_create_bigint_words](https://nodejs.org/api/n-api.html#n_api_napi_create_bigint_words)
@@ -775,14 +791,19 @@ impl Env {
   }
 
   #[allow(clippy::needless_pass_by_ref_mut)]
-  pub fn wrap<T: 'static>(&self, js_object: &mut JsObject, native_object: T) -> Result<()> {
+  pub fn wrap<T: 'static>(
+    &self,
+    js_object: &mut JsObject,
+    native_object: T,
+    size_hint: Option<usize>,
+  ) -> Result<()> {
     check_status!(unsafe {
       sys::napi_wrap(
         self.0,
         js_object.0.value,
         Box::into_raw(Box::new(TaggedObject::new(native_object))).cast(),
-        Some(raw_finalize::<T>),
-        ptr::null_mut(),
+        Some(raw_finalize::<TaggedObject<T>>),
+        Box::into_raw(Box::new(size_hint.unwrap_or(0) as i64)).cast(),
         ptr::null_mut(),
       )
     })
@@ -907,6 +928,7 @@ impl Env {
     Ok(unsafe { T::from_raw_unchecked(self.0, js_value) })
   }
 
+  #[deprecated(since = "3.0.0", note = "Please use `External::new` instead")]
   /// If `size_hint` provided, `Env::adjust_external_memory` will be called under the hood.
   ///
   /// If no `size_hint` provided, global garbage collections will be triggered less times than expected.
@@ -922,8 +944,8 @@ impl Env {
       sys::napi_create_external(
         self.0,
         Box::into_raw(Box::new(TaggedObject::new(native_object))).cast(),
-        Some(raw_finalize::<T>),
-        Box::into_raw(Box::new(size_hint)).cast(),
+        Some(raw_finalize::<TaggedObject<T>>),
+        Box::into_raw(Box::new(size_hint.unwrap_or(0))).cast(),
         &mut object_value,
       )
     })?;
@@ -939,6 +961,7 @@ impl Env {
     Ok(unsafe { JsExternal::from_raw_unchecked(self.0, object_value) })
   }
 
+  #[deprecated(since = "3.0.0", note = "Please use `&External` instead")]
   pub fn get_value_external<T: 'static>(&self, js_external: &JsExternal) -> Result<&mut T> {
     unsafe {
       let mut unknown_tagged_object = ptr::null_mut();
@@ -1387,7 +1410,7 @@ pub(crate) unsafe extern "C" fn raw_finalize<T>(
   finalize_data: *mut c_void,
   _finalize_hint: *mut c_void,
 ) {
-  let tagged_object = finalize_data as *mut TaggedObject<T>;
+  let tagged_object = finalize_data as *mut T;
   drop(unsafe { Box::from_raw(tagged_object) });
   // if !finalize_hint.is_null() {
   //   let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut Option<i64>) };
@@ -1402,6 +1425,18 @@ pub(crate) unsafe extern "C" fn raw_finalize<T>(
   //     }
   //   };
   // }
+  #[cfg(not(target_family = "wasm"))]
+  if !finalize_hint.is_null() {
+    let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut i64) };
+    if size_hint != 0 {
+      let mut adjusted = 0i64;
+      let status = unsafe { sys::napi_adjust_external_memory(env, -size_hint, &mut adjusted) };
+      debug_assert!(
+        status == sys::Status::napi_ok,
+        "Calling napi_adjust_external_memory failed"
+      );
+    }
+  };
 }
 
 #[cfg(feature = "napi6")]

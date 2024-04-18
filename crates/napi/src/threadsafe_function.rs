@@ -1,6 +1,5 @@
 #![allow(clippy::single_component_path_imports)]
 
-use std::convert::Into;
 use std::marker::PhantomData;
 use std::os::raw::c_void;
 use std::ptr::{self, null_mut};
@@ -659,7 +658,7 @@ unsafe extern "C" fn call_js_cb<
           )
         },
         Err(e) => {
-          if CalleeHandled {
+          if !CalleeHandled {
             unsafe { sys::napi_fatal_exception(raw_env, JsError::from(e).into_value(raw_env)) }
           } else {
             unsafe {

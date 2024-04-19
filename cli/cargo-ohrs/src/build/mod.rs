@@ -62,14 +62,29 @@ pub fn build() {
 
   prepare::prepare(ctx.clone()).unwrap();
 
-  let arm64 = Architecture::new("arm64-v8a", "aarch64-unknown-linux-ohos", "arm64");
-  let arm = Architecture::new("armeabi-v7a", "armv7-unknown-linux-ohos", "arm");
-  let x86 = Architecture::new("x86_64", "x86_64-unknown-linux-ohos", "x86_64");
+  let arg = BUILD_ARGS.read().unwrap();
+  let build_arch = (*arg).arch.clone().unwrap_or(vec![
+    String::from("aarch"),
+    String::from("arm"),
+    String::from("x64"),
+  ]);
 
-  [arm64, arm, x86].map(|arch| {
-    run::build(ctx.clone(), &arch);
-    artifact::copy_artifact(ctx.clone(), &arch);
-  });
+  let aarch = Architecture::new("arm64-v8a", "aarch64-unknown-linux-ohos", "aarch");
+  let arm = Architecture::new("armeabi-v7a", "armv7-unknown-linux-ohos", "arm");
+  let x64 = Architecture::new("x86_64", "x86_64-unknown-linux-ohos", "x64");
+
+  [aarch, arm, x64]
+    .iter()
+    .filter_map(|&i| {
+      if build_arch.contains(&i.platform.to_string()) {
+        return Some(i);
+      }
+      None
+    })
+    .for_each(|arch| {
+      run::build(ctx.clone(), &arch);
+      artifact::copy_artifact(ctx.clone(), &arch);
+    });
 
   let mut threads = vec![];
 

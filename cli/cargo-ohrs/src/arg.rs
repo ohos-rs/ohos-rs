@@ -70,6 +70,27 @@ pub struct BuildArg {
     action = clap::ArgAction::Set
   )]
   pub strip: Option<bool>,
+
+  #[arg(
+    long,
+    num_args(0..=3),
+    help = "Construct the specified architectural output. By default, all are built.",
+    value_parser = validate_arch
+  )]
+  pub arch: Option<Vec<String>>,
+}
+
+const VALID_ARCH: [&str; 3] = ["aarch", "arm", "x64"];
+
+fn validate_arch(value: &str) -> Result<String, String> {
+  let result = VALID_ARCH.contains(&value);
+  match result {
+    true => Ok(value.to_string()),
+    false => Err(format!(
+      "{} is not supported, just support: aarch arm x64",
+      value
+    )),
+  }
 }
 
 #[derive(Args, Default)]

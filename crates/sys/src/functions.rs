@@ -783,6 +783,8 @@ pub use napi9::*;
 
 #[cfg(feature = "ohos")]
 mod ohos {
+  use std::os::raw::c_char;
+
   use super::super::types::*;
 
   generate!(
@@ -799,6 +801,8 @@ mod ohos {
         work: napi_async_work,
         qos: napi_qos_t,
       ) -> napi_status;
+      // special napi9 for ohos
+      fn node_api_get_module_file_name(env: napi_env, result: *mut *const c_char) -> napi_status;
     }
   );
 }

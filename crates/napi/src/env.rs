@@ -1294,7 +1294,7 @@ impl Env {
   //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
   // }
 
-  #[cfg(feature = "napi9")]
+  #[cfg(any(feature = "napi9", feature = "ohos"))]
   /// This API retrieves the file path of the currently running JS module as a URL. For a file on
   /// the local file system it will start with `file://`.
   ///

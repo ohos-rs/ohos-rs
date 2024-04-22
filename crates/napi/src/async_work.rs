@@ -10,6 +10,26 @@ use crate::{
   Result, Task,
 };
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AsyncWorkQos {
+  Background,
+  Utility,
+  Default,
+  UserInitiated,
+}
+
+impl From<AsyncWorkQos> for sys::napi_qos_t {
+  fn from(value: AsyncWorkQos) -> Self {
+    match value {
+      AsyncWorkQos::Background => sys::napi_qos_t::napi_qos_background,
+      AsyncWorkQos::Utility => sys::napi_qos_t::napi_qos_utility,
+      AsyncWorkQos::Default => sys::napi_qos_t::napi_qos_default,
+      AsyncWorkQos::UserInitiated => sys::napi_qos_t::napi_qos_user_initiated,
+    }
+  }
+}
+
 struct AsyncWork<T: Task> {
   inner_task: T,
   deferred: sys::napi_deferred,
@@ -46,7 +66,9 @@ pub fn run<T: Task>(
   env: sys::napi_env,
   task: T,
   abort_status: Option<Rc<AtomicU8>>,
+  qos: Option<AsyncWorkQos>,
 ) -> Result<AsyncWorkPromise> {
+  let run_qos = qos.unwrap_or(AsyncWorkQos::Default);
   let mut raw_resource = ptr::null_mut();
   check_status!(unsafe { sys::napi_create_object(env, &mut raw_resource) })?;
   let mut raw_promise = ptr::null_mut();
@@ -78,7 +100,14 @@ pub fn run<T: Task>(
       &mut result.napi_async_work,
     )
   })?;
-  check_status!(unsafe { sys::napi_queue_async_work(env, result.napi_async_work) })?;
+  match run_qos {
+    AsyncWorkQos::Default => {
+      check_status!(unsafe { sys::napi_queue_async_work(env, result.napi_async_work) })?
+    }
+    default_qos => check_status!(unsafe {
+      sys::napi_queue_async_work_with_qos(env, result.napi_async_work, default_qos.into())
+    })?,
+  }
   Ok(AsyncWorkPromise {
     napi_async_work: result.napi_async_work,
     raw_promise,

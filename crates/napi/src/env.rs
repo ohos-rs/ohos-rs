@@ -1001,7 +1001,7 @@ impl Env {
 
   /// Run [Task](./trait.Task.html) in libuv thread pool, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
   pub fn spawn<T: 'static + Task>(&self, task: T) -> Result<AsyncWorkPromise> {
-    async_work::run(self.0, task, None)
+    async_work::run(self.0, task, None, None)
   }
 
   pub fn run_in_scope<T, F>(&self, executor: F) -> Result<T>

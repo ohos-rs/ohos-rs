@@ -72,3 +72,9 @@ impl Task for AsyncFib {
 fn async_fib(input: u32, signal: AbortSignal) -> AsyncTask<AsyncFib> {
   AsyncTask::with_signal(AsyncFib { input }, signal)
 }
+
+
+#[napi]
+fn async_fib_qos(input: u32) -> AsyncTask<AsyncFib> {
+  AsyncTask::with_qos(AsyncFib { input }, napi_ohos::AsyncWorkQos::Utility)
+}

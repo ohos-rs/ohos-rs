@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicPtr, AtomicU8, Ordering};
 
 use super::{FromNapiValue, ToNapiValue, TypeName, Unknown};
+use crate::async_work::AsyncWorkQos;
 use crate::{
   async_work, check_status, sys, Env, Error, JsError, JsObject, NapiValue, Status, Task,
 };
@@ -11,6 +12,7 @@ use crate::{
 pub struct AsyncTask<T: Task> {
   inner: T,
   abort_signal: Option<AbortSignal>,
+  qos: Option<AsyncWorkQos>,
 }
 
 impl<T: Task> TypeName for T {
@@ -28,14 +30,15 @@ impl<T: Task> AsyncTask<T> {
     Self {
       inner: task,
       abort_signal: None,
+      qos: None,
     }
   }
 
-  // abort signal should be hidden, AbortController is not supported yet.
   pub fn with_signal(task: T, signal: AbortSignal) -> Self {
     Self {
       inner: task,
       abort_signal: Some(signal),
+      qos: None,
     }
   }
 
@@ -43,6 +46,43 @@ impl<T: Task> AsyncTask<T> {
     Self {
       inner: task,
       abort_signal: signal,
+      qos: None,
+    }
+  }
+
+  pub fn with_qos(task: T, qos: AsyncWorkQos) -> Self {
+    Self {
+      inner: task,
+      abort_signal: None,
+      qos: Some(qos),
+    }
+  }
+
+  pub fn with_optional_qos(task: T, qos: Option<AsyncWorkQos>) -> Self {
+    Self {
+      inner: task,
+      abort_signal: None,
+      qos: qos,
+    }
+  }
+
+  pub fn with_qos_and_signal(task: T, qos: AsyncWorkQos, signal: AbortSignal) -> Self {
+    Self {
+      inner: task,
+      abort_signal: Some(signal),
+      qos: Some(qos),
+    }
+  }
+
+  pub fn with_optional_qos_and_signal(
+    task: T,
+    qos: Option<AsyncWorkQos>,
+    signal: Option<AbortSignal>,
+  ) -> Self {
+    Self {
+      inner: task,
+      abort_signal: signal,
+      qos,
     }
   }
 }
@@ -143,7 +183,12 @@ extern "C" fn on_abort(
 impl<T: Task> ToNapiValue for AsyncTask<T> {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> crate::Result<sys::napi_value> {
     if let Some(abort_controller) = val.abort_signal {
-      let async_promise = async_work::run(env, val.inner, Some(abort_controller.status.clone()))?;
+      let async_promise = async_work::run(
+        env,
+        val.inner,
+        Some(abort_controller.status.clone()),
+        val.qos,
+      )?;
       abort_controller
         .raw_work
         .store(async_promise.napi_async_work, Ordering::Relaxed);
@@ -152,7 +197,7 @@ impl<T: Task> ToNapiValue for AsyncTask<T> {
         .store(async_promise.deferred, Ordering::Relaxed);
       Ok(async_promise.promise_object().0.value)
     } else {
-      let async_promise = async_work::run(env, val.inner, None)?;
+      let async_promise = async_work::run(env, val.inner, None, val.qos)?;
       Ok(async_promise.promise_object().0.value)
     }
   }

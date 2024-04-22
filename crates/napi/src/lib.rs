@@ -91,7 +91,7 @@ mod version;
 
 pub use napi_sys_ohos as sys;
 
-pub use async_work::AsyncWorkPromise;
+pub use async_work::{AsyncWorkPromise,AsyncWorkQos};
 pub use call_context::CallContext;
 
 pub use bindgen_runtime::iterator;

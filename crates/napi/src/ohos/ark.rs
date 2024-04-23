@@ -26,6 +26,7 @@ impl ArkRuntime {
     Self { env: env }
   }
 
+  /// note: This method only can call in main thread, the runtime must be initialized with `new_with_env`
   pub fn load<T: AsRef<str>>(&self, path: T) -> Result<Module> {
     let c_path = CString::new(path.as_ref())?;
     unsafe {

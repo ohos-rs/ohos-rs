@@ -79,6 +79,8 @@ mod error;
 mod js_values;
 mod status;
 mod task;
+
+mod ohos;
 #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
 mod tokio_runtime;
 mod value_type;
@@ -90,6 +92,7 @@ pub mod threadsafe_function;
 mod version;
 
 pub use napi_sys_ohos as sys;
+pub use ohos::*;
 
 pub use async_work::{AsyncWorkPromise, AsyncWorkQos};
 pub use call_context::CallContext;

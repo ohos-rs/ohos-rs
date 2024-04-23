@@ -5,6 +5,8 @@ use napi_ohos::{
   JsNumber,
 };
 
+mod ohos;
+
 #[napi]
 pub fn sum(left: i32, right: i32) -> i32 {
   left + right

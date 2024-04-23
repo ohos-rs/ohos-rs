@@ -16,7 +16,9 @@ impl ArkRuntime {
       unsafe { napi_sys_ohos::napi_create_ark_runtime(&mut env) },
       "Create arkts runtime failed"
     )?;
-    Ok(Self { env: Env::from_raw(env) })
+    Ok(Self {
+      env: Env::from_raw(env),
+    })
   }
 
   /// create with existed arkts runtime for example main thread

@@ -28,7 +28,7 @@ use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
 #[cfg(feature = "napi3")]
 use crate::JsError;
 use crate::{
-  async_work::{self, AsyncWorkPromise},
+  async_work::{self, AsyncWorkPromise, AsyncWorkQos},
   check_status,
   js_values::*,
   sys,
@@ -1002,6 +1002,15 @@ impl Env {
   /// Run [Task](./trait.Task.html) in libuv thread pool, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
   pub fn spawn<T: 'static + Task>(&self, task: T) -> Result<AsyncWorkPromise> {
     async_work::run(self.0, task, None, None)
+  }
+
+  /// Run [Task](./trait.Task.html) in libuv thread pool with qos, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
+  pub fn spawn_with_qos<T: 'static + Task>(
+    &self,
+    task: T,
+    qos: AsyncWorkQos,
+  ) -> Result<AsyncWorkPromise> {
+    async_work::run(self.0, task, None, Some(qos))
   }
 
   pub fn run_in_scope<T, F>(&self, executor: F) -> Result<T>

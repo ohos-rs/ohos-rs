@@ -305,8 +305,12 @@ pub struct napi_module {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub enum napi_qos_t {
+  // low
   napi_qos_background,
+  // middle
   napi_qos_utility,
+  // default
   napi_qos_default,
+  // high
   napi_qos_user_initiated,
 }

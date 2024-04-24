@@ -314,3 +314,12 @@ pub enum napi_qos_t {
   // high
   napi_qos_user_initiated,
 }
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub enum napi_task_priority {
+  napi_priority_immediate,
+  napi_priority_high,
+  napi_priority_low,
+  napi_priority_idle,
+}

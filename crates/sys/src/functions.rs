@@ -783,7 +783,7 @@ pub use napi9::*;
 
 #[cfg(feature = "ohos")]
 mod ohos {
-  use std::os::raw::c_char;
+  use std::os::raw::{c_char,c_void};
 
   use super::super::types::*;
 
@@ -818,6 +818,13 @@ mod ohos {
       ) -> napi_status;
       fn napi_destroy_ark_runtime(env: *mut napi_env) -> napi_status;
       fn napi_create_ark_runtime(env: *mut napi_env) -> napi_status;
+      // set tsfn_priority
+      fn napi_call_threadsafe_function_with_priority(
+        func: napi_threadsafe_function,
+        data: *mut c_void,
+        priority: napi_task_priority,
+        is_tail: bool,
+      ) -> napi_status;
     }
   );
 }

@@ -40,6 +40,26 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
   }
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ThreadsafeFunctionPriority {
+  Immediate,
+  High,
+  Low,
+  Idle
+}
+
+impl From<ThreadsafeFunctionPriority> for sys::napi_task_priority {
+  fn from(value: ThreadsafeFunctionPriority) -> Self {
+    match value {
+      ThreadsafeFunctionPriority::Immediate => sys::napi_task_priority::napi_priority_immediate,
+      ThreadsafeFunctionPriority::High => sys::napi_task_priority::napi_priority_high,
+      ThreadsafeFunctionPriority::Low => sys::napi_task_priority::napi_priority_low,
+      ThreadsafeFunctionPriority::Idle => sys::napi_task_priority::napi_priority_idle,
+    }
+  }
+}
+
 struct ThreadsafeFunctionHandle {
   raw: AtomicPtr<sys::napi_threadsafe_function__>,
   aborted: RwLock<bool>,
@@ -482,6 +502,28 @@ impl<T: 'static, Return: FromNapiValue + 'static, const Weak: bool, const MaxQue
   /// See [napi_call_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_call_threadsafe_function)
   /// for more information.
   pub fn call(&self, value: T, mode: ThreadsafeFunctionCallMode) -> Status {
+    self.handle.with_read_aborted(|aborted| {
+      if aborted {
+        return Status::Closing;
+      }
+
+      unsafe {
+        sys::napi_call_threadsafe_function(
+          self.handle.get_raw(),
+          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
+            data: value,
+            call_variant: ThreadsafeFunctionCallVariant::Direct,
+            callback: Box::new(|_d: Result<Return>, _: Env| Ok(())),
+          }))
+          .cast(),
+          mode.into(),
+        )
+      }
+      .into()
+    })
+  }
+
+  pub fn call_with_priority(&self, value: T, mode: ThreadsafeFunctionCallMode) -> Status {
     self.handle.with_read_aborted(|aborted| {
       if aborted {
         return Status::Closing;

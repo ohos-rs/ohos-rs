@@ -1,5 +1,5 @@
 use napi_derive_ohos::napi;
-use napi_ohos::{ark::ArkRuntime, Env, Result};
+use napi_ohos::{ark::ArkRuntime, Env, JsString, JsUnknown, Result};
 
 #[napi]
 pub fn load_module_with_default_env(env: Env) -> Result<()> {
@@ -28,4 +28,12 @@ pub fn load_module_with_new_runtime() -> Result<()> {
   let flag = runtime.env.create_int32(0)?.into_unknown();
   module.call("info", &[flag, tag, js_string])?;
   Ok(())
+}
+
+#[napi]
+pub fn load_module_with_field(env: Env) -> Result<JsString> {
+  let runtime = ArkRuntime::new_with_env(env);
+  let module = runtime.load("ets/Test")?;
+  let word: JsString = module.get("hello")?;
+  Ok(word)
 }

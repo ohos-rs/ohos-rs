@@ -33,11 +33,9 @@ impl Module {
     }
   }
 
-  pub fn get<K: AsRef<str>, V: FromNapiValue>(&self, property: K) -> Result<(V, ValueType)> {
+  pub fn get<K: AsRef<str>, V: FromNapiValue>(&self, property: K) -> Result<V> {
     let ret = self.get_napi_value(property)?;
-    let ty = type_of!(self.env, ret)?;
-
-    unsafe { Ok((V::from_napi_value(self.env, ret)?, ty)) }
+    unsafe { Ok(V::from_napi_value(self.env, ret)?) }
   }
 
   /// [napi_call_function](https://nodejs.org/api/n-api.html#n_api_napi_call_function)

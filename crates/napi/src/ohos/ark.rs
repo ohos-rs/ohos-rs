@@ -6,6 +6,7 @@ use super::module::Module;
 
 pub struct ArkRuntime {
   pub env: Env,
+  is_new: bool,
 }
 
 impl ArkRuntime {
@@ -18,12 +19,16 @@ impl ArkRuntime {
     )?;
     Ok(Self {
       env: Env::from_raw(env),
+      is_new: true,
     })
   }
 
   /// create with existed arkts runtime for example main thread
   pub fn new_with_env(env: Env) -> Self {
-    Self { env: env }
+    Self {
+      env: env,
+      is_new: false,
+    }
   }
 
   /// note: This method only can call in main thread, the runtime must be initialized with `new_with_env`
@@ -52,6 +57,16 @@ impl ArkRuntime {
         &mut module
       ))?;
       Ok(Module::new(self.env.0, module))
+    }
+  }
+}
+
+impl Drop for ArkRuntime {
+  fn drop(&mut self) {
+    if self.is_new {
+      unsafe {
+        napi_sys_ohos::napi_destroy_ark_runtime(&mut self.env.0);
+      }
     }
   }
 }

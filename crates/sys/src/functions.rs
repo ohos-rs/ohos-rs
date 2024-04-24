@@ -803,6 +803,21 @@ mod ohos {
       ) -> napi_status;
       // special napi9 for ohos
       fn node_api_get_module_file_name(env: napi_env, result: *mut *const c_char) -> napi_status;
+      // load module, can be used in main thread
+      fn napi_load_module(
+        env: napi_env,
+        path: *const c_char,
+        result: *mut napi_value,
+      ) -> napi_status;
+      // can be used in new ark runtime
+      fn napi_load_module_with_info(
+        env: napi_env,
+        path: *const c_char,
+        module_info: *const c_char,
+        result: *mut napi_value,
+      ) -> napi_status;
+      fn napi_destroy_ark_runtime(env: *mut napi_env) -> napi_status;
+      fn napi_create_ark_runtime(env: *mut napi_env) -> napi_status;
     }
   );
 }

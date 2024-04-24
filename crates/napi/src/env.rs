@@ -213,26 +213,28 @@ impl Env {
   }
 
   // harmony not support symbol
-  // pub fn create_symbol_from_js_string(&self, description: JsString) -> Result<JsSymbol> {
-  //   let mut result = ptr::null_mut();
-  //   check_status!(unsafe { sys::napi_create_symbol(self.0, description.0.value, &mut result) })?;
-  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  // }
+  #[cfg(not(feature = "ohos"))]
+  pub fn create_symbol_from_js_string(&self, description: JsString) -> Result<JsSymbol> {
+    let mut result = ptr::null_mut();
+    check_status!(unsafe { sys::napi_create_symbol(self.0, description.0.value, &mut result) })?;
+    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  }
 
-  // pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol> {
-  //   let mut result = ptr::null_mut();
-  //   check_status!(unsafe {
-  //     sys::napi_create_symbol(
-  //       self.0,
-  //       description
-  //         .and_then(|desc| self.create_string(desc).ok())
-  //         .map(|string| string.0.value)
-  //         .unwrap_or(ptr::null_mut()),
-  //       &mut result,
-  //     )
-  //   })?;
-  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  // }
+  #[cfg(not(feature = "ohos"))]
+  pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol> {
+    let mut result = ptr::null_mut();
+    check_status!(unsafe {
+      sys::napi_create_symbol(
+        self.0,
+        description
+          .and_then(|desc| self.create_string(desc).ok())
+          .map(|string| string.0.value)
+          .unwrap_or(ptr::null_mut()),
+        &mut result,
+      )
+    })?;
+    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  }
 
   pub fn create_object(&self) -> Result<JsObject> {
     let mut raw_value = ptr::null_mut();
@@ -1291,17 +1293,17 @@ impl Env {
     })
   }
 
-  // #[cfg(feature = "napi9")]
-  // pub fn symbol_for(&self, description: &str) -> Result<JsSymbol> {
-  //   let mut result = ptr::null_mut();
-  //   let len = description.len();
-  //   let description = CString::new(description)?;
-  //   check_status!(unsafe {
-  //     sys::node_api_symbol_for(self.0, description.as_ptr(), len, &mut result)
-  //   })?;
-  //
-  //   Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
-  // }
+  #[cfg(feature = "napi9")]
+  pub fn symbol_for(&self, description: &str) -> Result<JsSymbol> {
+    let mut result = ptr::null_mut();
+    let len = description.len();
+    let description = CString::new(description)?;
+    check_status!(unsafe {
+      sys::node_api_symbol_for(self.0, description.as_ptr(), len, &mut result)
+    })?;
+
+    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+  }
 
   #[cfg(any(feature = "napi9", feature = "ohos"))]
   /// This API retrieves the file path of the currently running JS module as a URL. For a file on

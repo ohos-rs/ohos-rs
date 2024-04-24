@@ -38,7 +38,8 @@ impl From<i32> for ValueType {
       sys::ValueType::napi_number => ValueType::Number,
       sys::ValueType::napi_object => ValueType::Object,
       sys::ValueType::napi_string => ValueType::String,
-      // sys::ValueType::napi_symbol => ValueType::Symbol,
+      #[cfg(not(feature = "ohos"))]
+      sys::ValueType::napi_symbol => ValueType::Symbol,
       sys::ValueType::napi_undefined => ValueType::Undefined,
       _ => ValueType::Unknown,
     }

@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use std::convert::TryFrom;
 #[cfg(feature = "napi5")]
 use std::ffi::c_void;
@@ -27,7 +25,6 @@ mod date;
 mod deferred;
 mod either;
 mod escapable_handle_scope;
-mod function;
 mod global;
 mod number;
 mod object;
@@ -51,7 +48,6 @@ pub(crate) use de::De;
 pub use deferred::*;
 pub use either::Either;
 pub use escapable_handle_scope::EscapableHandleScope;
-pub use function::JsFunction;
 pub use global::*;
 pub use number::JsNumber;
 pub use object::*;
@@ -660,9 +656,9 @@ impl_js_value_methods!(JsObject);
 impl_js_value_methods!(JsGlobal);
 #[cfg(feature = "napi5")]
 impl_js_value_methods!(JsDate);
-impl_js_value_methods!(JsFunction);
 impl_js_value_methods!(JsExternal);
-// impl_js_value_methods!(JsSymbol);
+#[cfg(not(feature = "ohos"))]
+impl_js_value_methods!(JsSymbol);
 impl_js_value_methods!(JsTimeout);
 impl_js_value_methods!(JSON);
 
@@ -690,9 +686,9 @@ impl_napi_value_trait!(JsGlobal, Object);
 #[cfg(feature = "napi5")]
 impl_napi_value_trait!(JsDate, Object);
 impl_napi_value_trait!(JsTimeout, Object);
-impl_napi_value_trait!(JsFunction, Function);
 impl_napi_value_trait!(JsExternal, External);
-// impl_napi_value_trait!(JsSymbol, Symbol);
+#[cfg(not(feature = "ohos"))]
+impl_napi_value_trait!(JsSymbol, Symbol);
 
 impl NapiValue for JsUnknown {
   unsafe fn from_raw(env: sys::napi_env, value: sys::napi_value) -> Result<Self> {

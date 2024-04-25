@@ -783,7 +783,7 @@ pub use napi9::*;
 
 #[cfg(feature = "ohos")]
 mod ohos {
-  use std::os::raw::{c_char,c_void};
+  use std::os::raw::{c_char, c_void};
 
   use super::super::types::*;
 

@@ -10,7 +10,8 @@ pub enum ValueType {
   Boolean = 2,
   Number = 3,
   String = 4,
-  // Symbol = 5,
+  #[cfg(not(feature = "ohos"))]
+  Symbol = 5,
   Object = 6,
   Function = 7,
   External = 8,

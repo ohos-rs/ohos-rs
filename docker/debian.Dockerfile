@@ -4,7 +4,6 @@ ENV LANG=en_US.utf8 \
 	RUSTUP_DIST_SERVER="https://rsproxy.cn" \
 	RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup" \
 	OHOS_NDK_HOME=/root/sdk \
-	PATH="/root/.cargo/bin:${PATH}" \
 	RUSTUP_HOME=/usr/local/rustup \
 	CARGO_HOME=/usr/local/cargo \
 	PATH=/usr/local/cargo/bin:$PATH 
@@ -31,7 +30,7 @@ RUN mkdir ~/harmony && mkdir ~/sdk \
 	&& mkdir ./ohos-sdk-windows_linux-public && tar -zxvf ./ohos-sdk-windows_linux-public.tar.gz -C ./ohos-sdk-windows_linux-public \
 	&& cd ~/harmony/ohos-sdk-windows_linux-public/ohos-sdk/linux && unzip -u '*.zip' -d ~/sdk \
 	&& cd ~ && rm -rf ~/harmony \
-	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+	&& curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && rustup target add aarch64-unknown-linux-ohos \
 	&& rustup target add armv7-unknown-linux-ohos \
 	&& rustup target add x86_64-unknown-linux-ohos \

@@ -17,4 +17,4 @@ jobs:
 
       - name: install
         # GitHub action can't run with root user, so rust's toolchain need to re-install.
-        run:  export PATH="${HOME}/.cargo/bin:${PATH}" && rustup default nightly && rustup component add rust-src && cargo install ohrs && echo $PATH && cd examples/hello && ohrs build
+        run:  cargo install ohrs && cd examples/hello && ohrs build

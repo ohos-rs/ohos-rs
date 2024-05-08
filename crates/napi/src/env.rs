@@ -1103,16 +1103,16 @@ impl Env {
   )]
   #[allow(deprecated)]
   pub fn create_threadsafe_function<
-    T: Send,
-    V: ToNapiValue,
-    R: 'static + Send + FnMut(ThreadsafeCallContext<T>) -> Result<Vec<V>>,
+    T: 'static + Send,
+    V: 'static + JsValuesTupleIntoVec,
+    R: 'static + Send + FnMut(ThreadsafeCallContext<T>) -> Result<V>,
   >(
     &self,
     func: &JsFunction,
     _max_queue_size: usize,
     callback: R,
-  ) -> Result<ThreadsafeFunction<T>> {
-    ThreadsafeFunction::create(self.0, func.0.value, callback)
+  ) -> Result<ThreadsafeFunction<T, Unknown, V>> {
+    ThreadsafeFunction::<T, Unknown, V>::create(self.0, func.0.value, callback)
   }
 
   #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
@@ -1424,6 +1424,7 @@ pub(crate) unsafe extern "C" fn raw_finalize<T>(
   let tagged_object = finalize_data as *mut T;
   drop(unsafe { Box::from_raw(tagged_object) });
   #[cfg(not(any(target_family = "wasm", feature = "ohos")))]
+  #[cfg(not(target_family = "wasm"))]
   if !finalize_hint.is_null() {
     let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut i64) };
     if size_hint != 0 {

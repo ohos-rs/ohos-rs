@@ -173,6 +173,34 @@ fn replace_napi_attr_in_mod(
 #[cfg(feature = "type-def")]
 fn prepare_type_def_file() {
   if let Ok(ref type_def_file) = env::var("TYPE_DEF_TMP_PATH") {
-    let _ = fs::remove_file(type_def_file);
+    let _ = remove_existed_def_file(type_def_file);
   }
+}
+
+/// support shared crate to generate ts file
+fn remove_existed_def_file(def_file: &str) -> std::io::Result<()> {
+  use std::io::{BufRead, BufReader};
+
+  let pkg_name = std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME is not set");
+  if let Ok(content) = std::fs::File::open(def_file) {
+    let reader = BufReader::new(content);
+    let cleaned_content = reader
+      .lines()
+      .filter_map(|line| {
+        if let Ok(line) = line {
+          if let Some((package_name, _)) = line.split_once(':') {
+            if pkg_name == package_name {
+              return None;
+            }
+          }
+          Some(line)
+        } else {
+          None
+        }
+      })
+      .collect::<Vec<String>>()
+      .join("\n");
+    std::fs::write(def_file, format!("{cleaned_content}\n"))?;
+  }
+  Ok(())
 }

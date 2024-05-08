@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ffi::CStr;
 use std::ptr;
-#[cfg(all(feature = "napi4", not(target_family = "wasm")))]
-use std::sync::atomic::AtomicPtr;
 #[cfg(all(
   not(any(target_os = "macos", target_family = "wasm")),
   feature = "napi4",
@@ -75,9 +73,9 @@ static FIRST_MODULE_REGISTERED: AtomicBool = AtomicBool::new(false);
 static REGISTERED_CLASSES: Lazy<RegisteredClassesMap> = Lazy::new(Default::default);
 static FN_REGISTER_MAP: Lazy<FnRegisterMap> = Lazy::new(Default::default);
 #[cfg(all(feature = "napi4", not(feature = "noop"), not(target_family = "wasm")))]
-pub(crate) static CUSTOM_GC_TSFN: AtomicPtr<sys::napi_threadsafe_function__> =
-  AtomicPtr::new(ptr::null_mut());
-#[cfg(all(feature = "napi4", not(target_family = "wasm")))]
+pub(crate) static CUSTOM_GC_TSFN: std::sync::atomic::AtomicPtr<sys::napi_threadsafe_function__> =
+  std::sync::atomic::AtomicPtr::new(ptr::null_mut());
+#[cfg(all(feature = "napi4", not(feature = "noop"), not(target_family = "wasm")))]
 pub(crate) static CUSTOM_GC_TSFN_DESTROYED: AtomicBool = AtomicBool::new(false);
 #[cfg(all(feature = "napi4", not(feature = "noop"), not(target_family = "wasm")))]
 // Store thread id of the thread that created the CustomGC ThreadsafeFunction.
@@ -465,12 +463,11 @@ pub unsafe extern "C" fn napi_register_module_v1(
     })
   }
 
-  // make sure init with electron, but harmonyOS maybe not need.
-  #[cfg(any(all(
+  #[cfg(all(
     not(any(target_os = "macos", target_family = "wasm")),
     feature = "napi4",
     feature = "tokio_rt"
-  )))]
+  ))]
   {
     crate::tokio_runtime::ensure_runtime();
 
@@ -571,22 +568,22 @@ fn create_custom_gc(env: sys::napi_env) {
     CUSTOM_GC_TSFN.store(custom_gc_tsfn, Ordering::Relaxed);
   }
 
-  // let current_thread_id = std::thread::current().id();
-  // THREADS_CAN_ACCESS_ENV.borrow_mut(|m| m.insert(current_thread_id, true));
-  // check_status_or_throw!(
-  //   env,
-  //   unsafe {
-  //     sys::napi_add_env_cleanup_hook(
-  //       env,
-  //       Some(remove_thread_id),
-  //       Box::into_raw(Box::new(current_thread_id)).cast(),
-  //     )
-  //   },
-  //   "Failed to add remove thread id cleanup hook"
-  // );
+  let current_thread_id = std::thread::current().id();
+  THREADS_CAN_ACCESS_ENV.borrow_mut(|m| m.insert(current_thread_id, true));
+  check_status_or_throw!(
+    env,
+    unsafe {
+      sys::napi_add_env_cleanup_hook(
+        env,
+        Some(remove_thread_id),
+        Box::into_raw(Box::new(current_thread_id)).cast(),
+      )
+    },
+    "Failed to add remove thread id cleanup hook"
+  );
 }
 
-#[cfg(any(all(feature = "napi4", not(target_family = "wasm"), not(feature = "noop"))))]
+#[cfg(all(feature = "napi4", not(target_family = "wasm"), not(feature = "noop")))]
 unsafe extern "C" fn remove_thread_id(id: *mut std::ffi::c_void) {
   let thread_id = unsafe { Box::from_raw(id.cast::<ThreadId>()) };
   THREADS_CAN_ACCESS_ENV.borrow_mut(|m| m.insert(*thread_id, false));

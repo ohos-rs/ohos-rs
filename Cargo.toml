@@ -13,6 +13,11 @@ members = [
 [profile.release]
 lto = true
 
+[profile.wasi]
+inherits = "release"
+opt-level = "z"
+debug = 'full'
+
 [profile.napi-rs-custom]
 inherits      = "dev"
 codegen-units = 1024

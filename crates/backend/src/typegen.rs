@@ -6,7 +6,6 @@ pub(crate) mod r#struct;
 use std::{
   cell::RefCell,
   collections::HashMap,
-  env,
   fmt::{self, Display, Formatter},
 };
 
@@ -97,7 +96,6 @@ fn escape_json(src: &str) -> String {
 
 impl Display for TypeDef {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-    let pkg_name = std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME is not set");
     let js_mod = if let Some(js_mod) = &self.js_mod {
       format!(", \"js_mod\": \"{}\"", js_mod)
     } else {

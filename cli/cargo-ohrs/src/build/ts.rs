@@ -284,7 +284,6 @@ fn correct_string_indent(src: &str, indent: usize) -> String {
 pub fn generate_d_ts_file(c: Arc<RwLock<Context>>) {
   let ctx = c.read().unwrap();
   let tmp_file = env::var("TYPE_DEF_TMP_PATH").unwrap();
-  println!("{tmp_file}");
   if !Path::new(tmp_file.as_str()).is_file() {
     return;
   }

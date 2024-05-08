@@ -91,8 +91,10 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStrea
     napi.try_to_tokens(&mut tokens)?;
 
     #[cfg(feature = "type-def")]
-    output_type_def(&napi);
-    output_wasi_register_def(&napi);
+    {
+      output_type_def(&napi);
+      output_wasi_register_def(&napi);
+    }
     Ok(tokens)
   }
 }

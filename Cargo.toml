@@ -1,10 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-  "crates/*",
-  "examples/*",
-  "cli/*",
-]
+members  = ["crates/*", "examples/*", "cli/*"]
 
 [profile.release]
 lto = true

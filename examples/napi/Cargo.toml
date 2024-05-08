@@ -10,16 +10,16 @@ crate-type = ["cdylib"]
 
 [dependencies]
 napi-ohos = { path = '../../crates/napi', features = [
-    "serde-json",
-    "latin1",
-    "chrono_date",
-    "object_indexmap",
-    "tokio",
-    "async",
-    "tokio_rt",
-    "tokio_fs",
-    "tokio_macros",
-    "deferred_trace",
+  "serde-json",
+  "latin1",
+  "chrono_date",
+  "object_indexmap",
+  "tokio",
+  "async",
+  "tokio_rt",
+  "tokio_fs",
+  "tokio_macros",
+  "deferred_trace",
 ] }
 napi-derive-ohos = { path = '../../crates/macro' }
 napi-shared = { path = "../napi-shared" }

@@ -5,8 +5,8 @@ use napi_ohos::{
 };
 
 pub mod async_work;
-pub mod ohos;
 pub mod basic;
+pub mod ohos;
 
 #[napi]
 pub fn sum(left: i32, right: i32) -> i32 {

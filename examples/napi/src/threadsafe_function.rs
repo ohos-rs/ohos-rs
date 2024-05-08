@@ -98,7 +98,10 @@ pub fn tsfn_call_with_callback(tsfn: ThreadsafeFunction<(), String>) -> napi_oho
 }
 
 #[napi(ts_return_type = "Promise<void>")]
-pub fn tsfn_async_call(env: Env, func: Function<(u32, u32, u32), String>) -> napi_ohos::Result<Object> {
+pub fn tsfn_async_call(
+  env: Env,
+  func: Function<(u32, u32, u32), String>,
+) -> napi_ohos::Result<Object> {
   let tsfn = func.build_threadsafe_function().build()?;
 
   env.spawn_future(async move {
@@ -156,6 +159,8 @@ pub async fn tsfn_return_promise_timeout(
 }
 
 #[napi]
-pub async fn tsfn_throw_from_js(tsfn: ThreadsafeFunction<u32, Promise<u32>>) -> napi_ohos::Result<u32> {
+pub async fn tsfn_throw_from_js(
+  tsfn: ThreadsafeFunction<u32, Promise<u32>>,
+) -> napi_ohos::Result<u32> {
   tsfn.call_async(Ok(42)).await?.await
 }

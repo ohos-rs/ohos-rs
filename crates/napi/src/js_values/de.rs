@@ -70,7 +70,7 @@ impl<'x, 'de, 'env> serde::de::Deserializer<'x> for &'de mut De<'env> {
         Status::InvalidArg,
         format!("typeof {:?} value could not be deserialized", js_value_type),
       )),
-      #[cfg(not(feature="ohos"))]
+      #[cfg(not(feature = "ohos"))]
       ValueType::ValueType::Symbol => Err(Error::new(
         Status::InvalidArg,
         format!("typeof {:?} value could not be deserialized", js_value_type),

@@ -4,7 +4,7 @@ use cargo_metadata::Package;
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
-use std::thread;
+use std::{env, fs, thread};
 
 mod abort_tmp;
 mod artifact;
@@ -82,6 +82,10 @@ pub fn build() {
       None
     })
     .for_each(|arch| {
+      let tmp_file = env::var("TYPE_DEF_TMP_PATH").expect("Get .d.ts tmp filed.");
+      if PathBuf::from(&tmp_file).is_file()  {
+        fs::remove_file(&tmp_file).expect("Make sure to empty the file prior to each construction process failed.");
+      }
       run::build(ctx.clone(), &arch);
       artifact::copy_artifact(ctx.clone(), &arch);
     });

@@ -15,8 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: install
+        run: cargo install ohrs
+
       - name: run basic
-        run:  cd examples/hello && ohrs build
+        run: cd examples/hello && ohrs build
 
       - name: run example
         run: cd examples/napi && ohrs build

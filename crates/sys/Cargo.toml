@@ -9,7 +9,7 @@ name         = "napi-sys-ohos"
 readme       = "README.md"
 repository   = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.65"
-version      = "1.0.0-beta.0"
+version      = "1.0.0-beta.1"
 
 [features]
 dyn-symbols  = ["libloading"]

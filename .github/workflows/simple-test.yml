@@ -15,5 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: run
+      - name: run basic
         run:  cd examples/hello && ohrs build
+
+      - name: run example
+        run: cd examples/napi && ohrs build

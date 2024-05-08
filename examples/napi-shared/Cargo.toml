@@ -1,0 +1,22 @@
+[package]
+name    = "napi-shared"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+napi-ohos = { path = '../../crates/napi', features = [
+  "napi8",
+  "serde-json",
+  "async",
+  "latin1",
+  "chrono_date",
+] }
+napi-derive-ohos = { path = '../../crates/macro' }
+
+[build-dependencies]
+napi-build-ohos = { path = "../../crates/build" }
+
+[profile.release]
+lto = true

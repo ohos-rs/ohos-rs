@@ -1,0 +1,39 @@
+[package]
+name    = "napi"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi-ohos = { path = '../../crates/napi', features = [
+    "serde-json",
+    "latin1",
+    "chrono_date",
+    "object_indexmap",
+    "tokio",
+    "async",
+    "tokio_rt",
+    "tokio_fs",
+    "tokio_macros",
+    "deferred_trace",
+] }
+napi-derive-ohos = { path = '../../crates/macro' }
+napi-shared = { path = "../napi-shared" }
+chrono = "0.4.38"
+futures = "0.3"
+serde = "1"
+serde_bytes = "0.11"
+serde_derive = "1"
+serde_json = "1"
+indexmap = "2"
+tokio = { version = "1", features = ["rt", "time"] }
+
+[build-dependencies]
+napi-build-ohos = { path = "../../crates/build" }
+
+[profile.release]
+lto = true

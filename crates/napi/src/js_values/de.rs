@@ -66,7 +66,12 @@ impl<'x, 'de, 'env> serde::de::Deserializer<'x> for &'de mut De<'env> {
           (false, false) => visitor.visit_u128(js_bigint.get_u128()?.1),
         }
       }
-      ValueType::External | ValueType::Function | ValueType::Symbol => Err(Error::new(
+      ValueType::External | ValueType::Function => Err(Error::new(
+        Status::InvalidArg,
+        format!("typeof {:?} value could not be deserialized", js_value_type),
+      )),
+      #[cfg(not(feature="ohos"))]
+      ValueType::ValueType::Symbol => Err(Error::new(
         Status::InvalidArg,
         format!("typeof {:?} value could not be deserialized", js_value_type),
       )),

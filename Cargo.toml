@@ -1,22 +1,13 @@
 [workspace]
 resolver = "2"
 members = [
-  "./crates/backend",
-  "./crates/build",
-  "./crates/macro",
-  "./crates/napi",
-  "./crates/sys",
-  "./examples/hello",
-  "./cli/cargo-ohrs",
+  "crates/*",
+  "examples/*",
+  "cli/*",
 ]
 
 [profile.release]
 lto = true
-
-[profile.wasi]
-inherits = "release"
-opt-level = "z"
-debug = 'full'
 
 [profile.napi-rs-custom]
 inherits      = "dev"

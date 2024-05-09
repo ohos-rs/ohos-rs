@@ -6,6 +6,9 @@ use napi_ohos::{
 
 mod async_work;
 mod ohos;
+pub mod async_work;
+pub mod basic;
+pub mod ohos;
 
 #[napi]
 pub fn sum(left: i32, right: i32) -> i32 {
@@ -15,7 +18,7 @@ pub fn sum(left: i32, right: i32) -> i32 {
 #[napi]
 pub fn threadsafe_function_fatal_mode(
   v: bool,
-  cb: ThreadsafeFunction<bool, UnknownReturnValue, false>,
+  cb: ThreadsafeFunction<bool, UnknownReturnValue, bool, false>,
 ) -> Result<()> {
   match v {
     true => {

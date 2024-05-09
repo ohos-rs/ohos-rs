@@ -1,5 +1,5 @@
 use napi_derive_ohos::napi;
-use napi_ohos::{ark::ArkRuntime, Env, JsString, JsUnknown, Result};
+use napi_ohos::{ark::ArkRuntime, Env, JsString, Result};
 
 #[napi]
 pub fn load_module_with_default_env(env: Env) -> Result<()> {

@@ -42,7 +42,7 @@ pub fn prepare(ctx: Arc<RwLock<Context>>) -> Result<(), String> {
     (*ctx_value).mode = "release";
   }
 
-  (*ctx_value).init_args = vec!["+nightly", "build", "-Z", "build-std"];
+  (*ctx_value).init_args = vec!["build"];
 
   if args.release {
     (*ctx_value).init_args.push("--release");

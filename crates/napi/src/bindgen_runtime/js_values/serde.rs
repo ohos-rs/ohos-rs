@@ -1,3 +1,4 @@
+#![allow(unreachable_code)]
 use serde_json::{Map, Number, Value};
 
 use crate::{

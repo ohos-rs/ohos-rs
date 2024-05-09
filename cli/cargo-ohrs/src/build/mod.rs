@@ -83,8 +83,9 @@ pub fn build() {
     })
     .for_each(|arch| {
       let tmp_file = env::var("TYPE_DEF_TMP_PATH").expect("Get .d.ts tmp filed.");
-      if PathBuf::from(&tmp_file).is_file()  {
-        fs::remove_file(&tmp_file).expect("Make sure to empty the file prior to each construction process failed.");
+      if PathBuf::from(&tmp_file).is_file() {
+        fs::remove_file(&tmp_file)
+          .expect("Make sure to empty the file prior to each construction process failed.");
       }
       run::build(ctx.clone(), &arch);
       artifact::copy_artifact(ctx.clone(), &arch);

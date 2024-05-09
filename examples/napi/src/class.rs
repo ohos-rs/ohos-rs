@@ -389,10 +389,8 @@ pub struct CustomFinalize {
 #[napi]
 impl CustomFinalize {
   #[napi(constructor)]
-  pub fn new(mut env: Env, width: u32, height: u32) -> Result<Self> {
+  pub fn new(width: u32, height: u32) -> Result<Self> {
     let inner = vec![0; (width * height * 4) as usize];
-    let inner_size = inner.len();
-    // env.adjust_external_memory(inner_size as i64)?;
     Ok(Self {
       width,
       height,
@@ -402,8 +400,7 @@ impl CustomFinalize {
 }
 
 impl ObjectFinalize for CustomFinalize {
-  fn finalize(self, mut env: Env) -> Result<()> {
-    // env.adjust_external_memory(-(self.inner.len() as i64))?;
+  fn finalize(self, mut _env: Env) -> Result<()> {
     Ok(())
   }
 }

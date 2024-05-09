@@ -4,10 +4,9 @@ use std::{ptr, usize};
 
 use super::{FromNapiValue, ToNapiValue, TypeName, Unknown, ValidateNapiValue};
 
+use crate::threadsafe_function::ThreadsafeCallContext;
 #[cfg(feature = "napi4")]
 use crate::threadsafe_function::ThreadsafeFunction;
-use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
-pub use crate::JsFunction;
 use crate::{check_pending_exception, check_status, sys, Env, NapiRaw, Result, ValueType};
 
 pub trait JsValuesTupleIntoVec {
@@ -433,67 +432,4 @@ impl FunctionCallContext<'_> {
   pub fn this<This: FromNapiValue>(&self) -> Result<This> {
     unsafe { This::from_napi_value(self.env.0, self.this) }
   }
-}
-
-macro_rules! impl_call_apply {
-  ($fn_call_name:ident, $fn_apply_name:ident, $($ident:ident),*) => {
-    #[allow(non_snake_case, clippy::too_many_arguments)]
-    pub fn $fn_call_name<$($ident: ToNapiValue),*, Return: FromNapiValue>(
-      &self,
-      $($ident: $ident),*
-    ) -> Result<Return> {
-      let raw_this = Env::from_raw(self.0.env)
-        .get_undefined()
-        .map(|u| unsafe { u.raw() })?;
-
-      let raw_args = vec![
-        $(
-          unsafe { $ident::to_napi_value(self.0.env, $ident) }?
-        ),*
-      ];
-
-      let mut return_value = ptr::null_mut();
-      check_pending_exception!(self.0.env, unsafe {
-        sys::napi_call_function(
-          self.0.env,
-          raw_this,
-          self.0.value,
-          raw_args.len(),
-          raw_args.as_ptr(),
-          &mut return_value,
-        )
-      })?;
-
-      unsafe { Return::from_napi_value(self.0.env, return_value) }
-    }
-
-    #[allow(non_snake_case, clippy::too_many_arguments)]
-    pub fn $fn_apply_name<$($ident: ToNapiValue),*, Context: ToNapiValue, Return: FromNapiValue>(
-      &self,
-      this: Context,
-      $($ident: $ident),*
-    ) -> Result<Return> {
-      let raw_this = unsafe { Context::to_napi_value(self.0.env, this) }?;
-
-      let raw_args = vec![
-        $(
-          unsafe { $ident::to_napi_value(self.0.env, $ident) }?
-        ),*
-      ];
-
-      let mut return_value = ptr::null_mut();
-      check_pending_exception!(self.0.env, unsafe {
-        sys::napi_call_function(
-          self.0.env,
-          raw_this,
-          self.0.value,
-          raw_args.len(),
-          raw_args.as_ptr(),
-          &mut return_value,
-        )
-      })?;
-
-      unsafe { Return::from_napi_value(self.0.env, return_value) }
-    }
-  };
 }

@@ -4,8 +4,6 @@ use napi_ohos::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode, UnknownReturnValue},
 };
 
-mod async_work;
-mod ohos;
 pub mod async_work;
 pub mod basic;
 pub mod ohos;

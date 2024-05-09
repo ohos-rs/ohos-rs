@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{Duration, FixedOffset, Local, TimeZone, Utc};
+use chrono::{FixedOffset, Local, TimeZone, Utc};
 use napi_ohos::bindgen_prelude::*;
 
 #[napi]

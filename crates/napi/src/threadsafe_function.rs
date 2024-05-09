@@ -5,7 +5,7 @@ use std::os::raw::c_void;
 use std::ptr::{self, null_mut};
 use std::sync::{
   self,
-  atomic::{AtomicBool, AtomicPtr, Ordering},
+  atomic::{AtomicPtr, Ordering},
   Arc, RwLock, RwLockWriteGuard,
 };
 
@@ -13,9 +13,6 @@ use crate::bindgen_runtime::{
   FromNapiValue, JsValuesTupleIntoVec, TypeName, Unknown, ValidateNapiValue,
 };
 use crate::{check_status, sys, Env, Error, JsError, Result, Status};
-
-#[deprecated(since = "2.17.0", note = "Please use `ThreadsafeFunction` instead")]
-pub type ThreadSafeCallContext<T> = ThreadsafeCallContext<T>;
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
@@ -40,10 +37,29 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
   }
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ThreadsafeFunctionPriority {
+  Immediate,
+  High,
+  Low,
+  Idle,
+}
+
+impl From<ThreadsafeFunctionPriority> for sys::napi_task_priority {
+  fn from(value: ThreadsafeFunctionPriority) -> Self {
+    match value {
+      ThreadsafeFunctionPriority::Immediate => sys::napi_task_priority::napi_priority_immediate,
+      ThreadsafeFunctionPriority::High => sys::napi_task_priority::napi_priority_high,
+      ThreadsafeFunctionPriority::Low => sys::napi_task_priority::napi_priority_low,
+      ThreadsafeFunctionPriority::Idle => sys::napi_task_priority::napi_priority_idle,
+    }
+  }
+}
+
 struct ThreadsafeFunctionHandle {
   raw: AtomicPtr<sys::napi_threadsafe_function__>,
   aborted: RwLock<bool>,
-  referred: AtomicBool,
 }
 
 impl ThreadsafeFunctionHandle {
@@ -52,7 +68,6 @@ impl ThreadsafeFunctionHandle {
     Arc::new(Self {
       raw: AtomicPtr::new(raw),
       aborted: RwLock::new(false),
-      referred: AtomicBool::new(true),
     })
   }
 
@@ -316,63 +331,8 @@ impl<
     })
   }
 
-  #[deprecated(
-    since = "2.17.0",
-    note = "Please use `ThreadsafeFunction::clone` instead of manually increasing the reference count"
-  )]
-  /// See [napi_ref_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_ref_threadsafe_function)
-  /// for more information.
-  ///
-  /// "ref" is a keyword so that we use "refer" here.
-  pub fn refer(&mut self, env: &Env) -> Result<()> {
-    self.handle.with_read_aborted(|aborted| {
-      if !aborted && !self.handle.referred.load(Ordering::Relaxed) {
-        check_status!(unsafe { sys::napi_ref_threadsafe_function(env.0, self.handle.get_raw()) })?;
-        self.handle.referred.store(true, Ordering::Relaxed);
-      }
-      Ok(())
-    })
-  }
-
-  #[deprecated(
-    since = "2.17.0",
-    note = "Please use `ThreadsafeFunction::clone` instead of manually decreasing the reference count"
-  )]
-  /// See [napi_unref_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_unref_threadsafe_function)
-  /// for more information.
-  pub fn unref(&mut self, env: &Env) -> Result<()> {
-    self.handle.with_read_aborted(|aborted| {
-      if !aborted && self.handle.referred.load(Ordering::Relaxed) {
-        check_status!(unsafe {
-          sys::napi_unref_threadsafe_function(env.0, self.handle.get_raw())
-        })?;
-        self.handle.referred.store(false, Ordering::Relaxed);
-      }
-      Ok(())
-    })
-  }
-
   pub fn aborted(&self) -> bool {
     self.handle.with_read_aborted(|aborted| aborted)
-  }
-
-  #[deprecated(
-    since = "2.17.0",
-    note = "Drop all references to the ThreadsafeFunction will automatically release it"
-  )]
-  pub fn abort(self) -> Result<()> {
-    self.handle.with_write_aborted(|mut aborted_guard| {
-      if !*aborted_guard {
-        check_status!(unsafe {
-          sys::napi_release_threadsafe_function(
-            self.handle.get_raw(),
-            sys::ThreadsafeFunctionReleaseMode::abort,
-          )
-        })?;
-        *aborted_guard = true;
-      }
-      Ok(())
-    })
   }
 
   /// Get the raw `ThreadSafeFunction` pointer
@@ -517,6 +477,54 @@ impl<
           }))
           .cast(),
           mode.into(),
+        )
+      }
+      .into()
+    })
+  }
+
+  /// Call the ThreadsafeFunction with priority, insert it at the end of queue.
+  pub fn call_with_priority(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
+    self.handle.with_read_aborted(|aborted| {
+      if aborted {
+        return Status::Closing;
+      }
+
+      unsafe {
+        sys::napi_call_threadsafe_function_with_priority(
+          self.handle.get_raw(),
+          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
+            data: value,
+            call_variant: ThreadsafeFunctionCallVariant::Direct,
+            callback: Box::new(|_d: Result<Return>, _: Env| Ok(())),
+          }))
+          .cast(),
+          priority.into(),
+          true,
+        )
+      }
+      .into()
+    })
+  }
+
+  /// Call the ThreadsafeFunction with priority, insert it at the start of queue.
+  pub fn call_with_priority_first(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
+    self.handle.with_read_aborted(|aborted| {
+      if aborted {
+        return Status::Closing;
+      }
+
+      unsafe {
+        sys::napi_call_threadsafe_function_with_priority(
+          self.handle.get_raw(),
+          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
+            data: value,
+            call_variant: ThreadsafeFunctionCallVariant::Direct,
+            callback: Box::new(|_d: Result<Return>, _: Env| Ok(())),
+          }))
+          .cast(),
+          priority.into(),
+          false,
         )
       }
       .into()

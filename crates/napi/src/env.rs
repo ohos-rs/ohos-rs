@@ -23,8 +23,6 @@ use crate::bindgen_runtime::{FromNapiValue, Function, JsValuesTupleIntoVec, Unkn
 use crate::cleanup_env::{CleanupEnvHook, CleanupEnvHookData};
 #[cfg(feature = "serde-json")]
 use crate::js_values::{De, Ser};
-#[cfg(feature = "napi4")]
-use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
 #[cfg(feature = "napi3")]
 use crate::JsError;
 use crate::{
@@ -930,67 +928,6 @@ impl Env {
     Ok(unsafe { T::from_raw_unchecked(self.0, js_value) })
   }
 
-  #[deprecated(since = "3.0.0", note = "Please use `External::new` instead")]
-  /// If `size_hint` provided, `Env::adjust_external_memory` will be called under the hood.
-  ///
-  /// If no `size_hint` provided, global garbage collections will be triggered less times than expected.
-  ///
-  /// If getting the exact `native_object` size is difficult, you can provide an approximate value, it's only effect to the GC.
-  pub fn create_external<T: 'static>(
-    &self,
-    native_object: T,
-    size_hint: Option<i64>,
-  ) -> Result<JsExternal> {
-    let mut object_value = ptr::null_mut();
-    check_status!(unsafe {
-      sys::napi_create_external(
-        self.0,
-        Box::into_raw(Box::new(TaggedObject::new(native_object))).cast(),
-        Some(raw_finalize::<TaggedObject<T>>),
-        Box::into_raw(Box::new(size_hint.unwrap_or(0))).cast(),
-        &mut object_value,
-      )
-    })?;
-    // harmony don't need to call it
-    // if let Some(changed) = size_hint {
-    //   if changed != 0 {
-    //     let mut adjusted_value = 0i64;
-    //     check_status!(unsafe {
-    //       sys::napi_adjust_external_memory(self.0, changed, &mut adjusted_value)
-    //     })?;
-    //   }
-    // };
-    Ok(unsafe { JsExternal::from_raw_unchecked(self.0, object_value) })
-  }
-
-  #[deprecated(since = "3.0.0", note = "Please use `&External` instead")]
-  pub fn get_value_external<T: 'static>(&self, js_external: &JsExternal) -> Result<&mut T> {
-    unsafe {
-      let mut unknown_tagged_object = ptr::null_mut();
-      check_status!(sys::napi_get_value_external(
-        self.0,
-        js_external.0.value,
-        &mut unknown_tagged_object,
-      ))?;
-
-      let type_id = unknown_tagged_object as *const TypeId;
-      if *type_id == TypeId::of::<T>() {
-        let tagged_object = unknown_tagged_object as *mut TaggedObject<T>;
-        (*tagged_object).object.as_mut().ok_or_else(|| {
-          Error::new(
-            Status::InvalidArg,
-            "nothing attach to js_external".to_owned(),
-          )
-        })
-      } else {
-        Err(Error::new(
-          Status::InvalidArg,
-          "T on get_value_external is not the type of wrapped object".to_owned(),
-        ))
-      }
-    }
-  }
-
   pub fn create_error(&self, e: Error) -> Result<JsObject> {
     let reason = &e.reason;
     let reason_string = self.create_string(reason.as_str())?;
@@ -1094,25 +1031,6 @@ impl Env {
     check_status!(unsafe {
       sys::napi_remove_env_cleanup_hook(self.0, Some(cleanup_env::<T>), hook.0 as *mut _)
     })
-  }
-
-  #[cfg(feature = "napi4")]
-  #[deprecated(
-    since = "2.17.0",
-    note = "Please use `Function::build_threadsafe_function` instead"
-  )]
-  #[allow(deprecated)]
-  pub fn create_threadsafe_function<
-    T: 'static + Send,
-    V: 'static + JsValuesTupleIntoVec,
-    R: 'static + Send + FnMut(ThreadsafeCallContext<T>) -> Result<V>,
-  >(
-    &self,
-    func: &JsFunction,
-    _max_queue_size: usize,
-    callback: R,
-  ) -> Result<ThreadsafeFunction<T, Unknown, V>> {
-    ThreadsafeFunction::<T, Unknown, V>::create(self.0, func.0.value, callback)
   }
 
   #[cfg(all(feature = "tokio_rt", feature = "napi4"))]

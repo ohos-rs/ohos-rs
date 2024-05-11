@@ -1,5 +1,6 @@
 use crate::arg::ArtifactArg;
 use crate::artifact::tgz::generate_har;
+use crate::check_and_clean_file_or_dir;
 use fs_extra::dir::CopyOptions;
 use std::fs;
 use std::{env, path::PathBuf};
@@ -48,6 +49,9 @@ pub fn artifact(args: ArtifactArg) {
     );
     return;
   }
+
+  // clean the folder before we copy it
+  check_and_clean_file_or_dir!((&package_source).join("libs"));
 
   // copy dist
   let mut op = CopyOptions::new();

@@ -1,5 +1,5 @@
 use crate::build::Context;
-use crate::{create_dist_dir, move_file};
+use crate::{check_and_clean_file_or_dir, create_dist_dir, move_file};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
@@ -9,7 +9,7 @@ pub fn copy_artifact(c: Arc<RwLock<Context>>, target: &super::Architecture) {
   let mut ctx = c.write().unwrap();
 
   let bin_dir = &ctx.dist.join(&target.arch);
-
+  check_and_clean_file_or_dir!(bin_dir);
   create_dist_dir!(bin_dir);
 
   if let Some(_package) = &ctx.package {

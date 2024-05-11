@@ -1,10 +1,11 @@
 use crate::arg::BuildArg;
+use crate::check_and_clean_file_or_dir;
 use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::Package;
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
-use std::{env, fs, thread};
+use std::{env, thread};
 
 mod abort_tmp;
 mod artifact;
@@ -83,10 +84,8 @@ pub fn build() {
     })
     .for_each(|arch| {
       let tmp_file = env::var("TYPE_DEF_TMP_PATH").expect("Get .d.ts tmp filed.");
-      if PathBuf::from(&tmp_file).is_file() {
-        fs::remove_file(&tmp_file)
-          .expect("Make sure to empty the file prior to each construction process failed.");
-      }
+      check_and_clean_file_or_dir!(PathBuf::from(&tmp_file));
+
       run::build(ctx.clone(), &arch);
       artifact::copy_artifact(ctx.clone(), &arch);
     });

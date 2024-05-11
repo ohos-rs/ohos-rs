@@ -6,6 +6,20 @@ macro_rules! create_dist_dir {
 }
 
 #[macro_export]
+macro_rules! check_and_clean_file_or_dir {
+  ($dir: expr) => {
+    if $dir.is_dir() {
+      fs_extra::dir::remove(&$dir)
+        .expect(format!("Remove {:?} folder failed.", &$dir.to_str().unwrap()).as_str());
+    }
+    if $dir.is_file() {
+      fs_extra::file::remove(&$dir)
+        .expect(format!("Remove {:?} file failed.", &$dir.to_str().unwrap()).as_str());
+    }
+  };
+}
+
+#[macro_export]
 macro_rules! move_file {
   ($source: expr,$dist: expr) => {{
     let mut options = fs_extra::file::CopyOptions::new();
@@ -25,7 +39,7 @@ macro_rules! create_project_file {
     let mut tmp_file =
       std::fs::File::create($target).expect(format!("Create {} failed.", $name).as_str());
     // Windows don't need to set permissions
-    // In another reason, we don't need to set perimissions anymore, becase we don't hava any bash file.
+    // In another reason, we don't need to set permissions anymore, because we don't have any bash file.
     #[cfg(not(target_os = "windows"))]
     {
       let mut perms = tmp_file.metadata().unwrap().permissions();

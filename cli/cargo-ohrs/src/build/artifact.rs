@@ -1,38 +1,63 @@
-use crate::build::Context;
-use crate::{check_and_clean_file_or_dir, create_dist_dir, move_file};
-use std::fs;
+use cargo_metadata::{Artifact, BuildScript, Package};
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 
-/// 构建目标产物文件夹 & 复制目标文件
-pub fn copy_artifact(c: Arc<RwLock<Context>>, target: &super::Architecture) {
-  let mut ctx = c.write().unwrap();
+pub fn resolve_dependence_library(script: BuildScript) -> Option<Vec<PathBuf>> {
+  if !script.linked_libs.is_empty() && !script.linked_paths.is_empty() {
+    let libs = script
+      .linked_libs
+      .iter()
+      .filter_map(|i| {
+        let library_name = i.as_str();
+        if library_name.starts_with("dylib=") {
+          return Some(format!("lib{}.so", &library_name[6..]));
+        }
+        return None;
+      })
+      .collect::<Vec<String>>();
 
-  let bin_dir = &ctx.dist.join(&target.arch);
-  check_and_clean_file_or_dir!(bin_dir);
-  create_dist_dir!(bin_dir);
+    let p = script
+      .linked_paths
+      .iter()
+      .map(|i| {
+        let item_path = i.as_str();
+        if item_path.starts_with("native=") {
+          return PathBuf::from(&item_path[7..])
+            .canonicalize()
+            .expect("Convert to absolute path failed.");
+        }
+        return i.canonicalize().expect("Convert to absolute path failed.");
+      })
+      .collect::<Vec<_>>();
 
-  if let Some(_package) = &ctx.package {
-    // 从target中解析构建产物
-    let source = &ctx
-      .cargo_build_target_dir
-      .clone()
-      .unwrap()
-      .join(&target.target)
-      .join(&ctx.mode);
+    let mut ret: Vec<PathBuf> = Vec::new();
 
-    // support dynamic and static library
-    let files: Vec<PathBuf> = fs::read_dir(source)
-      .expect("Failed to read directory")
-      .filter_map(Result::ok)
-      .map(|entry| entry.path())
-      .filter(|path| path.is_file() && path.extension().map_or(false, |e| e == "so" || e == "a"))
-      .collect();
-
-    for file in files {
-      let dist: PathBuf = bin_dir.join(file.file_name().unwrap());
-      (*ctx).dist_files.push(dist.clone());
-      move_file!(file, dist);
-    }
+    p.iter().fold(&mut ret, |current_ret, i| {
+      let item_p = libs.iter().map(|l| return i.join(l)).collect::<Vec<_>>();
+      current_ret.extend(item_p);
+      current_ret
+    });
+    return Some(ret);
   }
+  None
+}
+
+pub fn resolve_artifact_library(pkg: &Package, target: Artifact) -> Option<Vec<PathBuf>> {
+  if target.target.name == pkg.name {
+    return Some(
+      target
+        .filenames
+        .iter()
+        .filter_map(|i| {
+          // avoid final target has the same package name with crate
+          // for example: build reqwest
+          if i.extension().unwrap() == "so" || i.extension().unwrap() == "a" {
+            return Some(i);
+          }
+          None
+        })
+        .map(|i| i.canonicalize().expect("Convert to absolute path failed."))
+        .collect::<Vec<_>>(),
+    );
+  }
+  None
 }

@@ -87,7 +87,6 @@ pub fn build() {
       check_and_clean_file_or_dir!(PathBuf::from(&tmp_file));
 
       run::build(ctx.clone(), &arch);
-      artifact::copy_artifact(ctx.clone(), &arch);
     });
 
   let mut threads = vec![];

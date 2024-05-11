@@ -1,10 +1,15 @@
 use crate::build::{Architecture, Context};
+use crate::{check_and_clean_file_or_dir, create_dist_dir, move_file};
+use cargo_metadata::Message;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::env;
-use std::io::{BufRead, BufReader};
+use std::io::BufReader;
+use std::path::PathBuf;
 use std::process::{exit, Command, Stdio};
 use std::sync::{Arc, RwLock};
+
+use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
 static TARGET: Lazy<HashMap<&str, (&str, &str)>> = Lazy::new(|| {
   HashMap::from([
@@ -22,7 +27,9 @@ static TARGET: Lazy<HashMap<&str, (&str, &str)>> = Lazy::new(|| {
 
 pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
   let ctx = c.read().unwrap();
-  let t = TARGET.get(arch.arch).unwrap();
+  let t = TARGET.get(&arch.arch).unwrap();
+  let pkg = ctx.package.as_ref().unwrap();
+
   let linker_name = format!("CARGO_TARGET_{}_LINKER", t.1);
   let ran_path = format!("{}/native/llvm/bin/llvm-ranlib", &ctx.ndk);
   let ar_path = format!("{}/native/llvm/bin/llvm-ar", &ctx.ndk);
@@ -84,7 +91,13 @@ pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
   ]);
 
   let mut args = ctx.init_args.clone();
-  args.extend(["--target", &arch.target]);
+  args.extend([
+    "--target",
+    &arch.target,
+    "--message-format=json-render-diagnostics",
+  ]);
+
+  let mut artifact_files: Vec<PathBuf> = Vec::new();
 
   let mut child = Command::new("cargo")
     .args(args)
@@ -96,19 +109,37 @@ pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
   if let Some(ref mut stdout) = child.stdout {
     let reader = BufReader::new(stdout);
 
-    for line in reader.lines() {
-      let line = line.expect("Failed to read line");
-      println!("{}", line);
-    }
-    let output = child.wait_with_output().expect("Failed to wait on child");
+    for message in cargo_metadata::Message::parse_stream(reader) {
+      match message.unwrap() {
+        Message::CompilerMessage(msg) => {
+          println!("{:?}", msg);
+        }
+        // get final compiled library
+        Message::CompilerArtifact(artifact) => {
+          if let Some(p) = resolve_artifact_library(&pkg, artifact) {
+            artifact_files.extend(p);
+          }
+        }
+        Message::BuildScriptExecuted(script) => {
+          if let Some(lib) = resolve_dependence_library(script) {
+            artifact_files.extend(lib);
+          }
+        }
+        Message::BuildFinished(finished) => match finished.success {
+          true => {
+            let bin_dir = &ctx.dist.join(&arch.arch);
+            check_and_clean_file_or_dir!(bin_dir);
+            create_dist_dir!(bin_dir);
 
-    if output.status.success() {
-      println!("Build for target {} succeeded", &arch.target);
-    } else {
-      eprintln!("Build for target {} failed", &arch.target);
-      eprintln!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-      eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-      exit(-1);
+            artifact_files.iter().for_each(|i| {
+              let dist = bin_dir.join(i.file_name().unwrap());
+              move_file!(i, dist);
+            })
+          }
+          false => exit(-1),
+        },
+        _ => (), // Unknown message
+      }
     }
   }
 }

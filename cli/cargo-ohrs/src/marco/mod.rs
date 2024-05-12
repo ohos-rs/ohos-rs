@@ -25,7 +25,7 @@ macro_rules! move_file {
     let mut options = fs_extra::file::CopyOptions::new();
     // if exist will overwrite
     options = options.overwrite(true);
-    fs_extra::file::move_file($source, $dist, &options).unwrap();
+    fs_extra::file::copy($source, $dist, &options).unwrap();
   }};
 }
 

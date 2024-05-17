@@ -22,10 +22,26 @@ macro_rules! check_and_clean_file_or_dir {
 #[macro_export]
 macro_rules! move_file {
   ($source: expr,$dist: expr) => {{
+    // fix for symlink file
+    let real_path = match $source.is_symlink() {
+      true => {
+        let symlink_path = $source.read_link().unwrap();
+        let resolve_path = symlink_path
+          .parent()
+          .map_or_else(|| $source.clone(), |parent| parent.join($source))
+          .canonicalize()
+          .expect(format!("Get symlink {:?} real path failed.", &$source).as_str());
+        resolve_path
+      }
+      false => $source.to_owned(),
+    };
     let mut options = fs_extra::file::CopyOptions::new();
+    let real_file_name = real_path.file_name().expect(format!("Get {:?} real file_name failed.", &real_path).as_str());
+    let mut real_dist = $dist.clone();
+    real_dist.set_file_name(real_file_name);
     // if exist will overwrite
     options = options.overwrite(true);
-    fs_extra::file::copy($source, $dist, &options).unwrap();
+    fs_extra::file::copy(real_path, real_dist, &options).expect(format!("Copy {:?} failed.", &$source).as_str());
   }};
 }
 

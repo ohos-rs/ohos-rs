@@ -7,4 +7,4 @@ Please visit the official website: https://ohos-rs.github.io/
 
 Feel free to join our WeChat group.
 
-![image](./assets/wechat.jpg)
+![image](./assets/wechat.png)

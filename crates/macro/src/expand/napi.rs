@@ -12,15 +12,27 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{Attribute, Item};
 
+/// a flag indicate whether or never at least one `napi` macro has been expanded.
+/// ```ignore
+/// if BUILT_FLAG
+///  .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+///  .is_ok() {
+///   // logic on first macro expansion
+/// }
+///
+/// ```
+#[cfg(feature = "type-def")]
 static BUILT_FLAG: AtomicBool = AtomicBool::new(false);
 
 pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStream> {
+  #[cfg(feature = "type-def")]
   if BUILT_FLAG
     .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
     .is_ok()
   {
     // logic on first macro expansion just remove it and regenerate tmp file
     #[cfg(feature = "type-def")]
+    // logic on first macro expansion
     prepare_type_def_file();
   }
 
@@ -66,8 +78,10 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStrea
           napi.try_to_tokens(&mut tokens)?;
 
           #[cfg(feature = "type-def")]
-          output_type_def(&napi);
-          output_wasi_register_def(&napi);
+          {
+            output_type_def(&napi);
+            output_wasi_register_def(&napi);
+          }
         } else {
           item.to_tokens(&mut tokens);
         };
@@ -180,6 +194,7 @@ fn prepare_type_def_file() {
 }
 
 /// support shared crate to generate ts file
+#[cfg(feature = "type-def")]
 fn remove_existed_def_file(def_file: &str) -> std::io::Result<()> {
   use std::io::{BufRead, BufReader};
 

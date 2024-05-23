@@ -96,7 +96,7 @@ fn process_type_def(
   for (namespace, defs) in sorted_grouped_defs {
     if namespace == TOP_LEVEL_NAMESPACE {
       for def in defs {
-        dts += &pretty_print(&def, const_enum, 0);
+        dts += &pretty_print(&def, const_enum, 0, false);
         dts.push('\n');
         match def.kind {
           TypeDefKind::Const
@@ -118,7 +118,7 @@ fn process_type_def(
       exports.push(namespace.clone());
       dts += &format!("export namespace {} {{\n", namespace);
       for def in defs {
-        dts += &pretty_print(&def, const_enum, 2);
+        dts += &pretty_print(&def, const_enum, 2, true);
         dts.push('\n');
       }
       dts.push_str("}\n");
@@ -205,8 +205,16 @@ fn preprocess_type_def(defs: Vec<TypeDefLine>) -> HashMap<String, Vec<TypeDefLin
   namespace_grouped
 }
 
+fn export_declare(ambient: bool) -> String {
+  if ambient {
+    return String::from("export");
+  }
+
+  return String::from("export declare");
+}
+
 // Helper function to format the string with the correct indentation
-fn pretty_print(line: &TypeDefLine, const_enum: bool, indent: usize) -> String {
+fn pretty_print(line: &TypeDefLine, const_enum: bool, indent: usize, ambient: bool) -> String {
   let mut s = line.js_doc.clone().unwrap_or_default();
   match line.kind {
     TypeDefKind::Interface => {
@@ -214,11 +222,22 @@ fn pretty_print(line: &TypeDefLine, const_enum: bool, indent: usize) -> String {
     }
     TypeDefKind::Enum => {
       let enum_name = if const_enum { "const enum" } else { "enum" };
-      s += &format!("export {} {} {{\n{}\n}}", enum_name, line.name, line.def);
+      s += &format!(
+        "{} {} {} {{\n{}\n}}",
+        export_declare(ambient),
+        enum_name,
+        line.name,
+        line.def
+      );
     }
     TypeDefKind::StringEnum => match const_enum {
       true => {
-        s += &format!("export const enum {} {{\n{}\n}}", line.name, line.def);
+        s += &format!(
+          "{} const enum {} {{\n{}\n}}",
+          export_declare(ambient),
+          line.name,
+          line.def
+        );
       }
       false => {
         let def = line.def.split('=').collect::<Vec<&str>>()[1]
@@ -230,12 +249,20 @@ fn pretty_print(line: &TypeDefLine, const_enum: bool, indent: usize) -> String {
       }
     },
     TypeDefKind::Struct => {
-      s += &format!("export class {} {{\n{}\n}}", line.name, line.def);
+      s += &format!(
+        "{} class {} {{\n{}\n}}",
+        export_declare(ambient),
+        line.name,
+        line.def
+      );
       if let Some(original_name) = &line.original_name {
         if original_name != &line.name {
           s += &format!("\nexport type {} = {}", original_name, line.name);
         }
       }
+    }
+    TypeDefKind::Fn => {
+      s += &format!("{} {}", export_declare(ambient), line.def);
     }
     _ => {
       s += &line.def;

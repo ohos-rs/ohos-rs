@@ -1,6 +1,7 @@
 use std::{env, format};
 
 use napi_ohos::{bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode, JsUnknown};
+use napi::{bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode, JsUnknown};
 
 #[napi]
 fn get_cwd<T: Fn(String) -> Result<()>>(callback: T) {
@@ -58,6 +59,7 @@ fn callback_return_promise<T: Fn() -> Result<JsUnknown>>(
     let fn_out_tsfn = fn_out
       .build_threadsafe_function()
       .max_queue_size::<1>()
+      .callee_handled::<true>()
       .build()?;
     env
       .execute_tokio_future(

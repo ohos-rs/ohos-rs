@@ -36,12 +36,15 @@ macro_rules! move_file {
       false => $source.to_owned(),
     };
     let mut options = fs_extra::file::CopyOptions::new();
-    let real_file_name = real_path.file_name().expect(format!("Get {:?} real file_name failed.", &real_path).as_str());
+    let real_file_name = real_path
+      .file_name()
+      .expect(format!("Get {:?} real file_name failed.", &real_path).as_str());
     let mut real_dist = $dist.clone();
     real_dist.set_file_name(real_file_name);
     // if exist will overwrite
     options = options.overwrite(true);
-    fs_extra::file::copy(real_path, real_dist, &options).expect(format!("Copy {:?} failed.", &$source).as_str());
+    fs_extra::file::copy(real_path, real_dist, &options)
+      .expect(format!("Copy {:?} failed.", &$source).as_str());
   }};
 }
 

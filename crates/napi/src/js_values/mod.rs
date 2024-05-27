@@ -94,21 +94,6 @@ impl ValidateNapiValue for JsNull {}
 
 // impl ValidateNapiValue for JsSymbol {}
 
-#[deprecated(since = "3.0.0", note = "Please use `External` instead")]
-pub struct JsExternal(pub(crate) Value);
-
-impl TypeName for JsExternal {
-  fn type_name() -> &'static str {
-    "external"
-  }
-
-  fn value_type() -> ValueType {
-    ValueType::External
-  }
-}
-
-impl ValidateNapiValue for JsExternal {}
-
 macro_rules! impl_napi_value_trait {
   ($js_value:ident, $value_type:ident) => {
     impl NapiValue for $js_value {
@@ -657,7 +642,6 @@ impl_js_value_methods!(JsObject);
 impl_js_value_methods!(JsGlobal);
 #[cfg(feature = "napi5")]
 impl_js_value_methods!(JsDate);
-impl_js_value_methods!(JsExternal);
 #[cfg(not(feature = "ohos"))]
 impl_js_value_methods!(JsSymbol);
 impl_js_value_methods!(JsTimeout);
@@ -687,7 +671,6 @@ impl_napi_value_trait!(JsGlobal, Object);
 #[cfg(feature = "napi5")]
 impl_napi_value_trait!(JsDate, Object);
 impl_napi_value_trait!(JsTimeout, Object);
-impl_napi_value_trait!(JsExternal, External);
 #[cfg(not(feature = "ohos"))]
 impl_napi_value_trait!(JsSymbol, Symbol);
 

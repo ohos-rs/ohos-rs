@@ -78,8 +78,8 @@ pub fn get_execute_js_code(new_fn_name: Ident, function_kind: FunctionKind) -> T
     FunctionKind::Contextless => {
       quote! {
         Ok(Some(v)) => unsafe {
-          napi::bindgen_prelude::ToNapiValue::to_napi_value(raw_env, v).unwrap_or_else(|e| {
-            napi::JsError::from(e).throw_into(raw_env);
+          napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(raw_env, v).unwrap_or_else(|e| {
+            napi_ohos::JsError::from(e).throw_into(raw_env);
             ptr::null_mut()
           })
         },
@@ -89,8 +89,8 @@ pub fn get_execute_js_code(new_fn_name: Ident, function_kind: FunctionKind) -> T
     FunctionKind::JsFunction => {
       quote! {
         Ok(v) => unsafe {
-          napi::bindgen_prelude::ToNapiValue::to_napi_value(raw_env, v).unwrap_or_else(|e| {
-            napi::JsError::from(e).throw_into(raw_env);
+          napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(raw_env, v).unwrap_or_else(|e| {
+            napi_ohos::JsError::from(e).throw_into(raw_env);
             ptr::null_mut()
           })
         },

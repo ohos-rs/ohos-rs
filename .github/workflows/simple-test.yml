@@ -23,3 +23,6 @@ jobs:
 
       - name: run example
         run: cd examples/napi && ohrs build
+
+      - name: run compact exmaple
+        run: cd examples/napi-compact-mode && ohrs build

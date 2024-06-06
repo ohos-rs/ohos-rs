@@ -50,8 +50,12 @@ pub fn resolve_artifact_library(pkg: &Package, target: Artifact) -> Option<Vec<P
         .filter_map(|i| {
           // avoid final target has the same package name with crate
           // for example: build reqwest
-          if i.extension().unwrap() == "so" || i.extension().unwrap() == "a" {
-            return Some(i);
+          // support build exec, but ignore it
+          if let Some(ext) = i.extension() {
+              if ext == "so" || ext == "a" {
+                  return Some(i);
+              }
+              return None;
           }
           None
         })

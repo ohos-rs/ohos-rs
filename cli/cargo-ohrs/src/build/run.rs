@@ -49,16 +49,16 @@ pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
     t.0, &ctx.ndk
   );
 
-  let mut path = env::var("PATH").unwrap();
+  let mut path = env::var("PATH").unwrap_or(String::default());
   // for windows, path need to use ; as split symbol
   // for unix, should use :
   #[cfg(target_os = "windows")]
   {
-    path = format!("{};{}", &path, &bin_path);
+    path = format!("{};{}", &bin_path, &path);
   }
   #[cfg(not(target_os = "windows"))]
   {
-    path = format!("{}:{}", &path, &bin_path);
+    path = format!("{}:{}", &bin_path, &path);
   }
 
   let args =
@@ -76,16 +76,16 @@ pub fn build(c: Arc<RwLock<Context>>, arch: &Architecture) {
     (linker_name.as_str(), &cc_path),
     // ("LIBCLANG_PATH",&lib_path),
     // ("CLANG_PATH",&cc_path),
-    ("CC", &cc_path),
-    ("CXX", &cxx_path),
-    ("RANLIB", &ran_path),
-    ("AR", &ar_path),
-    ("AS", &as_path),
-    ("LD", &ld_path),
-    ("STRIP", &strip_path),
-    ("OBJDUMP", &obj_dump_path),
-    ("OBJCOPY", &obj_copy_path),
-    ("NM", &nm_path),
+    ("TARGET_CC", &cc_path),
+    ("TARGET_CXX", &cxx_path),
+    ("TARGET_RANLIB", &ran_path),
+    ("TARGET_AR", &ar_path),
+    ("TARGET_AS", &as_path),
+    ("TARGET_LD", &ld_path),
+    ("TARGET_STRIP", &strip_path),
+    ("TARGET_OBJDUMP", &obj_dump_path),
+    ("TARGET_OBJCOPY", &obj_copy_path),
+    ("TARGET_NM", &nm_path),
     ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
     ("PATH", &path),
   ]);

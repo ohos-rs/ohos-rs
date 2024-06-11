@@ -52,10 +52,10 @@ pub fn resolve_artifact_library(pkg: &Package, target: Artifact) -> Option<Vec<P
           // for example: build reqwest
           // support build exec, but ignore it
           if let Some(ext) = i.extension() {
-              if ext == "so" || ext == "a" {
-                  return Some(i);
-              }
-              return None;
+            if ext == "so" || ext == "a" {
+              return Some(i);
+            }
+            return None;
           }
           None
         })

@@ -35,6 +35,10 @@ macro_rules! move_file {
       }
       false => $source.to_owned(),
     };
+    if !real_path.is_file() {
+      // TODO: print warning info
+      return;
+    }
     let mut options = fs_extra::file::CopyOptions::new();
     let real_file_name = real_path
       .file_name()

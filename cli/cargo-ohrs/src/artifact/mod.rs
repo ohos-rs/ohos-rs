@@ -1,4 +1,3 @@
-use crate::arg::ArtifactArg;
 use crate::artifact::tgz::generate_har;
 use crate::check_and_clean_file_or_dir;
 use fs_extra::dir::CopyOptions;
@@ -7,7 +6,7 @@ use std::{env, path::PathBuf};
 
 mod tgz;
 
-pub fn artifact(args: ArtifactArg) {
+pub fn artifact(args: crate::ArtifactArgs) {
   let pwd = env::current_dir().unwrap();
 
   let package_source = (&pwd).join("package");

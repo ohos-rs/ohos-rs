@@ -7,9 +7,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 /// 构建前初始化工作，包括获取当前运行环境等。  
-pub fn prepare(ctx: Arc<RwLock<Context>>) -> Result<(), String> {
-  let args = super::BUILD_ARGS.read().unwrap();
-
+pub fn prepare(args: crate::BuildArgs, ctx: Arc<RwLock<Context>>) -> Result<(), String> {
   let mut ctx_value = ctx.write().unwrap();
   (*ctx_value).pwd = env::current_dir().unwrap();
 
@@ -37,16 +35,7 @@ pub fn prepare(ctx: Arc<RwLock<Context>>) -> Result<(), String> {
   (*ctx_value).package = Some((*pkg).clone());
   (*ctx_value).cargo_build_target_dir = Some(metadata.target_directory);
 
-  (*ctx_value).mode = "debug";
-  if args.release {
-    (*ctx_value).mode = "release";
-  }
-
   (*ctx_value).init_args = vec!["build"];
-
-  if args.release {
-    (*ctx_value).init_args.push("--release");
-  }
 
   // 创建目标文件夹
   (*ctx_value).dist = ctx_value.pwd.join(&args.dist);

@@ -11,7 +11,7 @@ use std::process::{exit, Command, Stdio};
 
 use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
-pub fn build(ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
+pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let pkg = ctx
     .package
     .as_ref()
@@ -74,7 +74,7 @@ pub fn build(ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
     ("TARGET_OBJDUMP", &obj_dump_path),
     ("TARGET_OBJCOPY", &obj_copy_path),
     ("TARGET_NM", &nm_path),
-    ("TARGET_CARGO_ENCODED_RUSTFLAGS", &rustflags),
+    ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
     ("PATH", &path),
   ]);
 
@@ -84,6 +84,9 @@ pub fn build(ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
     &arch.rust_target(),
     "--message-format=json-render-diagnostics",
   ]);
+
+  // respect cli extra args
+  args.extend(cargo_args.iter().map(|s| s.as_str()).collect::<Vec<_>>());
 
   let mut artifact_files: Vec<PathBuf> = Vec::new();
 

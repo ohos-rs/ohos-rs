@@ -39,11 +39,18 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
 
   prepare::prepare(&mut current_args, &mut ctx)?;
 
-  let build_arch = current_args.arch.unwrap_or(vec![
+  let mut build_arch = current_args.arch.unwrap_or(vec![
     crate::Arch::ARM64,
     crate::Arch::ARM32,
     crate::Arch::X86_64,
   ]);
+
+  // bpaf `many()`` will return Some([]);
+  if build_arch.len() == 0 {
+    build_arch = vec![crate::Arch::ARM64, crate::Arch::ARM32, crate::Arch::X86_64];
+  }
+
+  let cargo_args = current_args.cargo_args.unwrap_or_default();
 
   [Arch::ARM64, Arch::ARM32, Arch::X86_64]
     .iter()
@@ -59,7 +66,7 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
         check_and_clean_file_or_dir!(PathBuf::from(&tmp_file));
       }
 
-      run::build(&ctx, &arch)?;
+      run::build(&cargo_args, &ctx, &arch)?;
       Ok(())
     })
     .collect::<anyhow::Result<Vec<_>>>()?;

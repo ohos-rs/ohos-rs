@@ -44,8 +44,10 @@ pub(crate) enum Options {
   Build(BuildArgs),
   Artifact(ArtifactArgs),
   Cargo(CargoArgs),
-  Publish(),
-  Doctor(),
+  #[allow(dead_code)]
+  Publish,
+  #[allow(dead_code)]
+  Doctor,
 }
 
 fn main() {
@@ -58,8 +60,8 @@ fn main() {
     Options::Build(args) => build::build(args),
     Options::Artifact(args) => artifact::artifact(args),
     Options::Cargo(args) => cargo::cargo(args),
-    Options::Doctor() => doctor::doctor(),
-    Options::Publish() => publish::publish(),
+    Options::Doctor => doctor::doctor(),
+    Options::Publish => publish::publish(),
   };
   if let Err(e) = run_ret {
     println!("{:?}", e.red());

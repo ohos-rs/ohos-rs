@@ -4,21 +4,21 @@ mod config;
 mod package;
 mod tmp;
 
+use anyhow::Error;
 use config::get_git_config;
 use package::{CHANGELOG, LICENSE, PKG, README};
 use tmp::{BUILD_INIT, CARGO_TOML, GIT_IGNORE, LIB_CODE};
 
-pub fn init(arg: crate::InitArgs) {
+pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
   let pwd = std::env::current_dir().expect("Can't get current work path");
 
   let target = pwd.join(&arg.name);
 
   if target.exists() == true {
-    println!(
+    return Err(Error::msg(format!(
       "{} already existed. Please change your project name.",
       &arg.name
-    );
-    return;
+    )));
   }
 
   create_dist_dir!(&target.join("src"));
@@ -71,4 +71,5 @@ pub fn init(arg: crate::InitArgs) {
       "package/CHANGELOG.md"
     );
   }
+  Ok(())
 }

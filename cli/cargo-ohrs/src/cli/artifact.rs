@@ -1,15 +1,18 @@
-use bpaf::{construct, positional, short, Parser};
+use bpaf::{construct, long, Parser};
 
 pub fn cli_artifact() -> impl Parser<crate::Options> {
-  let name = positional::<String>("name").help("project name");
+  let dist = long("dist")
+    .short('d')
+    .argument::<String>("DIST")
+    .help("Final product file path, the files in this path will be copied.")
+    .fallback(String::from("dist"));
 
-  let package_name = short('p')
-    .long("package")
-    .help("Ohpm package's name. If not set,will use project's name")
-    .argument::<String>("PACKAGE_NAME")
-    .optional()
-    .catch();
+  let name = long("name")
+    .short('n')
+    .argument("NAME")
+    .help(".har file product name.")
+    .fallback(String::from("package"));
 
-  let init_parser = construct!(crate::InitArgs { package_name, name });
-  construct!(crate::Options::Init(init_parser))
+  let artifact_parser = construct!(crate::ArtifactArgs { name, dist });
+  construct!(crate::Options::Artifact(artifact_parser))
 }

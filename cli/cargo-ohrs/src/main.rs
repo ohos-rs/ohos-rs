@@ -1,13 +1,16 @@
-use crate::cli::{Arch, cli_run};
-use bpaf::Parser;
+use owo_colors::OwoColorize;
+use util::Arch;
+
+use crate::cli::cli_run;
 
 mod artifact;
 mod build;
+mod cargo;
 mod cli;
 mod doctor;
 mod init;
-mod marco;
 mod publish;
+mod util;
 
 #[derive(Debug, Clone)]
 pub(crate) struct InitArgs {
@@ -19,7 +22,8 @@ pub(crate) struct InitArgs {
 pub(crate) struct BuildArgs {
   dist: String,
   arch: Option<Vec<Arch>>,
-  cargo_args: Option<Vec<String>>
+  release: bool,
+  cargo_args: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -29,10 +33,19 @@ pub(crate) struct ArtifactArgs {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct CargoArgs {
+  arch: Option<Vec<Arch>>,
+  args: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) enum Options {
   Init(InitArgs),
   Build(BuildArgs),
   Artifact(ArtifactArgs),
+  Cargo(CargoArgs),
+  Publish(),
+  Doctor(),
 }
 
 fn main() {
@@ -40,11 +53,15 @@ fn main() {
 
   let ret = parser.fallback_to_usage().run();
 
-  println!("{:?}",ret);
-
-  // match ret {
-  //   Options::Init(args) => init::init(args),
-  //   Options::Build(args) => build::build(args),
-  //   Options::Artifact(args) => artifact::artifact(args),
-  // }
+  let run_ret = match ret {
+    Options::Init(args) => init::init(args),
+    Options::Build(args) => build::build(args),
+    Options::Artifact(args) => artifact::artifact(args),
+    Options::Cargo(args) => cargo::cargo(args),
+    Options::Doctor() => doctor::doctor(),
+    Options::Publish() => publish::publish(),
+  };
+  if let Err(e) = run_ret {
+    println!("{:?}", e.red());
+  }
 }

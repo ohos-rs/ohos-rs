@@ -1,5 +1,6 @@
 mod artifact;
 mod build;
+mod cargo;
 mod init;
 mod publish;
 
@@ -9,10 +10,9 @@ use owo_colors::OwoColorize;
 
 use artifact::cli_artifact;
 use build::cli_build;
+use cargo::cli_cargo;
 use init::cli_init;
 use publish::cli_publish;
-
-pub use build::Arch;
 
 pub fn cli_run() -> OptionParser<crate::Options> {
   let init = cli_init()
@@ -31,7 +31,12 @@ pub fn cli_run() -> OptionParser<crate::Options> {
     .to_options()
     .command("publish")
     .help("Publish ohpm package, but not implement yet.");
-  construct!([init, build, artifact, publish]).to_options()
+  let cargo = cli_cargo()
+    .to_options()
+    .command("cargo")
+    .help("Used to execute any cargo command and ensure it is under the ohpm environment.");
+
+  construct!([init, build, artifact, publish, cargo]).to_options()
 }
 
 pub struct Info();

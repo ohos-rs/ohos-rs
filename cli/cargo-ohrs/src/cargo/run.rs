@@ -1,9 +1,7 @@
 use crate::util::Arch;
-use anyhow::Error;
-use cargo_metadata::Message;
 use std::collections::HashMap;
 use std::env;
-use std::io::BufReader;
+use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 
 pub fn run(arch: &Arch, ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
@@ -64,7 +62,7 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
     ("TARGET_OBJDUMP", &obj_dump_path),
     ("TARGET_OBJCOPY", &obj_copy_path),
     ("TARGET_NM", &nm_path),
-    ("TARGET_CARGO_ENCODED_RUSTFLAGS", &rustflags),
+    ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
     ("PATH", &path),
   ]);
 
@@ -77,20 +75,17 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
   if let Some(ref mut stdout) = child.stdout {
     let reader = BufReader::new(stdout);
 
-    for message in cargo_metadata::Message::parse_stream(reader) {
-      match message {
-        Ok(m) => {
-          match m {
-            Message::CompilerMessage(msg) => {
-              println!("{:?}", msg);
-            }
-            _ => (), // Unknown message
-          }
-        }
-        Err(e) => {
-          return Err(Error::new(e));
-        }
-      }
+    for line in reader.lines() {
+      let line = line?;
+      println!("{}", line);
+    }
+  }
+  if let Some(ref mut stderr) = child.stderr {
+    let reader = BufReader::new(stderr);
+
+    for line in reader.lines() {
+      let line = line?;
+      println!("{}", line);
     }
   }
   Ok(())

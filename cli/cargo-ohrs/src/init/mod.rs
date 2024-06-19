@@ -10,7 +10,7 @@ use package::{CHANGELOG, LICENSE, PKG, README};
 use tmp::{BUILD_INIT, CARGO_TOML, GIT_IGNORE, LIB_CODE};
 
 pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
-  let pwd = std::env::current_dir().expect("Can't get current work path");
+  let pwd = std::env::current_dir().map_err(|_e| Error::msg("Can't get current work path"))?;
 
   let target = pwd.join(&arg.name);
 

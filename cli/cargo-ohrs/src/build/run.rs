@@ -86,7 +86,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   ]);
 
   // respect cli extra args
-  args.extend(cargo_args.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+  args.extend(cargo_args.iter().map(|s| s.as_str()));
 
   let mut artifact_files: Vec<PathBuf> = Vec::new();
 

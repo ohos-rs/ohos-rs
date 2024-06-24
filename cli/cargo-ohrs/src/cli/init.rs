@@ -7,8 +7,7 @@ pub fn cli_init() -> impl Parser<crate::Options> {
     .long("package")
     .help("Ohpm package's name. If not set,will use project's name")
     .argument::<String>("PACKAGE_NAME")
-    .optional()
-    .catch();
+    .optional();
 
   let init_parser = construct!(crate::InitArgs { package_name, name });
   construct!(crate::Options::Init(init_parser))

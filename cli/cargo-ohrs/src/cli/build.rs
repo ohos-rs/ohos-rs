@@ -17,8 +17,9 @@ pub fn cli_build() -> impl Parser<crate::Options> {
       .short('a')
       .help("The target build products support arm64/aarch, arm/arm32, and x86_64/x64 architectures, with all builds enabled by default.")
       .argument::<Arch>("ARCH")
-      .many()
-      .optional();
+      .some("Please provide at least one architecture")
+      .optional()
+      .fallback(Some([Arch::ARM64,Arch::ARM32,Arch::X86_64].to_vec()));
 
   let cargo_args = positional("CARGO_ARGS")
     .help("The custom parameters for cargo build in the current project.")

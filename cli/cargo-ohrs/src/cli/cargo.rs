@@ -7,8 +7,9 @@ pub fn cli_cargo() -> impl Parser<crate::Options> {
   .short('a')
   .help("Support building arm64/aarch, arm/arm32, and x86_64/x64 architecture targets, by default only build arm64.")
   .argument::<Arch>("ARCH")
-  .many()
-  .optional();
+  .some("Please provide at least one architecture")
+  .optional()
+  .fallback(Some([Arch::ARM64].to_vec()));
 
   let args = positional("CARGO_ARGS")
     .help("Provide the ohpm environment for executing other cargo commands.")

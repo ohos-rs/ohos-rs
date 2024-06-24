@@ -41,11 +41,19 @@ pub fn cli_run() -> OptionParser<crate::Options> {
 
 pub struct Info();
 
+static LOGO: &str = r#"
+        _                              
+   ___ | |__   ___  ___       _ __ ___ 
+  / _ \| '_ \ / _ \/ __|_____| '__/ __|
+ | (_) | | | | (_) \__ \_____| |  \__ \
+  \___/|_| |_|\___/|___/     |_|  |___/                                       
+"#;
+
 impl From<Info> for Doc {
   fn from(_value: Info) -> Self {
     let mut doc = Self::default();
     doc.text(
-      "\n OHOS-RS "
+      LOGO
         .fg::<CustomColor<248, 112, 51>>()
         .bold()
         .to_string()

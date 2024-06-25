@@ -1,40 +1,15 @@
-use crate::arg::BuildArg;
 use crate::check_and_clean_file_or_dir;
+use crate::util::Arch;
 use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::Package;
-use once_cell::sync::Lazy;
+use std::env;
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
-use std::{env, thread};
 
 mod abort_tmp;
 mod artifact;
 mod prepare;
 mod run;
-mod strip;
 mod ts;
-
-// 全局状态，在调用的时候必须重置为当前指
-pub(crate) static BUILD_ARGS: Lazy<RwLock<BuildArg>> = Lazy::new(|| RwLock::default());
-
-/// 构建产物目标
-#[derive(Debug, Clone, Copy)]
-pub struct Architecture<'a> {
-  arch: &'a str,
-  target: &'a str,
-  #[allow(dead_code)]
-  platform: &'a str,
-}
-
-impl<'a> Architecture<'a> {
-  fn new(arch: &'a str, target: &'a str, platform: &'a str) -> Self {
-    Architecture {
-      arch,
-      target,
-      platform,
-    }
-  }
-}
 
 /// 构建命令执行时的上下文
 #[derive(Debug, Clone, Default)]
@@ -58,47 +33,39 @@ pub struct Context<'a> {
 }
 
 /// build逻辑
-pub fn build() {
-  let ctx = Arc::new(RwLock::new(Context::default()));
+pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
+  let mut current_args = args.clone();
+  let mut ctx = Context::default();
 
-  prepare::prepare(ctx.clone()).unwrap();
+  prepare::prepare(&mut current_args, &mut ctx)?;
 
-  let arg = BUILD_ARGS.read().unwrap();
-  let build_arch = (*arg).arch.clone().unwrap_or(vec![
-    String::from("aarch"),
-    String::from("arm"),
-    String::from("x64"),
+  let build_arch = current_args.arch.unwrap_or(vec![
+    crate::Arch::ARM64,
+    crate::Arch::ARM32,
+    crate::Arch::X86_64,
   ]);
 
-  let aarch = Architecture::new("arm64-v8a", "aarch64-unknown-linux-ohos", "aarch");
-  let arm = Architecture::new("armeabi-v7a", "armv7-unknown-linux-ohos", "arm");
-  let x64 = Architecture::new("x86_64", "x86_64-unknown-linux-ohos", "x64");
+  let cargo_args = current_args.cargo_args.unwrap_or_default();
 
-  [aarch, arm, x64]
+  [Arch::ARM64, Arch::ARM32, Arch::X86_64]
     .iter()
     .filter_map(|&i| {
-      if build_arch.contains(&i.platform.to_string()) {
+      if build_arch.contains(&i) {
         return Some(i);
       }
       None
     })
-    .for_each(|arch| {
-      let tmp_file = env::var("TYPE_DEF_TMP_PATH").expect("Get .d.ts tmp filed.");
-      check_and_clean_file_or_dir!(PathBuf::from(&tmp_file));
+    .map(|arch| -> anyhow::Result<()> {
+      let tmp_file_env = env::var("TYPE_DEF_TMP_PATH");
+      if let Ok(tmp_file) = tmp_file_env {
+        check_and_clean_file_or_dir!(PathBuf::from(&tmp_file));
+      }
 
-      run::build(ctx.clone(), &arch);
-    });
+      run::build(&cargo_args, &ctx, &arch)?;
+      Ok(())
+    })
+    .collect::<anyhow::Result<Vec<_>>>()?;
 
-  let mut threads = vec![];
-
-  let ts_ctx = ctx.clone();
-  threads.push(thread::spawn(move || {
-    ts::generate_d_ts_file(ts_ctx);
-  }));
-
-  strip::strip(ctx.clone(), &mut threads);
-
-  for t in threads {
-    t.join().unwrap();
-  }
+  ts::generate_d_ts_file(&ctx)?;
+  Ok(())
 }

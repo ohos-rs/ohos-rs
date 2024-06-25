@@ -1,3 +1,7 @@
+mod arch;
+
+pub use arch::*;
+
 #[macro_export]
 macro_rules! create_dist_dir {
   ($dir: expr) => {{

@@ -1,24 +1,24 @@
-use crate::{arg::InitArg, create_dist_dir, create_project_file};
+use crate::{create_dist_dir, create_project_file};
 
 mod config;
 mod package;
 mod tmp;
 
+use anyhow::Error;
 use config::get_git_config;
 use package::{CHANGELOG, LICENSE, PKG, README};
 use tmp::{BUILD_INIT, CARGO_TOML, GIT_IGNORE, LIB_CODE};
 
-pub fn init(arg: InitArg) {
-  let pwd = std::env::current_dir().expect("Can't get current work path");
+pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
+  let pwd = std::env::current_dir().map_err(|_e| Error::msg("Can't get current work path"))?;
 
   let target = pwd.join(&arg.name);
 
   if target.exists() == true {
-    println!(
+    return Err(Error::msg(format!(
       "{} already existed. Please change your project name.",
       &arg.name
-    );
-    return;
+    )));
   }
 
   create_dist_dir!(&target.join("src"));
@@ -30,7 +30,7 @@ pub fn init(arg: InitArg) {
   let config = CARGO_TOML.replace("entry", &arg.name.as_str());
   create_project_file!(config, &target.join("Cargo.toml"), "Cargo.toml");
 
-  if arg.package {
+  if arg.package_name.is_some() {
     let git_config = get_git_config();
     let pkg = arg.package_name.unwrap_or(arg.name.clone());
     create_dist_dir!(&target.join("package"));
@@ -71,4 +71,5 @@ pub fn init(arg: InitArg) {
       "package/CHANGELOG.md"
     );
   }
+  Ok(())
 }

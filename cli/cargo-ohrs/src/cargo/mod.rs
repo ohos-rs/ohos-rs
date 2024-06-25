@@ -12,7 +12,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
     )
   })?;
   let (command, rest_args) = args.args.split_at(1);
-  let mut target_arch = args.arch.unwrap_or(vec![Arch::ARM64]);
+  let target_arch = args.arch.unwrap_or(vec![Arch::ARM64]);
 
   target_arch
     .iter()

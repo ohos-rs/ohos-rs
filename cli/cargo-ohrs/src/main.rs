@@ -51,7 +51,9 @@ pub(crate) enum Options {
 }
 
 fn main() {
-  let parser = cli_run().descr(cli::Info());
+  let parser = cli_run()
+    .descr(cli::Info())
+    .version(env!("CARGO_PKG_VERSION"));
 
   let ret = parser.fallback_to_usage().run();
 

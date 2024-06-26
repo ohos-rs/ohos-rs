@@ -1,6 +1,0 @@
-{
-  "rules": {
-    "import/named": "allow",
-    "import/no-export": "allow"
-  }
-}

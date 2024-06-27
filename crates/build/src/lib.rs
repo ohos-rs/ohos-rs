@@ -2,6 +2,9 @@ mod android;
 mod macos;
 mod ohos;
 mod wasi;
+mod windows;
+
+use std::env;
 
 pub fn setup() {
   println!("cargo:rerun-if-env-changed=DEBUG_GENERATED_CODE");
@@ -16,6 +19,11 @@ pub fn setup() {
     Ok("android") => if android::setup().is_ok() {},
     Ok("wasi") => {
       wasi::setup();
+    }
+    Ok("windows") => {
+      if let Ok("gnu") = env::var("CARGO_CFG_TARGET_ENV").as_deref() {
+        windows::setup_gnu();
+      }
     }
     _ => {}
   }

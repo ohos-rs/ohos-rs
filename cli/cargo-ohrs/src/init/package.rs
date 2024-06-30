@@ -57,3 +57,12 @@ ohpm install @pkg
 pub const CHANGELOG: &str = r#"# 0.0.1
 - init package
 "#;
+
+pub const MODULE_CONTENT: &str = r#"{
+  "module": {
+    "name": "@pkg",
+    "type": "har",
+    "deviceTypes": ["default", "tablet", "2in1"]
+  },
+}
+"#;

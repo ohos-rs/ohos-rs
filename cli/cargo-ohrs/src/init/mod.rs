@@ -6,7 +6,7 @@ mod tmp;
 
 use anyhow::Error;
 use config::get_git_config;
-use package::{CHANGELOG, LICENSE, PKG, README};
+use package::{CHANGELOG, LICENSE, MODULE_CONTENT, PKG, README};
 use tmp::{BUILD_INIT, CARGO_TOML, GIT_IGNORE, LIB_CODE};
 
 pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
@@ -34,6 +34,7 @@ pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
     let git_config = get_git_config();
     let pkg = arg.package_name.unwrap_or(arg.name.clone());
     create_dist_dir!(&target.join("package"));
+    create_dist_dir!(&target.join("package").join("main"));
 
     let readme = README.replace("@pkg", &pkg.as_str());
     create_project_file!(
@@ -70,6 +71,13 @@ pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
       &target.join("package").join("CHANGELOG.md"),
       "package/CHANGELOG.md"
     );
+
+    let module = MODULE_CONTENT.replace("@pkg", &pkg.as_str());
+    create_project_file!(
+      module,
+      &target.join("package").join("main").join("module.json5"),
+      "package/main/module.json5"
+    )
   }
   Ok(())
 }

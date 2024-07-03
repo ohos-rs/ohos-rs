@@ -17,11 +17,6 @@ pub struct Template {
   pub header: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct TomlTemplate {
-  pub template: Option<Template>,
-}
-
 /// 构建命令执行时的上下文
 #[derive(Debug, Clone, Default)]
 pub struct Context<'a> {

@@ -2,6 +2,7 @@ use crate::check_and_clean_file_or_dir;
 use crate::util::Arch;
 use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::Package;
+use serde::Deserialize;
 use std::env;
 use std::path::PathBuf;
 
@@ -10,6 +11,11 @@ mod artifact;
 mod prepare;
 mod run;
 mod ts;
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Template {
+  pub header: Option<String>,
+}
 
 /// 构建命令执行时的上下文
 #[derive(Debug, Clone, Default)]
@@ -30,6 +36,7 @@ pub struct Context<'a> {
   pub ndk: String,
   // 所有产物的文件路径 避免重复获取
   pub dist_files: Vec<PathBuf>,
+  pub template: Option<Template>,
 }
 
 /// build逻辑

@@ -1,4 +1,4 @@
-use crate::build::Context;
+use crate::build::{Context, Template};
 use crate::create_dist_dir;
 use anyhow::Error;
 use cargo_metadata::MetadataCommand;
@@ -32,6 +32,13 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
       return p.manifest_path.eq(cargo_file_str);
     })
     .ok_or(Error::msg("Try to get package meta-info failed."))?;
+
+  let toml_content: Option<Template> = pkg
+    .metadata
+    .get("template")
+    .and_then(|v| serde_json::from_value(v.clone()).unwrap_or(None));
+
+  ctx.template = toml_content;
 
   ctx.package = Some((*pkg).clone());
   ctx.cargo_build_target_dir = Some(metadata.target_directory);

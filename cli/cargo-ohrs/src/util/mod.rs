@@ -60,11 +60,16 @@ macro_rules! move_file {
 macro_rules! create_project_file {
   ($strs: ident, $target: expr,$name: literal) => {{
     use std::io::prelude::*;
+    use std::path::PathBuf;
     #[cfg(not(target_os = "windows"))]
     use std::os::unix::fs::PermissionsExt;
 
+    if PathBuf::from(&$target).is_file() {
+      std::fs::remove_file(&$target).expect("Try to delete file failed.")
+    }
+
     let mut tmp_file =
-      std::fs::File::create($target).expect(format!("Create {} failed.", $name).as_str());
+      std::fs::File::create(&$target).expect(format!("Create {} failed.", $name).as_str());
     // Windows don't need to set permissions
     // In another reason, we don't need to set permissions anymore, because we don't have any bash file.
     #[cfg(not(target_os = "windows"))]

@@ -74,7 +74,11 @@ pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
     let module = MODULE_CONTENT.replace("@pkg", &pkg.as_str());
     create_project_file!(
       module,
-      &target.join("package").join("src").join("main").join("module.json5"),
+      &target
+        .join("package")
+        .join("src")
+        .join("main")
+        .join("module.json5"),
       "package/src/main/module.json5"
     )
   }

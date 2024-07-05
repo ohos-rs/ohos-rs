@@ -103,7 +103,12 @@ impl TryToTokens for NapiFn {
       let call = if self.is_ret_result {
         quote! { #receiver(#(#arg_names),*).await }
       } else {
-        quote! { Ok(#receiver(#(#arg_names),*).await) }
+        let ret_type = if let Some(t) = &self.ret {
+          quote! { #t }
+        } else {
+          quote! { () }
+        };
+        quote! { Ok(#receiver(#(#arg_names),*).await) as napi::bindgen_prelude::Result<#ret_type> }
       };
       quote! {
         napi_ohos::bindgen_prelude::execute_tokio_future(env, async move { #call }, move |env, #receiver_ret_name| {
@@ -557,7 +562,17 @@ impl NapiFn {
           if self.parent_is_generator {
             quote! { cb.construct_generator::<false, #parent>(#js_name, #ret?) }
           } else {
-            quote! { cb.construct::<false, #parent>(#js_name, #ret?) }
+            quote! {
+              match #ret {
+                Ok(value) => {
+                  cb.construct::<false, #parent>(#js_name, value)
+                }
+                Err(err) => {
+                  napi::bindgen_prelude::JsError::from(err).throw_into(env);
+                  Ok(std::ptr::null_mut())
+                }
+              }
+            }
           }
         } else if self.parent_is_generator {
           quote! { cb.construct_generator::<false, #parent>(#js_name, #ret) }
@@ -571,7 +586,17 @@ impl NapiFn {
           } else if self.is_async {
             quote! { cb.factory(#js_name, #ret) }
           } else {
-            quote! { cb.factory(#js_name, #ret?) }
+            quote! {
+              match #ret {
+                Ok(value) => {
+                  cb.factory(#js_name, value)
+                }
+                Err(err) => {
+                  napi::bindgen_prelude::JsError::from(err).throw_into(env);
+                  Ok(std::ptr::null_mut())
+                }
+              }
+            }
           }
         } else if self.parent_is_generator {
           quote! { cb.generator_factory(#js_name, #ret) }

@@ -6,7 +6,7 @@ name         = "napi-derive-backend-ohos"
 readme       = "README.md"
 repository   = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.65"
-version      = "1.0.0-beta.2"
+version      = "1.0.0-beta.3"
 
 [package.metadata.workspaces]
 independent = true

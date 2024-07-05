@@ -108,7 +108,7 @@ impl TryToTokens for NapiFn {
         } else {
           quote! { () }
         };
-        quote! { Ok(#receiver(#(#arg_names),*).await) as napi::bindgen_prelude::Result<#ret_type> }
+        quote! { Ok(#receiver(#(#arg_names),*).await) as napi_ohos::bindgen_prelude::Result<#ret_type> }
       };
       quote! {
         napi_ohos::bindgen_prelude::execute_tokio_future(env, async move { #call }, move |env, #receiver_ret_name| {
@@ -568,7 +568,7 @@ impl NapiFn {
                   cb.construct::<false, #parent>(#js_name, value)
                 }
                 Err(err) => {
-                  napi::bindgen_prelude::JsError::from(err).throw_into(env);
+                  napi_ohos::bindgen_prelude::JsError::from(err).throw_into(env);
                   Ok(std::ptr::null_mut())
                 }
               }
@@ -592,7 +592,7 @@ impl NapiFn {
                   cb.factory(#js_name, value)
                 }
                 Err(err) => {
-                  napi::bindgen_prelude::JsError::from(err).throw_into(env);
+                  napi_ohos::bindgen_prelude::JsError::from(err).throw_into(env);
                   Ok(std::ptr::null_mut())
                 }
               }

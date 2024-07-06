@@ -3,12 +3,12 @@ authors      = ["LongYinan <lynweklm@gmail.com>", "southorange0929 <southorange0
 description  = "N-API build support"
 edition      = "2021"
 include      = ["src/**/*", "Cargo.toml", "README.md", "LICENSE"]
-keywords     = ["NodeJS", "FFI", "NAPI", "n-api"]
+keywords     = ["NodeJS", "FFI", "NAPI", "n-api", "Harmony", "open-harmony","harmony-next"]
 license      = "MIT"
 name         = "napi-build-ohos"
 readme       = "README.md"
 repository   = "https://github.com/ohos-rs/ohos-rs"
-rust-version = "1.65"
+rust-version = "1.78"
 version      = "1.0.0-beta.3"
 
 [package.metadata.workspaces]

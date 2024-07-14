@@ -1,14 +1,12 @@
-use std::ffi::CString;
+use std::marker::PhantomData;
 use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use crate::{
-  bindgen_runtime::ToNapiValue, check_status, js_values::NapiValue, sys, Env, JsError, JsObject,
-  Result, Task,
-};
+use crate::bindgen_runtime::PromiseRaw;
+use crate::{bindgen_runtime::ToNapiValue, check_status, sys, Env, JsError, Result, Task};
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -38,7 +36,7 @@ struct AsyncWork<T: Task> {
   status: Rc<AtomicU8>,
 }
 
-pub struct AsyncWorkPromise {
+pub struct AsyncWorkPromise<T> {
   pub(crate) napi_async_work: sys::napi_async_work,
   raw_promise: sys::napi_value,
   pub(crate) deferred: sys::napi_deferred,
@@ -48,14 +46,15 @@ pub struct AsyncWorkPromise {
   /// 1: completed
   /// 2: canceled
   pub(crate) status: Rc<AtomicU8>,
+  _phantom: PhantomData<T>,
 }
 
-impl AsyncWorkPromise {
-  pub fn promise_object(&self) -> JsObject {
-    unsafe { JsObject::from_raw_unchecked(self.env, self.raw_promise) }
+impl<T> AsyncWorkPromise<T> {
+  pub fn promise_object(&self) -> PromiseRaw<T> {
+    PromiseRaw::new(self.env, self.raw_promise)
   }
 
-  pub fn cancel(&self) -> Result<()> {
+  pub fn cancel(&mut self) -> Result<()> {
     // must be happened in the main thread, relaxed is enough
     self.status.store(2, Ordering::Relaxed);
     check_status!(unsafe { sys::napi_cancel_async_work(self.env, self.napi_async_work) })
@@ -67,10 +66,10 @@ pub fn run<T: Task>(
   task: T,
   abort_status: Option<Rc<AtomicU8>>,
   qos: Option<AsyncWorkQos>,
-) -> Result<AsyncWorkPromise> {
+) -> Result<AsyncWorkPromise<T::JsValue>> {
   let run_qos = qos.unwrap_or(AsyncWorkQos::Default);
-  let mut raw_resource = ptr::null_mut();
-  check_status!(unsafe { sys::napi_create_object(env, &mut raw_resource) })?;
+  let mut undefined = ptr::null_mut();
+  check_status!(unsafe { sys::napi_get_undefined(env, &mut undefined) })?;
   let mut raw_promise = ptr::null_mut();
   let mut deferred = ptr::null_mut();
   check_status!(unsafe { sys::napi_create_promise(env, &mut deferred, &mut raw_promise) })?;
@@ -82,18 +81,11 @@ pub fn run<T: Task>(
     napi_async_work: ptr::null_mut(),
     status: task_status.clone(),
   }));
-  let mut async_work_name = ptr::null_mut();
-  let s = "napi_rs_async_work";
-  let len = s.len();
-  let s = CString::new(s)?;
-  check_status!(unsafe {
-    sys::napi_create_string_utf8(env, s.as_ptr(), len, &mut async_work_name)
-  })?;
   check_status!(unsafe {
     sys::napi_create_async_work(
       env,
-      raw_resource,
-      async_work_name,
+      raw_promise,
+      undefined,
       Some(execute::<T>),
       Some(complete::<T>),
       (result as *mut AsyncWork<T>).cast(),
@@ -114,6 +106,7 @@ pub fn run<T: Task>(
     deferred,
     env,
     status: task_status,
+    _phantom: PhantomData,
   })
 }
 

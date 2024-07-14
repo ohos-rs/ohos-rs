@@ -24,6 +24,7 @@ mod number;
 mod object;
 #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
 mod promise;
+mod promise_raw;
 #[cfg(feature = "serde-json")]
 mod serde;
 mod string;
@@ -47,6 +48,7 @@ pub use nil::*;
 pub use object::*;
 #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
 pub use promise::*;
+pub use promise_raw::*;
 pub use string::*;
 // pub use symbol::*;
 pub use task::*;

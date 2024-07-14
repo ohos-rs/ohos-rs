@@ -18,6 +18,8 @@ use serde::Serialize;
 use crate::async_cleanup_hook::AsyncCleanupHook;
 #[cfg(feature = "napi5")]
 use crate::bindgen_runtime::FunctionCallContext;
+#[cfg(all(feature = "tokio_rt", feature = "napi4"))]
+use crate::bindgen_runtime::PromiseRaw;
 #[cfg(feature = "napi4")]
 use crate::bindgen_runtime::ToNapiValue;
 use crate::bindgen_runtime::{FromNapiValue, Function, JsValuesTupleIntoVec, Unknown};
@@ -941,17 +943,8 @@ impl Env {
   }
 
   /// Run [Task](./trait.Task.html) in libuv thread pool, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
-  pub fn spawn<T: 'static + Task>(&self, task: T) -> Result<AsyncWorkPromise> {
+  pub fn spawn<T: 'static + Task>(&self, task: T) -> Result<AsyncWorkPromise<T::JsValue>> {
     async_work::run(self.0, task, None, None)
-  }
-
-  /// Run [Task](./trait.Task.html) in libuv thread pool with qos, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
-  pub fn spawn_with_qos<T: 'static + Task>(
-    &self,
-    task: T,
-    qos: AsyncWorkQos,
-  ) -> Result<AsyncWorkPromise> {
-    async_work::run(self.0, task, None, Some(qos))
   }
 
   pub fn run_in_scope<T, F>(&self, executor: F) -> Result<T>
@@ -965,6 +958,15 @@ impl Env {
 
     check_status!(unsafe { sys::napi_close_handle_scope(self.0, handle_scope) })?;
     result
+  }
+
+  /// Run [Task](./trait.Task.html) in libuv thread pool with qos, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
+  pub fn spawn_with_qos<T: 'static + Task>(
+    &self,
+    task: T,
+    qos: AsyncWorkQos,
+  ) -> Result<AsyncWorkPromise<T::JsValue>> {
+    async_work::run(self.0, task, None, Some(qos))
   }
 
   /// Node-API provides an API for executing a string containing JavaScript using the underlying JavaScript engine.
@@ -1036,40 +1038,43 @@ impl Env {
   }
 
   #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
-  pub fn execute_tokio_future<
-    T: 'static + Send,
-    V: 'static + ToNapiValue,
-    F: 'static + Send + Future<Output = Result<T>>,
-    R: 'static + FnOnce(&mut Env, T) -> Result<V>,
-  >(
-    &self,
-    fut: F,
-    resolver: R,
-  ) -> Result<JsObject> {
-    use crate::tokio_runtime;
-
-    let promise = tokio_runtime::execute_tokio_future(self.0, fut, |env, val| unsafe {
-      resolver(&mut Env::from_raw(env), val).and_then(|v| ToNapiValue::to_napi_value(env, v))
-    })?;
-
-    Ok(unsafe { JsObject::from_raw_unchecked(self.0, promise) })
-  }
-
-  #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
+  /// Spawn a future, return a JavaScript Promise which takes the result of the future
   pub fn spawn_future<
     T: 'static + Send + ToNapiValue,
     F: 'static + Send + Future<Output = Result<T>>,
   >(
     &self,
     fut: F,
-  ) -> Result<JsObject> {
+  ) -> Result<PromiseRaw<T>> {
     use crate::tokio_runtime;
 
     let promise = tokio_runtime::execute_tokio_future(self.0, fut, |env, val| unsafe {
       ToNapiValue::to_napi_value(env, val)
     })?;
 
-    Ok(unsafe { JsObject::from_raw_unchecked(self.0, promise) })
+    Ok(PromiseRaw::new(self.0, promise))
+  }
+
+  #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
+  /// Spawn a future with a callback
+  /// So you can access the `Env` and resolved value after the future completed
+  pub fn spawn_future_with_callback<
+    T: 'static + Send + ToNapiValue,
+    F: 'static + Send + Future<Output = Result<T>>,
+    R: 'static + FnOnce(&mut Env, &mut T) -> Result<()>,
+  >(
+    &self,
+    fut: F,
+    callback: R,
+  ) -> Result<PromiseRaw<T>> {
+    use crate::tokio_runtime;
+
+    let promise = tokio_runtime::execute_tokio_future(self.0, fut, move |env, mut val| unsafe {
+      callback(&mut Env::from_raw(env), &mut val)?;
+      ToNapiValue::to_napi_value(env, val)
+    })?;
+
+    Ok(PromiseRaw::new(self.0, promise))
   }
 
   /// Creates a deferred promise, which can be resolved or rejected from a background thread.

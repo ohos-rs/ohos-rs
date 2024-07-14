@@ -101,7 +101,7 @@ pub fn tsfn_call_with_callback(tsfn: ThreadsafeFunction<(), String>) -> napi_oho
 pub fn tsfn_async_call(
   env: Env,
   func: Function<(u32, u32, u32), String>,
-) -> napi_ohos::Result<Object> {
+) -> napi_ohos::Result<PromiseRaw<()>> {
   let tsfn = func.build_threadsafe_function().build()?;
 
   env.spawn_future(async move {

@@ -26,7 +26,7 @@ RUN mkdir ~/harmony && mkdir ~/sdk \
     gcc-multilib \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
-	&& curl -O https://repo.huaweicloud.com/openharmony/os/4.0-Release/ohos-sdk-windows_linux-public.tar.gz \
+	&& curl -O https://repo.huaweicloud.com/openharmony/os/${{ inputs.ndk_version }}-Release/ohos-sdk-windows_linux-public.tar.gz \
 	&& mkdir ./ohos-sdk-windows_linux-public && tar -zxvf ./ohos-sdk-windows_linux-public.tar.gz -C ./ohos-sdk-windows_linux-public \
 	&& cd ~/harmony/ohos-sdk-windows_linux-public/ohos-sdk/linux && unzip -u '*.zip' -d ~/sdk \
 	&& cd ~ && rm -rf ~/harmony \

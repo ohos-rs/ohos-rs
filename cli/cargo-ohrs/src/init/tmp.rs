@@ -35,6 +35,7 @@ pub const GIT_IGNORE: &str = r#"dist/
 target/
 .DS_Store
 .idea/
+package/libs
 
 *.har
 

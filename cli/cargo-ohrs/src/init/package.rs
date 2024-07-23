@@ -28,7 +28,8 @@ pub const PKG: &str = r#"{
   description: "",
   main: "index.ets",
   version: "0.0.1",
-  types: "libs/index.d.ts"
+  types: "libs/index.d.ts",
+  dependencies: {}
 }"#;
 
 pub const README: &str = r#"# `@pkg`

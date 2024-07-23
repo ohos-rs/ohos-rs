@@ -12,11 +12,6 @@ use std::process::{exit, Command, Stdio};
 use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
 pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
-  let pkg = ctx
-    .package
-    .as_ref()
-    .ok_or(Error::msg("Failed to try to get the package information"))?;
-
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
   let ran_path = format!("{}/native/llvm/bin/llvm-ranlib", &ctx.ndk);
   let ar_path = format!("{}/native/llvm/bin/llvm-ar", &ctx.ndk);
@@ -108,7 +103,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
             }
             // get final compiled library
             Message::CompilerArtifact(artifact) => {
-              if let Some(p) = resolve_artifact_library(&pkg, artifact) {
+              if let Some(p) = resolve_artifact_library(artifact) {
                 artifact_files.extend(p);
               }
             }

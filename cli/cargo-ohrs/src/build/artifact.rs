@@ -1,4 +1,4 @@
-use cargo_metadata::{Artifact, BuildScript, Package};
+use cargo_metadata::{Artifact, BuildScript};
 use std::path::PathBuf;
 
 pub fn resolve_dependence_library(script: BuildScript) -> Option<Vec<PathBuf>> {
@@ -41,27 +41,24 @@ pub fn resolve_dependence_library(script: BuildScript) -> Option<Vec<PathBuf>> {
   None
 }
 
-pub fn resolve_artifact_library(pkg: &Package, target: Artifact) -> Option<Vec<PathBuf>> {
-  if target.target.name == pkg.name {
-    return Some(
-      target
-        .filenames
-        .iter()
-        .filter_map(|i| {
-          // avoid final target has the same package name with crate
-          // for example: build reqwest
-          // support build exec, but ignore it
-          if let Some(ext) = i.extension() {
-            if ext == "so" || ext == "a" {
-              return Some(i);
-            }
-            return None;
+pub fn resolve_artifact_library(target: Artifact) -> Option<Vec<PathBuf>> {
+  Some(
+    target
+      .filenames
+      .iter()
+      .filter_map(|i| {
+        // avoid final target has the same package name with crate
+        // for example: build reqwest
+        // support build exec, but ignore it
+        if let Some(ext) = i.extension() {
+          if ext == "so" || ext == "a" {
+            return Some(i);
           }
-          None
-        })
-        .map(|i| i.canonicalize().expect("Convert to absolute path failed."))
-        .collect::<Vec<_>>(),
-    );
-  }
-  None
+          return None;
+        }
+        None
+      })
+      .map(|i| i.canonicalize().expect("Convert to absolute path failed."))
+      .collect::<Vec<_>>(),
+  )
 }

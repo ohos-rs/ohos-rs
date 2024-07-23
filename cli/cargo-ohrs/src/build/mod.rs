@@ -25,6 +25,7 @@ pub struct Context<'a> {
   // 构建执行命令
   pub init_args: Vec<&'a str>,
   // 当前构建模式
+  #[allow(dead_code)]
   pub mode: &'a str,
   // 目标产物路径
   pub dist: PathBuf,
@@ -35,6 +36,7 @@ pub struct Context<'a> {
   // ndk 路径
   pub ndk: String,
   // 所有产物的文件路径 避免重复获取
+  #[allow(dead_code)]
   pub dist_files: Vec<PathBuf>,
   pub template: Option<Template>,
 }

@@ -10,9 +10,6 @@ use attrs::BindgenAttrs;
 
 use convert_case::{Case, Casing};
 use napi_derive_backend_ohos::{
-  BindgenResult, CallbackArg, Diagnostic, FnKind, FnSelf, Napi, NapiConst, NapiEnum, NapiEnumValue,
-  NapiEnumVariant, NapiFn, NapiFnArg, NapiFnArgKind, NapiImpl, NapiItem, NapiStruct,
-use napi_derive_backend::{
   rm_raw_prefix, BindgenResult, CallbackArg, Diagnostic, FnKind, FnSelf, Napi, NapiConst, NapiEnum,
   NapiEnumValue, NapiEnumVariant, NapiFn, NapiFnArg, NapiFnArgKind, NapiImpl, NapiItem, NapiStruct,
   NapiStructField, NapiStructKind,

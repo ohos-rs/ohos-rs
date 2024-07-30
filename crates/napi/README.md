@@ -1,5 +1,8 @@
 # ohos-rs
 
+![Crates.io Version](https://img.shields.io/crates/v/napi-ohos) ![Platform](https://img.shields.io/badge/platform-arm64/arm/x86_64-blue)
+
+
 Please visit the official website: https://ohos.rs
 
 ## Discussion

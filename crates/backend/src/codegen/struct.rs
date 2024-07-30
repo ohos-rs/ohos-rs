@@ -608,6 +608,8 @@ impl NapiStruct {
             Ok(val)
           }
         }
+
+        impl napi_ohos::bindgen_prelude::ValidateNapiValue for #name {}
       }
     } else {
       quote! {}

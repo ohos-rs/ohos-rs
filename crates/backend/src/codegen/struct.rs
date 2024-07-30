@@ -629,8 +629,6 @@ impl NapiStruct {
       #to_napi_value
 
       #from_napi_value
-
-      impl napi_ohos::bindgen_prelude::ValidateNapiValue for #name {}
     }
   }
 

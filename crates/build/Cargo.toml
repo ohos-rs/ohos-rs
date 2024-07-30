@@ -9,7 +9,7 @@ name         = "napi-build-ohos"
 readme       = "README.md"
 repository   = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.78"
-version      = "1.0.0-beta.3"
+version      = "1.0.0-beta.4"
 
 [package.metadata.workspaces]
 independent = true

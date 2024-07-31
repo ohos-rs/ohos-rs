@@ -108,7 +108,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
               }
             }
             Message::BuildScriptExecuted(script) => {
-              if let Some(lib) = resolve_dependence_library(script) {
+              if let Some(lib) = resolve_dependence_library(script, (&ctx.ndk).clone()) {
                 artifact_files.extend(lib);
               }
             }

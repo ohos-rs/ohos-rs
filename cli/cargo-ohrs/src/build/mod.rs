@@ -12,6 +12,9 @@ mod prepare;
 mod run;
 mod ts;
 
+#[allow(unused_imports)]
+pub use artifact::*;
+
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct Template {
   pub header: Option<String>,

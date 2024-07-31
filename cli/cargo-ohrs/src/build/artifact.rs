@@ -1,7 +1,9 @@
 use cargo_metadata::{Artifact, BuildScript};
 use std::path::PathBuf;
 
-pub fn resolve_dependence_library(script: BuildScript) -> Option<Vec<PathBuf>> {
+pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Vec<PathBuf>> {
+  let sysroot = format!("{ndk}/native/sysroot/usr/lib");
+
   if !script.linked_libs.is_empty() && !script.linked_paths.is_empty() {
     let libs = script
       .linked_libs
@@ -11,21 +13,27 @@ pub fn resolve_dependence_library(script: BuildScript) -> Option<Vec<PathBuf>> {
         if library_name.starts_with("dylib=") {
           return Some(format!("lib{}.so", &library_name[6..]));
         }
-        return None;
+        return Some(format!("lib{}.so", library_name));
       })
       .collect::<Vec<String>>();
 
     let p = script
       .linked_paths
       .iter()
-      .map(|i| {
+      .filter_map(|i| {
         let item_path = i.as_str();
-        if item_path.starts_with("native=") {
-          return PathBuf::from(&item_path[7..])
-            .canonicalize()
-            .expect("Convert to absolute path failed.");
+        // ignore sysroot lib
+        if item_path.starts_with(&sysroot) {
+          return None;
         }
-        return i.canonicalize().expect("Convert to absolute path failed.");
+        if item_path.starts_with("native=") {
+          return Some(
+            PathBuf::from(&item_path[7..])
+              .canonicalize()
+              .expect("Convert to absolute path failed."),
+          );
+        }
+        return Some(i.canonicalize().expect("Convert to absolute path failed."));
       })
       .collect::<Vec<_>>();
 

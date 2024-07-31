@@ -16,8 +16,15 @@ pub fn setup() {
   // for zig-build avoid to use RUSTFLAGS="-L xxxx"
   println!(
     "cargo:rustc-link-search={}/native/sysroot/usr/lib/{}",
-    ndk, lib_dir
+    &ndk, &lib_dir
   );
+
+  // for libc++_shared.so etc.
+  println!(
+    "cargo:rustc-link-search={}/native/llvm/lib/{}",
+    &ndk, &lib_dir
+  );
+
   // link libace_napi.z.so
   println!("cargo:rustc-link-lib=dylib=ace_napi.z");
 }

@@ -22,8 +22,8 @@ pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Ve
       .iter()
       .filter_map(|i| {
         if !i.is_dir() && !i.is_file() {
-            println!("Note: {} is not a dir or file.", i.as_str());
-            return None;
+          println!("Note: {} is not a dir or file.", i.as_str());
+          return None;
         }
         let item_path = i.as_str();
         // ignore sysroot lib

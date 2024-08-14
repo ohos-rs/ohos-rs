@@ -1,6 +1,7 @@
 use crate::build::Context;
 use crate::create_project_file;
 use anyhow::Error;
+use owo_colors::OwoColorize;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -133,13 +134,32 @@ fn process_type_def(
     has_import = true;
     dts = buffer_reg.replace_all(&dts, "buffer.Buffer").to_string();
     header.push_str("import buffer from '@ohos.buffer';\n");
+
+    let info = format!(
+      "\nTips: You're currently using {}.
+      However, ArkTS doesn't provide robust support for buffer.
+      So it's advisable to use {}, for more detail info: https://ohos.rs/docs/more/buffer.html",
+      "Buffer".bold().red(),
+      "ArrayBuffer".bold().red()
+    );
+
+    println!("{}", info);
   }
 
   let abort_reg = Regex::new(r"\bAbortSignal\b").unwrap();
   if abort_reg.is_match(&dts) {
     has_import = true;
     header.push_str(super::abort_tmp::ABORT_TS);
-    println!("OHOS-RS:::: For AbortController, you can use @ohos-rs/abort-controller.");
+
+    let info = format!(
+      "\nTips: You're currently using {}, which isn't supported by Harmony.
+      You could consider using {} as an alternative.
+      For more detail info: https://github.com/ohos-rs/abort-controller",
+      "AbortController".bold().red(),
+      "@ohos-rs/abort-controller".bold().red()
+    );
+
+    println!("{}", info);
   }
 
   if has_import {

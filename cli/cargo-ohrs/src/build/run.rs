@@ -25,7 +25,10 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   let nm_path = format!("{}/native/llvm/bin/llvm-nm", &ctx.ndk);
   let bin_path = format!("{}/native/llvm/bin", &ctx.ndk);
   // for bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
-  // let lib_path = format!("{}/native/llvm/lib", &ctx.ndk);
+  let lib_path = format!("{}/native/llvm/lib", &ctx.ndk);
+  let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
+  let std_lib_type = String::from("c++");
+
   let mut rustflags = format!(
     "-Clink-args=-target {} --sysroot={}/native/sysroot -D__MUSL__",
     &arch.c_target(),
@@ -55,10 +58,13 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   }
   rustflags = format!("{} {}", rustflags, args);
 
+
+
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
-    // ("LIBCLANG_PATH",&lib_path),
-    // ("CLANG_PATH",&cc_path),
+    ("LIBCLANG_PATH",&lib_path),
+    ("CLANG_PATH",&cxx_path),
+    (std_lib.as_str(),&std_lib_type),
     ("TARGET_CC", &cc_path),
     ("TARGET_CXX", &cxx_path),
     ("TARGET_RANLIB", &ran_path),

@@ -132,13 +132,13 @@ fn process_type_def(
   let buffer_reg = Regex::new(r"\bBuffer\b").unwrap();
   if buffer_reg.is_match(&dts) {
     has_import = true;
-    dts = buffer_reg.replace_all(&dts, "buffer.Buffer").to_string();
-    header.push_str("import buffer from '@ohos.buffer';\n");
+    dts = buffer_reg.replace_all(&dts, "ArrayBuffer").to_string();
+    // header.push_str("import buffer from '@ohos.buffer';\n");
 
     let info = format!(
       "\nTips: You're currently using {}.
       However, ArkTS doesn't provide robust support for buffer.
-      So it's advisable to use {}, for more detail info: https://ohos.rs/docs/more/buffer.html",
+      So it's advisable to use {} directly, for more detail info: https://ohos.rs/docs/more/buffer.html",
       "Buffer".bold().red(),
       "ArrayBuffer".bold().red()
     );

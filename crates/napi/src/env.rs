@@ -683,7 +683,7 @@ impl Env {
     check_status!(unsafe {
       sys::napi_throw_error(
         self.0,
-        code.map(|s| s.as_ptr()).unwrap_or(ptr::null_mut()),
+        code.as_ref().map(|s| s.as_ptr()).unwrap_or(ptr::null_mut()),
         msg.as_ptr(),
       )
     })
@@ -696,7 +696,7 @@ impl Env {
     check_status!(unsafe {
       sys::napi_throw_range_error(
         self.0,
-        code.map(|s| s.as_ptr()).unwrap_or(ptr::null_mut()),
+        code.as_ref().map(|s| s.as_ptr()).unwrap_or(ptr::null_mut()),
         msg.as_ptr(),
       )
     })
@@ -709,7 +709,7 @@ impl Env {
     check_status!(unsafe {
       sys::napi_throw_type_error(
         self.0,
-        code.map(|s| s.as_ptr()).unwrap_or(ptr::null_mut()),
+        code.as_ref().map(|s| s.as_ptr()).unwrap_or(ptr::null_mut()),
         msg.as_ptr(),
       )
     })

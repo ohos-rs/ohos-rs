@@ -58,13 +58,11 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   }
   rustflags = format!("{} {}", rustflags, args);
 
-
-
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
-    ("LIBCLANG_PATH",&lib_path),
-    ("CLANG_PATH",&cxx_path),
-    (std_lib.as_str(),&std_lib_type),
+    ("LIBCLANG_PATH", &lib_path),
+    ("CLANG_PATH", &cxx_path),
+    (std_lib.as_str(), &std_lib_type),
     ("TARGET_CC", &cc_path),
     ("TARGET_CXX", &cxx_path),
     ("TARGET_RANLIB", &ran_path),

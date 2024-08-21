@@ -59,7 +59,7 @@ fn auto_add_register_code() -> proc_macro2::TokenStream {
 
 /// ```ignore
 /// #[napi]
-/// fn test(ctx: CallContext, name: String) {
+/// fn test(name: String) {
 ///   "hello" + name
 /// }
 /// ```

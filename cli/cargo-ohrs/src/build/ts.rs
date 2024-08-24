@@ -26,6 +26,8 @@ enum TypeDefKind {
   Interface,
   #[serde(rename = "fn")]
   Fn,
+  #[serde(rename = "type")]
+  Type,
   #[serde(rename = "struct")]
   Struct,
   #[serde(rename = "impl")]
@@ -251,6 +253,9 @@ fn pretty_print(line: &TypeDefLine, const_enum: bool, indent: usize, ambient: bo
         line.def
       );
     }
+    TypeDefKind::Type => {
+      s += &format!("export type {} = \n{}", line.name, line.def);
+    }
     TypeDefKind::StringEnum => match const_enum {
       true => {
         s += &format!(
@@ -306,12 +311,14 @@ fn correct_string_indent(src: &str, indent: usize) -> String {
     let is_in_multiline_comment = line.starts_with('*');
     let is_closing_bracket = line.ends_with('}');
     let is_opening_bracket = line.ends_with('{');
+    let is_type_declearation = line.ends_with('=');
+    let is_type_variable = line.starts_with('|');
 
-    let right_indent = if is_opening_bracket && !is_in_multiline_comment {
+    let right_indent = if (is_opening_bracket || is_type_declearation) && !is_in_multiline_comment {
       bracket_depth += 1;
       indent + (bracket_depth - 1) * 2
     } else {
-      if is_closing_bracket && bracket_depth > 0 && !is_in_multiline_comment {
+      if is_closing_bracket && bracket_depth > 0 && !is_in_multiline_comment && !is_type_variable {
         bracket_depth -= 1;
       }
       indent + bracket_depth * 2

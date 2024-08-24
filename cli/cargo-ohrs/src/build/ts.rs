@@ -6,7 +6,6 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
-use std::fmt::format;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;

@@ -12,7 +12,7 @@ name = "napi-ohos"
 readme = "README.md"
 repository = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.78"
-version = "1.0.0-beta.5"
+version = "1.0.0-beta.6"
 
 [lib]
 doctest = false
@@ -73,7 +73,7 @@ version  = "1"
 
 [dependencies.napi-sys-ohos]
 path    = "../sys"
-version = "1.0.0-beta.5"
+version = "1.0.0-beta.6"
 
 [dependencies.encoding_rs]
 optional = true

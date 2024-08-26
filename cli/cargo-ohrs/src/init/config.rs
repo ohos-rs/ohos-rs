@@ -1,4 +1,4 @@
-use git2::Config;
+use std::process::Command;
 
 #[derive(Debug)]
 pub struct GitConfig {
@@ -9,9 +9,14 @@ pub struct GitConfig {
 /// @author
 pub fn get_git_config() -> GitConfig {
   let default_user = whoami::username();
-  let config = Config::open_default().unwrap();
-  let username = config.get_string("user.name").unwrap_or(default_user);
-  GitConfig { author: username }
+  let output = Command::new("git").arg("config").arg("user.name").output();
+  let username = match output {
+    Ok(ref o) => String::from_utf8_lossy(&o.stdout),
+    Err(_) => default_user.into(),
+  };
+  GitConfig {
+    author: String::from(username).replace("\n", "").replace("\r", ""),
+  }
 }
 
 #[cfg(test)]

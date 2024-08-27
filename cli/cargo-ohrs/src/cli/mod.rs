@@ -4,7 +4,7 @@ mod cargo;
 mod init;
 mod publish;
 
-use bpaf::{construct, Doc, OptionParser, Parser};
+use bpaf::{construct, pure, Doc, OptionParser, Parser};
 use owo_colors::colors::CustomColor;
 use owo_colors::OwoColorize;
 
@@ -36,7 +36,12 @@ pub fn cli_run() -> OptionParser<crate::Options> {
     .command("cargo")
     .help("Used to execute any cargo command and ensure it is under the ohpm environment.");
 
-  construct!([init, build, artifact, publish, cargo]).to_options()
+  let doctor = pure(crate::Options::Doctor)
+    .to_options()
+    .command("doctor")
+    .help("Verify if the development environment is fully set up.");
+
+  construct!([init, build, artifact, publish, cargo, doctor]).to_options()
 }
 
 pub struct Info();

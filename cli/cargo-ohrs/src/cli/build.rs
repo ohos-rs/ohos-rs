@@ -21,6 +21,8 @@ pub fn cli_build() -> impl Parser<crate::Options> {
       .optional()
       .fallback(Some([Arch::ARM64,Arch::ARM32,Arch::X86_64].to_vec()));
 
+  let copy_static = long("static").help("Copy the static link library to the final output directory, will be set to false by default.").switch().fallback(false);
+
   let cargo_args = positional("CARGO_ARGS")
     .help("The custom parameters for cargo build in the current project.")
     .strict()
@@ -31,7 +33,8 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     dist,
     arch,
     release,
-    cargo_args
+    cargo_args,
+    copy_static
   });
   construct!(crate::Options::Build(init_parser))
 }

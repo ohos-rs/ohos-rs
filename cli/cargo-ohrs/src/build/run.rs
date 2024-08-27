@@ -122,12 +122,26 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
                 check_and_clean_file_or_dir!(bin_dir);
                 create_dist_dir!(bin_dir);
 
-                artifact_files.iter().for_each(|i| {
-                  if let Some(f) = i.file_name() {
-                    let dist = bin_dir.join(f);
-                    move_file!(i, dist);
-                  }
-                })
+                artifact_files
+                  .iter()
+                  .filter_map(|i| {
+                    if ctx.copy_static {
+                      return Some(i);
+                    }
+                    if let Some(ext) = i.extension() {
+                      if ext == "a" {
+                        return None;
+                      }
+                      return Some(i);
+                    }
+                    Some(i)
+                  })
+                  .for_each(|i| {
+                    if let Some(f) = i.file_name() {
+                      let dist = bin_dir.join(f);
+                      move_file!(i, dist);
+                    }
+                  })
               }
               false => exit(-1),
             },

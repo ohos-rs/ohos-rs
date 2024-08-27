@@ -10,6 +10,9 @@ use std::path::PathBuf;
 pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result<()> {
   ctx.pwd = env::current_dir()?;
 
+  // set copy_static variable
+  ctx.copy_static = args.copy_static;
+
   // 判断当前构建环境以及获取metadata信息
   let cargo_file = ctx.pwd.join("./Cargo.toml");
   let cargo_file_str = cargo_file.to_str().unwrap_or_default();

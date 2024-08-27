@@ -42,6 +42,8 @@ pub struct Context<'a> {
   #[allow(dead_code)]
   pub dist_files: Vec<PathBuf>,
   pub template: Option<Template>,
+
+  pub copy_static: bool,
 }
 
 /// build逻辑

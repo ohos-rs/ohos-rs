@@ -2,8 +2,9 @@ use napi_sys_ohos::{napi_env, napi_value};
 use std::{ffi::CString, ptr};
 
 use crate::{
-  bindgen_runtime::FromNapiValue, check_pending_exception, check_status, type_of, Error, JsUnknown,
-  NapiRaw, NapiValue, Result, Status, ValueType,
+  bindgen_runtime::{FromNapiValue, ToNapiValue},
+  check_pending_exception, check_status, type_of, Error, JsUnknown, NapiRaw, NapiValue, Result,
+  Status, ValueType,
 };
 
 pub struct Module {
@@ -12,6 +13,29 @@ pub struct Module {
   value: napi_value,
 }
 
+// allow as nest module
+impl FromNapiValue for Module {
+  unsafe fn from_napi_value(
+    env: napi_sys_ohos::napi_env,
+    napi_val: napi_sys_ohos::napi_value,
+  ) -> Result<Self> {
+    Ok(Module {
+      env,
+      value: napi_val,
+    })
+  }
+}
+
+impl ToNapiValue for Module {
+  unsafe fn to_napi_value(
+    _env: napi_sys_ohos::napi_env,
+    val: Self,
+  ) -> Result<napi_sys_ohos::napi_value> {
+    Ok(val.value)
+  }
+}
+
+/// load module with napi_load_module/napi_load_module_with_info
 impl Module {
   pub fn new(env: napi_env, module: napi_value) -> Self {
     Self { env, value: module }

@@ -825,6 +825,8 @@ mod ohos {
         priority: napi_task_priority,
         is_tail: bool,
       ) -> napi_status;
+      fn napi_run_event_loop(env: napi_env, mode: napi_event_mode) -> napi_status;
+      fn napi_stop_event_loop(env: napi_env) -> napi_status;
     }
   );
 }

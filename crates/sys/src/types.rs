@@ -323,3 +323,10 @@ pub enum napi_task_priority {
   napi_priority_low,
   napi_priority_idle,
 }
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub enum napi_event_mode {
+  napi_event_mode_default,
+  napi_event_mode_nowait,
+}

@@ -2,9 +2,8 @@ use napi_sys_ohos::{napi_env, napi_value};
 use std::{ffi::CString, ptr};
 
 use crate::{
-  bindgen_runtime::{FromNapiValue, ToNapiValue},
-  check_pending_exception, check_status, type_of, Error, JsUnknown, NapiRaw, NapiValue, Result,
-  Status, ValueType,
+  bindgen_runtime::{FromNapiValue, JsValuesTupleIntoVec, ToNapiValue},
+  check_pending_exception, check_status, type_of, Error, Result, Status, ValueType,
 };
 
 pub struct Module {
@@ -63,10 +62,11 @@ impl Module {
   }
 
   /// [napi_call_function](https://nodejs.org/api/n-api.html#n_api_napi_call_function)
-  pub fn call<K, V>(&self, property: K, args: &[V]) -> Result<JsUnknown>
+  pub fn call<K, Args, Return>(&self, property: K, args: Args) -> Result<Return>
   where
-    V: NapiRaw,
+    Args: JsValuesTupleIntoVec,
     K: AsRef<str>,
+    Return: FromNapiValue,
   {
     let ret = self.get_napi_value(property.as_ref())?;
     let ty = type_of!(self.env, ret)?;
@@ -78,28 +78,28 @@ impl Module {
       ));
     }
 
-    let raw_args = args
-      .iter()
-      .map(|arg| unsafe { arg.raw() })
-      .collect::<Vec<napi_sys_ohos::napi_value>>();
+    let raw_args = args.into_vec(self.env)?;
     let mut return_value = ptr::null_mut();
     check_pending_exception!(self.env, unsafe {
       napi_sys_ohos::napi_call_function(
         self.env,
         self.value,
         ret,
-        args.len(),
+        raw_args.len(),
         raw_args.as_ptr(),
         &mut return_value,
       )
     })?;
 
-    unsafe { JsUnknown::from_raw(self.env, return_value) }
+    unsafe { Return::from_napi_value(self.env, return_value) }
   }
 
   /// [napi_call_function](https://nodejs.org/api/n-api.html#n_api_napi_call_function)
   /// The same with `call`, but without arguments
-  pub fn call_without_args<K: AsRef<str>>(&self, property: K) -> Result<JsUnknown> {
+  pub fn call_without_args<K: AsRef<str>, Return: FromNapiValue>(
+    &self,
+    property: K,
+  ) -> Result<Return> {
     let ret = self.get_napi_value(property.as_ref())?;
     let ty = type_of!(self.env, ret)?;
 
@@ -121,6 +121,6 @@ impl Module {
       )
     })?;
 
-    unsafe { JsUnknown::from_raw(self.env, return_value) }
+    unsafe { Return::from_napi_value(self.env, return_value) }
   }
 }

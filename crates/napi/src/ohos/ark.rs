@@ -127,3 +127,7 @@ impl Drop for ArkRuntime {
     }
   }
 }
+
+/// Note: we can use ArkRuntime in multi-thread with new env safety.
+unsafe impl Send for ArkRuntime {}
+unsafe impl Sync for ArkRuntime {}

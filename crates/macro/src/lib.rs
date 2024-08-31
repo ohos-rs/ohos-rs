@@ -26,14 +26,14 @@ fn auto_add_register_code() -> proc_macro2::TokenStream {
     true => {
       // must same with target name,if not harmony os will crash.
       // and must with default value.`cargo expand` will ignore build.rs script
-      let name = env::var("NAPI_BUILD_TARGET_NAME")
+      let name = env::var("CARGO_PKG_NAME")
         .map_or(String::from("entry"), |v| v)
         .to_case(Case::Snake);
       IS_FIRST_NAPI_MACRO.store(false, Ordering::SeqCst);
       quote!(
         #[napi_ohos::bindgen_prelude::module_init]
         fn napi_register_module_v1_ohos_init() {
-          let name = std::ffi::CString::new(#name).expect("Get module name,but failed");
+          let name = std::ffi::CString::new(#name).expect("Get module name failed");
           let mut modules = napi_ohos::sys::napi_module {
             nm_version: 1,
             nm_filename: std::ptr::null_mut(),

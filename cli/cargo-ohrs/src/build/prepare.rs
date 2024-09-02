@@ -71,7 +71,13 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
 
   // 拼接完整的文件路径
   let file_path = PathBuf::from(tmp_dir).join(file_name);
-  env::set_var("TYPE_DEF_TMP_PATH", file_path);
+  env::set_var(
+    "TYPE_DEF_TMP_PATH",
+    file_path
+      .to_str()
+      .ok_or(Error::msg("Try to set TYPE_DEF_TMP_PATH failed."))?,
+  );
+  ctx.tmp_ts_file_path = file_path;
 
   // 获取 ndk 环境变量配置
   let ndk = env::var("OHOS_NDK_HOME").map_err(|_| {

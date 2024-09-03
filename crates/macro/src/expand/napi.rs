@@ -30,10 +30,17 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> BindgenResult<TokenStrea
     .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
     .is_ok()
   {
-    // logic on first macro expansion just remove it and regenerate tmp file
-    #[cfg(feature = "type-def")]
     // logic on first macro expansion
     prepare_type_def_file();
+
+    if let Ok(wasi_register_file) = env::var("WASI_REGISTER_TMP_PATH") {
+      if let Err(_e) = remove_existed_def_file(&wasi_register_file) {
+        #[cfg(debug_assertions)]
+        {
+          println!("Failed to manipulate wasi register file: {:?}", _e);
+        }
+      }
+    }
   }
 
   let mut item = syn::parse2::<Item>(input)?;
@@ -120,12 +127,13 @@ fn output_wasi_register_def(napi: &Napi) {
     fs::OpenOptions::new()
       .append(true)
       .create(true)
-      .open(&wasi_register_file)
+      .open(wasi_register_file)
       .and_then(|file| {
         let mut writer = BufWriter::<fs::File>::new(file);
         let pkg_name: String = std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME is not set");
         writer.write_all(format!("{pkg_name}: {}", napi.register_name()).as_bytes())?;
-        writer.write_all("\n".as_bytes())
+        writer.write_all("\n".as_bytes())?;
+        writer.flush()
       })
       .unwrap_or_else(|e| {
         println!("Failed to write wasi register file: {:?}", e);
@@ -140,7 +148,7 @@ fn output_type_def(napi: &Napi) {
       fs::OpenOptions::new()
         .append(true)
         .create(true)
-        .open(&type_def_file)
+        .open(type_def_file)
         .and_then(|file| {
           let mut writer = BufWriter::<fs::File>::new(file);
           writer.write_all(type_def.to_string().as_bytes())?;

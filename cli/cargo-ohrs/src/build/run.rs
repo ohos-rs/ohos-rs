@@ -58,6 +58,11 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   }
   rustflags = format!("{} {}", rustflags, args);
 
+  let tmp_path_str = ctx.tmp_ts_file_path.to_str().ok_or(Error::msg(
+    "Try to set TYPE_DEF_TMP_PATH before build failed.",
+  ))?;
+  let tmp_path = String::from(tmp_path_str);
+
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
     ("LIBCLANG_PATH", &lib_path),
@@ -75,6 +80,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
     ("TARGET_NM", &nm_path),
     ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
     ("PATH", &path),
+    ("TYPE_DEF_TMP_PATH", &tmp_path),
   ]);
 
   let mut args = ctx.init_args.clone();

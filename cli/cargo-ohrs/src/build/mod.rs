@@ -44,6 +44,7 @@ pub struct Context<'a> {
   pub template: Option<Template>,
 
   pub copy_static: bool,
+  pub tmp_ts_file_path: PathBuf,
 }
 
 /// build逻辑

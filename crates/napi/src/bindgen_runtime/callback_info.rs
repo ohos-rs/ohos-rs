@@ -117,6 +117,11 @@ impl<const N: usize> CallbackInfo<N> {
         "Failed to initialize class `{}`",
         js_name,
       )?;
+      check_status!(
+        sys::napi_reference_unref(self.env, object_ref, std::ptr::null_mut()),
+        "Failed to ref class `{}`",
+        js_name,
+      )?;
     };
 
     Reference::<T>::add_ref(
@@ -220,6 +225,12 @@ impl<const N: usize> CallbackInfo<N> {
         )
       },
       "Failed to initialize class `{}`",
+      js_name,
+    )?;
+
+    check_status!(
+      unsafe { sys::napi_reference_unref(self.env, object_ref, std::ptr::null_mut()) },
+      "Failed to ref class `{}`",
       js_name,
     )?;
 

@@ -63,6 +63,9 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   ))?;
   let tmp_path = String::from(tmp_path_str);
 
+  // for some package deps on atomic
+  let builtins = String::from("clang_rt.builtins");
+
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
     ("LIBCLANG_PATH", &lib_path),
@@ -81,6 +84,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
     ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
     ("PATH", &path),
     ("TYPE_DEF_TMP_PATH", &tmp_path),
+    ("DEP_ATOMIC",& builtins)
   ]);
 
   let mut args = ctx.init_args.clone();

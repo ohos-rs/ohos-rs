@@ -17,7 +17,7 @@ pub fn doctor() -> anyhow::Result<()> {
 
   let msvc = Version::parse("1.78.0")?;
 
-  let is_env_ok = ndk.is_empty();
+  let is_env_ok = !ndk.is_empty();
   println!(
     "{}  Environment variable {} should be set.",
     render(is_env_ok),

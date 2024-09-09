@@ -23,3 +23,6 @@ check:
 fmt:
     cargo fmt
     taplo format
+
+test:
+    bash ./scripts/test.sh

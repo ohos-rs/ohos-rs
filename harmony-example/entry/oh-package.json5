@@ -1,0 +1,14 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "libentry.so": "file:./src/main/cpp/types/libentry",
+    "libhello.so": "file:./src/main/cpp/types/libhello",
+    "libnapi.so": "file:./src/main/cpp/types/libnapi",
+    "libnapi_compact_mode.so": "file:./src/main/cpp/types/libnapi_compact_mode"
+  }
+}

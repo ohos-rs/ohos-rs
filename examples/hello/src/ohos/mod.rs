@@ -4,7 +4,7 @@ use napi_ohos::{
   ark::{ArkRuntime, EventLoopMode},
   bindgen_prelude::Function,
   threadsafe_function::ThreadsafeFunction,
-  JsNumber, JsString, Result,
+  Env, JsNumber, JsString, Result,
 };
 use ohos_hilog_binding::hilog_info;
 use std::{
@@ -78,5 +78,11 @@ pub fn stop() -> Result<()> {
     tx.send(true).unwrap();
     return Ok(());
   }
+  Ok(())
+}
+
+#[napi]
+pub fn load_log(env: Env) -> Result<()> {
+  let _log = env.load("@ohos.hilog")?;
   Ok(())
 }

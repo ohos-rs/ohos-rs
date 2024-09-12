@@ -23,10 +23,12 @@ use crate::bindgen_runtime::PromiseRaw;
 #[cfg(feature = "napi4")]
 use crate::bindgen_runtime::ToNapiValue;
 use crate::bindgen_runtime::{FromNapiValue, Function, JsValuesTupleIntoVec, Unknown};
+use crate::check_pending_exception;
 #[cfg(feature = "napi3")]
 use crate::cleanup_env::{CleanupEnvHook, CleanupEnvHookData};
 #[cfg(feature = "serde-json")]
 use crate::js_values::{De, Ser};
+use crate::module::Module;
 #[cfg(feature = "napi3")]
 use crate::JsError;
 use crate::{
@@ -1249,6 +1251,24 @@ impl Env {
     let module_filename = unsafe { std::ffi::CStr::from_ptr(char_ptr) };
 
     Ok(module_filename.to_string_lossy().into_owned())
+  }
+
+  /// load builtin module or user's module
+  /// Note: This method only can call in main thread.
+  /// ```rust
+  /// #[napi]
+  /// pub fn load_log(env: Env) -> Result<()> {
+  ///   let log = env.load("@ohos.hilog")?;
+  ///   Ok(())
+  /// }
+  /// ```
+  pub fn load<T: AsRef<str>>(&self, path: T) -> Result<Module> {
+    let c_path = CString::new(path.as_ref())?;
+    let mut module = ptr::null_mut();
+    check_pending_exception!(self.0, unsafe {
+      napi_sys_ohos::napi_load_module(self.0, c_path.as_ptr(), &mut module)
+    })?;
+    Ok(Module::new(self.0, module))
   }
 
   /// ### Serialize `Rust Struct` into `JavaScript Value`

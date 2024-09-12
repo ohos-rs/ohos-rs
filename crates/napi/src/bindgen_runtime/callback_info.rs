@@ -117,7 +117,7 @@ impl<const N: usize> CallbackInfo<N> {
         "Failed to initialize class `{}`",
         js_name,
       )?;
-      // harmony need to unref count to 0 
+      // harmony need to unref count to 0
       // https://gitee.com/openharmony/docs/pulls/57998/files
       check_status!(
         sys::napi_reference_unref(self.env, object_ref, std::ptr::null_mut()),

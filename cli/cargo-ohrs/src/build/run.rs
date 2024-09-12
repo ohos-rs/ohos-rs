@@ -84,7 +84,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
     ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
     ("PATH", &path),
     ("TYPE_DEF_TMP_PATH", &tmp_path),
-    ("DEP_ATOMIC",& builtins)
+    ("DEP_ATOMIC", &builtins),
   ]);
 
   let mut args = ctx.init_args.clone();

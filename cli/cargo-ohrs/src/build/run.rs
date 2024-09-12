@@ -29,8 +29,8 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
   let std_lib_type = String::from("c++");
 
-  let mut rustflags = format!(
-    "-Clink-args=-target {} --sysroot={}/native/sysroot -D__MUSL__",
+  let mut base_flags = format!(
+    "-target {} --sysroot={}/native/sysroot -D__MUSL__",
     &arch.c_target(),
     &ctx.ndk
   );
@@ -51,12 +51,11 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
     env::var("CARGO_RUSTFLAGS").unwrap_or(env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default());
 
   if arch.to_arch() == "armeabi-v7a" {
-    rustflags = format!(
+    base_flags = format!(
       "{} -march=armv7-a -mfloat-abi=softfp -mtune=generic-armv7-a -mthumb",
-      rustflags
+      base_flags
     );
   }
-  rustflags = format!("{} {}", rustflags, args);
 
   let tmp_path_str = ctx.tmp_ts_file_path.to_str().ok_or(Error::msg(
     "Try to set TYPE_DEF_TMP_PATH before build failed.",
@@ -65,6 +64,12 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
 
   // for some package deps on atomic
   let builtins = String::from("clang_rt.builtins");
+
+  let mut rust_flags = format!("-Clink-args={}", &base_flags);
+
+  if !args.is_empty() {
+    rust_flags = format!("{} {}", &rust_flags, &args)
+  }
 
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
@@ -81,9 +86,11 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
     ("TARGET_OBJDUMP", &obj_dump_path),
     ("TARGET_OBJCOPY", &obj_copy_path),
     ("TARGET_NM", &nm_path),
-    ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
+    ("CARGO_ENCODED_RUSTFLAGS", &rust_flags),
     ("PATH", &path),
     ("TYPE_DEF_TMP_PATH", &tmp_path),
+    // support opencv-rust
+    ("OPENCV_CLANG_ARGS", &base_flags),
     ("DEP_ATOMIC", &builtins),
   ]);
 

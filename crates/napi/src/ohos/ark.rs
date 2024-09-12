@@ -40,14 +40,6 @@ impl ArkRuntime {
     })
   }
 
-  /// create with existed arkts runtime for example main thread
-  pub fn new_with_env(env: Env) -> Self {
-    Self {
-      env: env,
-      is_new: false,
-    }
-  }
-
   /// try to start current env's event loop
   pub fn run_loop(&self, mode: EventLoopMode) -> Result<()> {
     check_status!(
@@ -64,16 +56,6 @@ impl ArkRuntime {
       "Stop event loop failed."
     )?;
     Ok(())
-  }
-
-  /// note: This method only can call in main thread, the runtime must be initialized with `new_with_env`
-  pub fn load<T: AsRef<str>>(&self, path: T) -> Result<Module> {
-    let c_path = CString::new(path.as_ref())?;
-    let mut module = ptr::null_mut();
-    check_pending_exception!(self.env.0, unsafe {
-      napi_sys_ohos::napi_load_module(self.env.0, c_path.as_ptr(), &mut module)
-    })?;
-    Ok(Module::new(self.env.0, module))
   }
 
   /// Same with load_with_info, but we don't need module_info.It uses to load built-in module.
@@ -102,6 +84,18 @@ impl ArkRuntime {
     Ok(Module::new(self.env.0, module))
   }
 
+  /// [napi_load_module_with_info](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V5/use-napi-load-module-with-info-V5#napi_load_module_with_info) load module with har/hsp module info.
+  /// ```
+  /// #[napi]
+  /// pub fn run_ble() -> Result<JsNumber> {
+  ///   let runtime = ArkRuntime::new()?;
+  ///   let module = runtime.load_with_info("entry/src/main/ets/Test", "com.example.application/entry")?;
+  ///
+  ///   let access: Module = module.get("access")?;
+  ///   let ret = access.call_without_args("getState")?;
+  ///   ret.coerce_to_number()
+  /// }
+  /// ```
   pub fn load_with_info<T: AsRef<str>>(&self, path: T, module_info: T) -> Result<Module> {
     let c_path = CString::new(path.as_ref())?;
     let c_info = CString::new(module_info.as_ref())?;

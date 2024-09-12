@@ -40,6 +40,7 @@ impl Module {
     Self { env, value: module }
   }
 
+  /// try to get origin napi_value with field
   pub fn get_napi_value<K: AsRef<str>>(&self, property: K) -> Result<napi_value> {
     let c_field = CString::new(property.as_ref())?;
 
@@ -56,6 +57,16 @@ impl Module {
     }
   }
 
+  /// Get module method or field with name, it can also be used to get sub-modules
+  /// ```rust
+  /// let module = runtime.load("x");
+  ///
+  /// // get method/field
+  /// let name: String = module.get("name")?;
+  ///
+  /// // get sub-module
+  /// let logger: Module = module.get("Logger")?;
+  /// ```
   pub fn get<K: AsRef<str>, V: FromNapiValue>(&self, property: K) -> Result<V> {
     let ret = self.get_napi_value(property)?;
     unsafe { Ok(V::from_napi_value(self.env, ret)?) }

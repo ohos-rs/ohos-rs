@@ -531,6 +531,7 @@ fn extract_fn_closure_generics(
           }
         }
       }
+      syn::GenericParam::Lifetime(_) => {}
       _ => {
         errors.push(err_span!(param, "unsupported napi generic param for fn"));
       }
@@ -1202,8 +1203,6 @@ impl ConvertToAST for syn::ItemEnum {
         }),
       });
     }
-
-    self.attrs.push(parse_quote!(#[derive(Copy, Clone)]));
 
     let variants = match opts.string_enum() {
       Some(case) => {

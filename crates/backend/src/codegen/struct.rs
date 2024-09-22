@@ -61,6 +61,7 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
     }
   };
   quote! {
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::TypeName for #name {
       fn type_name() -> &'static str {
         #name_str
@@ -71,6 +72,7 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
       }
     }
 
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::TypeName for &#name {
       fn type_name() -> &'static str {
         #name_str
@@ -81,6 +83,7 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
       }
     }
 
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::TypeName for &mut #name {
       fn type_name() -> &'static str {
         #name_str
@@ -93,6 +96,7 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
 
     #to_napi_val_impl
 
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::FromNapiRef for #name {
       unsafe fn from_napi_ref(
         env: napi_ohos::bindgen_prelude::sys::napi_env,
@@ -110,6 +114,7 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
       }
     }
 
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::FromNapiMutRef for #name {
       unsafe fn from_napi_mut_ref(
         env: napi_ohos::bindgen_prelude::sys::napi_env,
@@ -127,6 +132,7 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
       }
     }
 
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::FromNapiValue for &#name {
       unsafe fn from_napi_value(
         env: napi_ohos::bindgen_prelude::sys::napi_env,
@@ -136,6 +142,7 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
       }
     }
 
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::FromNapiValue for &mut #name {
       unsafe fn from_napi_value(
         env: napi_ohos::bindgen_prelude::sys::napi_env,
@@ -145,10 +152,12 @@ fn gen_napi_value_map_impl(name: &Ident, to_napi_val_impl: TokenStream) -> Token
       }
     }
 
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::ValidateNapiValue for &#name {
       #validate
     }
 
+    #[automatically_derived]
     impl napi_ohos::bindgen_prelude::ValidateNapiValue for &mut #name {
       #validate
     }
@@ -277,10 +286,13 @@ impl NapiStruct {
     let finalize_trait = if class.use_custom_finalize {
       quote! {}
     } else {
-      quote! { impl napi_ohos::bindgen_prelude::ObjectFinalize for #name {} }
+      quote! {
+        #[automatically_derived]
+        impl napi_ohos::bindgen_prelude::ObjectFinalize for #name {}
+      }
     };
-    let instance_of_impl = self.gen_instance_of_impl(name, &js_name_str);
     quote! {
+      #[automatically_derived]
       impl napi_ohos::bindgen_prelude::ToNapiValue for #name {
         unsafe fn to_napi_value(
           env: napi_ohos::sys::napi_env,
@@ -291,7 +303,7 @@ impl NapiStruct {
             if wrapped_value as usize == 0x1 {
               wrapped_value = Box::into_raw(Box::new(0u8)).cast();
             }
-            let instance_value = #name::new_instance(env, wrapped_value.cast(), ctor_ref)?;
+            let instance_value = napi_ohos::bindgen_prelude::new_instance::<#name>(env, wrapped_value.cast(), ctor_ref)?;
             #iterator_implementation
             Ok(instance_value)
           } else {
@@ -303,16 +315,32 @@ impl NapiStruct {
       }
 
       #finalize_trait
-      #instance_of_impl
-      impl #name {
-        pub fn into_reference(val: #name, env: napi_ohos::Env) -> napi_ohos::Result<napi_ohos::bindgen_prelude::Reference<#name>> {
+
+      #[automatically_derived]
+      impl napi_ohos::bindgen_prelude::JavaScriptClassExt for #name {
+        fn into_instance(self, env: napi_ohos::Env) -> napi_ohos::Result<napi_ohos::bindgen_prelude::ClassInstance<#name>> {
           if let Some(ctor_ref) = napi_ohos::bindgen_prelude::get_class_constructor(#js_name_str) {
             unsafe {
-              let mut wrapped_value = Box::into_raw(Box::new(val));
+              let wrapped_value = Box::leak(Box::new(self));
+              let instance_value = napi_ohos::bindgen_prelude::new_instance::<#name>(env.raw(), wrapped_value as *mut _ as *mut std::ffi::c_void, ctor_ref)?;
+
+              Ok(napi_ohos::bindgen_prelude::ClassInstance::<#name>::new(instance_value, wrapped_value))
+            }
+          } else {
+            Err(napi_ohos::bindgen_prelude::Error::new(
+              napi_ohos::bindgen_prelude::Status::InvalidArg, format!("Failed to get constructor of class `{}`", #js_name_raw))
+            )
+          }
+        }
+
+        fn into_reference(self, env: napi_ohos::Env) -> napi_ohos::Result<napi_ohos::bindgen_prelude::Reference<#name>> {
+          if let Some(ctor_ref) = napi_ohos::bindgen_prelude::get_class_constructor(#js_name_str) {
+            unsafe {
+              let mut wrapped_value = Box::into_raw(Box::new(self));
               if wrapped_value as usize == 0x1 {
                 wrapped_value = Box::into_raw(Box::new(0u8)).cast();
               }
-              let instance_value = #name::new_instance(env.raw(), wrapped_value.cast(), ctor_ref)?;
+              let instance_value = napi_ohos::bindgen_prelude::new_instance::<#name>(env.raw(), wrapped_value.cast(), ctor_ref)?;
               {
                 let env = env.raw();
                 #iterator_implementation
@@ -326,65 +354,24 @@ impl NapiStruct {
           }
         }
 
-        pub fn into_instance(self, env: napi_ohos::Env) -> napi_ohos::Result<napi_ohos::bindgen_prelude::ClassInstance<#name>> {
+        fn instance_of<V: napi_ohos::NapiRaw>(env: napi_ohos::bindgen_prelude::Env, value: V) -> napi_ohos::bindgen_prelude::Result<bool> {
           if let Some(ctor_ref) = napi_ohos::bindgen_prelude::get_class_constructor(#js_name_str) {
-            unsafe {
-              let wrapped_value = Box::leak(Box::new(self));
-              let instance_value = #name::new_instance(env.raw(), wrapped_value as *mut _ as *mut std::ffi::c_void, ctor_ref)?;
-
-              Ok(napi_ohos::bindgen_prelude::ClassInstance::<#name>::new(instance_value, wrapped_value))
-            }
+            let mut ctor = std::ptr::null_mut();
+            napi_ohos::check_status!(
+              unsafe { napi_ohos::sys::napi_get_reference_value(env.raw(), ctor_ref, &mut ctor) },
+              "Failed to get constructor reference of class `{}`",
+              #js_name_str
+            )?;
+            let mut is_instance_of = false;
+            napi_ohos::check_status!(
+              unsafe { napi_ohos::sys::napi_instanceof(env.raw(), value.raw(), ctor, &mut is_instance_of) },
+              "Failed to run instanceof for class `{}`",
+              #js_name_str
+            )?;
+            Ok(is_instance_of)
           } else {
-            Err(napi_ohos::bindgen_prelude::Error::new(
-              napi_ohos::bindgen_prelude::Status::InvalidArg, format!("Failed to get constructor of class `{}`", #js_name_raw))
-            )
+            Err(napi_ohos::Error::new(napi_ohos::Status::GenericFailure, format!("Failed to get constructor of class `{}`", #js_name_str)))
           }
-        }
-
-        unsafe fn new_instance(
-          env: napi_ohos::sys::napi_env,
-          wrapped_value: *mut std::ffi::c_void,
-          ctor_ref: napi_ohos::sys::napi_ref,
-        ) -> napi_ohos::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
-          let mut ctor = std::ptr::null_mut();
-          napi_ohos::check_status!(
-            napi_ohos::sys::napi_get_reference_value(env, ctor_ref, &mut ctor),
-            "Failed to get constructor reference of class `{}`",
-            #js_name_raw
-          )?;
-
-          let mut result = std::ptr::null_mut();
-          napi_ohos::__private::___CALL_FROM_FACTORY.with(|inner| inner.store(true, std::sync::atomic::Ordering::Relaxed));
-          napi_ohos::check_status!(
-            napi_ohos::sys::napi_new_instance(env, ctor, 0, std::ptr::null_mut(), &mut result),
-            "Failed to construct class `{}`",
-            #js_name_raw
-          )?;
-          napi_ohos::__private::___CALL_FROM_FACTORY.with(|inner| inner.store(false, std::sync::atomic::Ordering::Relaxed));
-          let mut object_ref = std::ptr::null_mut();
-          let initial_finalize: Box<dyn FnOnce()> = Box::new(|| {});
-          let finalize_callbacks_ptr = std::rc::Rc::into_raw(std::rc::Rc::new(std::cell::Cell::new(Box::into_raw(initial_finalize))));
-          napi_ohos::check_status!(
-            napi_ohos::sys::napi_wrap(
-              env,
-              result,
-              wrapped_value,
-              Some(napi_ohos::bindgen_prelude::raw_finalize_unchecked::<#name>),
-              std::ptr::null_mut(),
-              &mut object_ref,
-            ),
-            "Failed to wrap native object of class `{}`",
-            #js_name_raw
-          )?;
-
-          napi_ohos::check_status!(
-            napi_ohos::sys::napi_reference_unref(env, object_ref, std::ptr::null_mut()),
-            "Failed to ref class `{}`",
-            #js_name_raw
-          )?;
-
-          napi_ohos::bindgen_prelude::Reference::<#name>::add_ref(env, wrapped_value, (wrapped_value, object_ref, finalize_callbacks_ptr));
-          Ok(result)
         }
       }
     }
@@ -403,7 +390,6 @@ impl NapiStruct {
     let name = &self.name;
     let js_name_without_null = &self.js_name;
     let js_name_str = format!("{}\0", &self.js_name);
-    let instance_of_impl = self.gen_instance_of_impl(name, &js_name_str);
 
     let mut field_conversions = vec![];
     let mut field_destructions = vec![];
@@ -447,6 +433,7 @@ impl NapiStruct {
     };
 
     quote! {
+      #[automatically_derived]
       impl napi_ohos::bindgen_prelude::ToNapiValue for #name {
         unsafe fn to_napi_value(
           env: napi_ohos::bindgen_prelude::sys::napi_env,
@@ -479,7 +466,6 @@ impl NapiStruct {
           }
         }
       }
-      #instance_of_impl
       #finalize_trait
     }
   }
@@ -596,6 +582,7 @@ impl NapiStruct {
 
     let to_napi_value = if obj.object_to_js {
       quote! {
+        #[automatically_derived]
         impl napi_ohos::bindgen_prelude::ToNapiValue for #name {
           unsafe fn to_napi_value(env: napi_ohos::bindgen_prelude::sys::napi_env, val: #name) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
             let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
@@ -614,6 +601,7 @@ impl NapiStruct {
 
     let from_napi_value = if obj.object_from_js {
       quote! {
+        #[automatically_derived]
         impl napi_ohos::bindgen_prelude::FromNapiValue for #name {
           unsafe fn from_napi_value(
             env: napi_ohos::bindgen_prelude::sys::napi_env,
@@ -630,6 +618,7 @@ impl NapiStruct {
           }
         }
 
+        #[automatically_derived]
         impl napi_ohos::bindgen_prelude::ValidateNapiValue for #name {}
       }
     } else {
@@ -637,6 +626,7 @@ impl NapiStruct {
     };
 
     quote! {
+      #[automatically_derived]
       impl napi_ohos::bindgen_prelude::TypeName for #name {
         fn type_name() -> &'static str {
           #name_str
@@ -753,7 +743,7 @@ impl NapiStruct {
   }
 
   fn gen_register(&self, class: &NapiClass) -> TokenStream {
-    let name_str = self.name.to_string();
+    let name = &self.name;
     let struct_register_name = &self.register_name;
     let js_name = format!("{}\0", self.js_name);
     let mut props = vec![];
@@ -812,44 +802,18 @@ impl NapiStruct {
     quote! {
       #[allow(non_snake_case)]
       #[allow(clippy::all)]
-      #[cfg(all(not(test), not(feature = "noop"), not(target_family = "wasm")))]
+      #[cfg(all(not(test), not(target_family = "wasm")))]
       #[napi_ohos::bindgen_prelude::ctor]
       fn #struct_register_name() {
-        napi_ohos::__private::register_class(#name_str, #js_mod_ident, #js_name, vec![#(#props),*]);
+        napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*]);
       }
 
       #[allow(non_snake_case)]
       #[allow(clippy::all)]
-      #[cfg(all(not(test), not(feature = "noop"), target_family = "wasm"))]
+      #[cfg(all(not(test), target_family = "wasm"))]
       #[no_mangle]
       extern "C" fn #struct_register_name() {
-        napi_ohos::__private::register_class(#name_str, #js_mod_ident, #js_name, vec![#(#props),*]);
-      }
-    }
-  }
-
-  fn gen_instance_of_impl(&self, name: &Ident, js_name: &str) -> TokenStream {
-    quote! {
-      impl #name {
-        pub fn instance_of<V: napi_ohos::NapiRaw>(env: napi_ohos::Env, value: V) -> napi_ohos::Result<bool> {
-          if let Some(ctor_ref) = napi_ohos::bindgen_prelude::get_class_constructor(#js_name) {
-            let mut ctor = std::ptr::null_mut();
-            napi_ohos::check_status!(
-              unsafe { napi_ohos::sys::napi_get_reference_value(env.raw(), ctor_ref, &mut ctor) },
-              "Failed to get constructor reference of class `{}`",
-              #js_name
-            )?;
-            let mut is_instance_of = false;
-            napi_ohos::check_status!(
-              unsafe { napi_ohos::sys::napi_instanceof(env.raw(), value.raw(), ctor, &mut is_instance_of) },
-              "Failed to run instanceof for class `{}`",
-              #js_name
-            )?;
-            Ok(is_instance_of)
-          } else {
-            Err(napi_ohos::Error::new(napi_ohos::Status::GenericFailure, format!("Failed to get constructor of class `{}`", #js_name)))
-          }
-        }
+        napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*]);
       }
     }
   }
@@ -1069,11 +1033,12 @@ impl TryToTokens for NapiImpl {
 
 impl NapiImpl {
   fn gen_helper_mod(&self) -> BindgenResult<TokenStream> {
+    let name = &self.name;
     let name_str = self.name.to_string();
     let js_name = format!("{}\0", self.js_name);
     let mod_name = Ident::new(
       &format!(
-        "__napi_impl_helper__{}__{}",
+        "__napi_impl_helper_{}_{}",
         name_str,
         NAPI_IMPL_ID.fetch_add(1, Ordering::SeqCst)
       ),
@@ -1136,16 +1101,16 @@ impl NapiImpl {
         use super::*;
         #(#methods)*
 
-        #[cfg(all(not(test), not(feature = "noop"), not(target_family = "wasm")))]
+        #[cfg(all(not(test), not(target_family = "wasm")))]
         #[napi_ohos::bindgen_prelude::ctor]
         fn #register_name() {
-          napi_ohos::__private::register_class(#name_str, #js_mod_ident, #js_name, vec![#(#props),*]);
+          napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*]);
         }
 
-        #[cfg(all(not(test), not(feature = "noop"), target_family = "wasm"))]
+        #[cfg(all(not(test), target_family = "wasm"))]
         #[no_mangle]
         extern "C" fn #register_name() {
-          napi_ohos::__private::register_class(#name_str, #js_mod_ident, #js_name, vec![#(#props_wasm),*]);
+          napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props_wasm),*]);
         }
       }
     })

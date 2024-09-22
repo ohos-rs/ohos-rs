@@ -1,5 +1,7 @@
 use napi_ohos::{
-  bindgen_prelude::{Buffer, ClassInstance, ObjectFinalize, This, Uint8Array, Unknown},
+  bindgen_prelude::{
+    Buffer, ClassInstance, JavaScriptClassExt, ObjectFinalize, This, Uint8Array, Unknown,
+  },
   Env, Property, Result,
 };
 

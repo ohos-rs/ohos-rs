@@ -31,7 +31,6 @@ napi-derive-backend-ohos = { version = "1.0.0-beta.7", path = "../backend" }
 proc-macro2              = "1"
 quote                    = "1"
 syn                      = { version = "2", features = ["fold", "full", "extra-traits"] }
-cfg-if                   = "1.0"
 
 [lib]
 proc-macro = true

@@ -92,12 +92,10 @@ impl TryToTokens for NapiFn {
     };
     let native_call = if !self.is_async {
       quote! {
-        napi_ohos::bindgen_prelude::within_runtime_if_available(move || {
-          let #receiver_ret_name = {
-            #receiver(#(#arg_names),*)
-          };
-          #ret
-        })
+        let #receiver_ret_name = {
+          #receiver(#(#arg_names),*)
+        };
+        #ret
       }
     } else {
       let call = if self.is_ret_result {
@@ -127,6 +125,7 @@ impl TryToTokens for NapiFn {
 
     let function_call_inner = quote! {
       napi_ohos::bindgen_prelude::CallbackInfo::<#args_len>::new(env, cb, None, #use_after_async).and_then(|mut cb| {
+          let __wrapped_env = napi_ohos::bindgen_prelude::Env::from(env);
           #build_ref_container
           #(#arg_conversions)*
           #native_call
@@ -230,14 +229,14 @@ impl NapiFn {
         Some(FnSelf::Ref) => {
           refs.push(make_ref(quote! { cb.this }));
           arg_conversions.push(quote! {
-            let this_ptr = unsafe { cb.unwrap_raw::<#parent>()? };
+            let this_ptr = cb.unwrap_raw::<#parent>()?;
             let this: &#parent = Box::leak(Box::from_raw(this_ptr));
           });
         }
         Some(FnSelf::MutRef) => {
           refs.push(make_ref(quote! { cb.this }));
           arg_conversions.push(quote! {
-            let this_ptr = unsafe { cb.unwrap_raw::<#parent>()? };
+            let this_ptr = cb.unwrap_raw::<#parent>()?;
             let this: &mut #parent = Box::leak(Box::from_raw(this_ptr));
           });
         }
@@ -253,7 +252,7 @@ impl NapiFn {
       match &arg.kind {
         NapiFnArgKind::PatType(path) => {
           if &path.ty.to_token_stream().to_string() == "Env" {
-            args.push(quote! { napi_ohos::bindgen_prelude::Env::from(env) });
+            args.push(quote! { __wrapped_env });
             skipped_arg_count += 1;
           } else {
             let is_in_class = self.parent.is_some();
@@ -357,6 +356,11 @@ impl NapiFn {
             if arg_type.is_ref() {
               refs.push(make_ref(quote! { cb.get_arg(#i) }));
             }
+            if arg_type == NapiArgType::Env {
+              args.push(quote! { &__wrapped_env });
+              skipped_arg_count += 1;
+              continue;
+            }
             arg_conversions.push(arg_conversion);
             args.push(quote! { #ident });
           }
@@ -409,13 +413,6 @@ impl NapiFn {
 
     match ty {
       syn::Type::Reference(syn::TypeReference {
-        lifetime: Some(lifetime),
-        ..
-      }) => Err(Diagnostic::span_error(
-        lifetime.span(),
-        "lifetime is not allowed in napi function arguments",
-      )),
-      syn::Type::Reference(syn::TypeReference {
         mutability: Some(_),
         elem,
         ..
@@ -454,6 +451,13 @@ impl NapiFn {
             }
           }
         } else {
+          if let syn::Type::Path(ele) = &**elem {
+            if let Some(syn::PathSegment { ident, .. }) = ele.path.segments.last() {
+              if ident == "Env" {
+                return Ok((quote! {}, NapiArgType::Env));
+              }
+            }
+          }
           quote! {
             let #arg_name = {
               #type_check
@@ -560,12 +564,12 @@ impl NapiFn {
           .expect("Parent must exist for constructor");
         if self.is_ret_result {
           if self.parent_is_generator {
-            quote! { cb.construct_generator::<false, #parent>(#js_name, #ret?) }
+            quote! { cb.construct_generator::<false, _>(#js_name, #ret?) }
           } else {
             quote! {
               match #ret {
                 Ok(value) => {
-                  cb.construct::<false, #parent>(#js_name, value)
+                  cb.construct::<false, _>(#js_name, value)
                 }
                 Err(err) => {
                   napi_ohos::bindgen_prelude::JsError::from(err).throw_into(env);
@@ -671,7 +675,7 @@ impl NapiFn {
 
         #[allow(clippy::all)]
         #[allow(non_snake_case)]
-        #[cfg(all(not(test), not(feature = "noop"), not(target_family = "wasm")))]
+        #[cfg(all(not(test), not(target_family = "wasm")))]
         #[napi_ohos::bindgen_prelude::ctor]
         fn #module_register_name() {
           napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
@@ -679,7 +683,7 @@ impl NapiFn {
 
         #[allow(clippy::all)]
         #[allow(non_snake_case)]
-        #[cfg(all(not(test), not(feature = "noop"), target_family = "wasm"))]
+        #[cfg(all(not(test), target_family = "wasm"))]
         #[no_mangle]
         extern "C" fn #module_register_name() {
           napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
@@ -702,6 +706,7 @@ enum NapiArgType {
   Ref,
   MutRef,
   Value,
+  Env,
 }
 
 impl NapiArgType {

@@ -18,7 +18,6 @@ mod arraybuffer;
 #[cfg(feature = "napi6")]
 mod bigint;
 mod boolean;
-mod buffer;
 #[cfg(feature = "napi5")]
 mod date;
 #[cfg(feature = "napi4")]
@@ -39,7 +38,6 @@ pub use arraybuffer::*;
 #[cfg(feature = "napi6")]
 pub use bigint::JsBigInt;
 pub use boolean::JsBoolean;
-pub use buffer::*;
 #[cfg(feature = "napi5")]
 pub use date::*;
 #[cfg(feature = "serde-json")]
@@ -632,7 +630,6 @@ impl_js_value_methods!(JsUnknown);
 impl_js_value_methods!(JsUndefined);
 impl_js_value_methods!(JsNull);
 impl_js_value_methods!(JsBoolean);
-impl_js_value_methods!(JsBuffer);
 impl_js_value_methods!(JsArrayBuffer);
 impl_js_value_methods!(JsTypedArray);
 impl_js_value_methods!(JsDataView);
@@ -648,7 +645,6 @@ impl_js_value_methods!(JsTimeout);
 impl_js_value_methods!(JSON);
 
 impl_object_methods!(JsObject);
-impl_object_methods!(JsBuffer);
 impl_object_methods!(JsArrayBuffer);
 impl_object_methods!(JsTypedArray);
 impl_object_methods!(JsDataView);
@@ -660,7 +656,6 @@ use ValueType::*;
 impl_napi_value_trait!(JsUndefined, Undefined);
 impl_napi_value_trait!(JsNull, Null);
 impl_napi_value_trait!(JsBoolean, Boolean);
-impl_napi_value_trait!(JsBuffer, Object);
 impl_napi_value_trait!(JsArrayBuffer, Object);
 impl_napi_value_trait!(JsTypedArray, Object);
 impl_napi_value_trait!(JsDataView, Object);

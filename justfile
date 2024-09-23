@@ -5,6 +5,7 @@ _default:
 
 init:
     cargo binstall typos-cli taplo-cli -y
+    cargo install cargo-release -y
 
 ready:
     #git diff --exit-code --quiet
@@ -26,3 +27,6 @@ fmt:
 
 test:
     bash ./scripts/test.sh
+
+release version-type:
+    cargo release version {{version-type}} --exclude ohrs

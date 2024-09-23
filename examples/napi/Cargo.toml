@@ -1,7 +1,11 @@
 [package]
-name    = "napi"
+name    = "example"
 version = "0.1.0"
 edition = "2021"
+publish = false
+
+[package.metadata.release]
+release = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,7 +31,7 @@ napi-ohos = { path = '../../crates/napi', features = [
   "deferred_trace",
 ] }
 napi-derive-ohos = { path = '../../crates/macro' }
-napi-shared = { path = "../napi-shared" }
+shared = { path = "../napi-shared" }
 chrono = "0.4.38"
 futures = "0.3"
 serde = "1"

@@ -2,7 +2,7 @@ use crate::util::Arch;
 use std::collections::HashMap;
 use std::env;
 use std::io::{BufRead, BufReader};
-use std::process::{Command, Stdio};
+use std::process::{exit, Command, Stdio};
 
 pub fn run(arch: &Arch, ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
@@ -88,5 +88,11 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
       println!("{}", line);
     }
   }
+
+  let status = child.wait()?;
+  if !status.success() {
+    exit(status.code().unwrap_or(-1))
+  }
+
   Ok(())
 }

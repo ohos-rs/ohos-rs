@@ -1,15 +1,15 @@
+use std::{
+  cell::RefCell,
+  collections::HashMap,
+  fmt::{self, Display, Formatter},
+  sync::LazyLock,
+};
+
 mod r#const;
 mod r#enum;
 mod r#fn;
 pub(crate) mod r#struct;
 
-use std::{
-  cell::RefCell,
-  collections::HashMap,
-  fmt::{self, Display, Formatter},
-};
-
-use once_cell::sync::Lazy;
 use syn::{PathSegment, Type, TypePath, TypeSlice};
 
 #[derive(Default, Debug)]
@@ -129,10 +129,11 @@ pub trait ToTypeDef {
 }
 
 /// Mapping from `rust_type` to (`ts_type`, `is_ts_function_type_notation`, `is_ts_union_type`)
-static KNOWN_TYPES: Lazy<HashMap<&'static str, (&'static str, bool, bool)>> = Lazy::new(|| {
-  let mut map = HashMap::default();
-  map.extend(crate::PRIMITIVE_TYPES.iter().cloned());
-  map.extend([
+static KNOWN_TYPES: LazyLock<HashMap<&'static str, (&'static str, bool, bool)>> = LazyLock::new(
+  || {
+    let mut map = HashMap::default();
+    map.extend(crate::PRIMITIVE_TYPES.iter().cloned());
+    map.extend([
     ("JsObject", ("object", false, false)),
     ("Object", ("object", false, false)),
     ("Array", ("unknown[]", false, false)),
@@ -213,8 +214,9 @@ static KNOWN_TYPES: Lazy<HashMap<&'static str, (&'static str, bool, bool)>> = La
     ("Mutex", ("{}", false, false)),
   ]);
 
-  map
-});
+    map
+  },
+);
 
 fn fill_ty(template: &str, args: Vec<String>) -> String {
   let matches = template.match_indices("{}").collect::<Vec<_>>();

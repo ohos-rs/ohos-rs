@@ -8,7 +8,7 @@
   "dependencies": {
     "libentry.so": "file:./src/main/cpp/types/libentry",
     "libhello.so": "file:./src/main/cpp/types/libhello",
-    "libnapi.so": "file:./src/main/cpp/types/libnapi",
-    "libnapi_compact_mode.so": "file:./src/main/cpp/types/libnapi_compact_mode"
+    "libexample.so": "file:./src/main/cpp/types/libexample",
+    "libcompact.so": "file:./src/main/cpp/types/libcompact"
   }
 }

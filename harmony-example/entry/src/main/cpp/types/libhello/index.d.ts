@@ -47,6 +47,8 @@ export declare function asyncFib(input: number, signal: AbortSignal): Promise<un
 
 export declare function asyncFibQos(input: number): Promise<unknown>
 
+export declare function loadLog(): void
+
 export declare function runBle(cb: ((err: Error | null, arg: number) => void)): void
 
 export declare function stop(): void

@@ -11,10 +11,19 @@ pub fn cli_cargo() -> impl Parser<crate::Options> {
   .optional()
   .fallback(Some([Arch::ARM64].to_vec()));
 
+  let disable_target = long("disable-target")
+    .help("Disable the default target argument and cmd only run once.")
+    .switch()
+    .fallback(false);
+
   let args = positional("CARGO_ARGS")
     .help("Provide the ohpm environment for executing other cargo commands.")
     .many();
 
-  let cargo_parser = construct!(crate::CargoArgs { arch, args });
+  let cargo_parser = construct!(crate::CargoArgs {
+    arch,
+    disable_target,
+    args
+  });
   construct!(crate::Options::Cargo(cargo_parser))
 }

@@ -171,5 +171,11 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
       }
     }
   }
+
+  let status = child.wait()?;
+  if !status.success() {
+    exit(status.code().unwrap_or(-1))
+  }
+
   Ok(())
 }

@@ -12,7 +12,12 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
     )
   })?;
   let (command, rest_args) = args.args.split_at(1);
-  let target_arch = args.arch.unwrap_or(vec![Arch::ARM64]);
+  let mut target_arch = args.arch.unwrap_or(vec![Arch::ARM64]);
+
+  // if disable-target is true, just run once.
+  if args.disable_target {
+      target_arch = vec![Arch::ARM64]
+  }
 
   target_arch
     .iter()

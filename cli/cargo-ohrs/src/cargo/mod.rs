@@ -31,8 +31,9 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
 
       if !args.disable_target {
         all_args.extend([&t, &rt]);
-        all_args.extend(rest_args);
       }
+
+      all_args.extend(rest_args);
 
       run::run(arch, ndk.clone(), all_args)?;
       Ok(())

@@ -47,9 +47,21 @@ impl FromStr for Arch {
   {
     let ret = s.to_lowercase();
     match ret.as_ref() {
-      "aarch" | "arm64" => Ok(Arch::ARM64),
-      "arm" | "arm32" => Ok(Arch::ARM32),
-      "x86_64" | "x64" => Ok(Arch::X86_64),
+      "aarch"
+      | "arm64"
+      | "aarch64-linux-ohos"
+      | "aarch64-unknown-linux-ohos"
+      | "AARCH64_UNKNOWN_LINUX_OHOS" => Ok(Arch::ARM64),
+      "arm"
+      | "arm32"
+      | "arm-linux-ohos"
+      | "armv7-unknown-linux-ohos"
+      | "ARMV7_UNKNOWN_LINUX_OHOS" => Ok(Arch::ARM32),
+      "x86_64"
+      | "x64"
+      | "x86_64-linux-ohos"
+      | "x86_64-unknown-linux-ohos"
+      | "X86_64_UNKNOWN_LINUX_OHOS" => Ok(Arch::X86_64),
       _ => Err("Only supports aarch/arm64, arm/arm32, and x86_64/x64 architectures.".to_string()),
     }
   }

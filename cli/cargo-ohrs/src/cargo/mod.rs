@@ -16,7 +16,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
 
   // if disable-target is true, just run once.
   if args.disable_target {
-      target_arch = vec![Arch::ARM64]
+    target_arch = vec![Arch::ARM64]
   }
 
   target_arch

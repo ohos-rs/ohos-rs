@@ -23,7 +23,6 @@ impl From<EventLoopMode> for napi_sys_ohos::napi_event_mode {
 /// See more: https://developer.huawei.com/consumer/cn/doc/harmonyos-references-V5/napi-V5#napi_create_ark_runtime
 pub struct ArkRuntime {
   pub env: Env,
-  is_new: bool,
 }
 
 impl ArkRuntime {
@@ -36,7 +35,6 @@ impl ArkRuntime {
     )?;
     Ok(Self {
       env: Env::from_raw(env),
-      is_new: true,
     })
   }
 
@@ -76,7 +74,7 @@ impl ArkRuntime {
     check_pending_exception!(self.env.0, unsafe {
       napi_sys_ohos::napi_load_module_with_info(
         self.env.0,
-        c_path.as_ptr(),
+        c_path.as_ptr().cast(),
         ptr::null(),
         &mut module,
       )
@@ -103,8 +101,8 @@ impl ArkRuntime {
     check_pending_exception!(self.env.0, unsafe {
       napi_sys_ohos::napi_load_module_with_info(
         self.env.0,
-        c_path.as_ptr(),
-        c_info.as_ptr(),
+        c_path.as_ptr().cast(),
+        c_info.as_ptr().cast(),
         &mut module,
       )
     })?;
@@ -114,10 +112,8 @@ impl ArkRuntime {
 
 impl Drop for ArkRuntime {
   fn drop(&mut self) {
-    if self.is_new {
-      unsafe {
-        napi_sys_ohos::napi_destroy_ark_runtime(&mut self.env.0);
-      }
+    unsafe {
+      napi_sys_ohos::napi_destroy_ark_runtime(&mut self.env.0);
     }
   }
 }

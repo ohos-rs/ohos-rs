@@ -48,7 +48,12 @@ impl Module {
       let mut ret = ptr::null_mut();
 
       check_status!(
-        napi_sys_ohos::napi_get_named_property(self.env, self.value, c_field.as_ptr(), &mut ret),
+        napi_sys_ohos::napi_get_named_property(
+          self.env,
+          self.value,
+          c_field.as_ptr().cast(),
+          &mut ret
+        ),
         "Failed to get property with field `{}`",
         property.as_ref(),
       )?;

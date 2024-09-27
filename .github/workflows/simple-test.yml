@@ -10,19 +10,36 @@ on:
 jobs:
   simple-test:
     runs-on: ubuntu-latest
-    container:
-      image: southorange/ohos-base:v4
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup OpenHarmony SDK
+        uses: openharmony-rs/setup-ohos-sdk@v0.1.2
+        id: setup-ohos
+        with:
+          version: '4.1'
+          components: 'native;toolchains'
+
+      - name: Setup Rust environment
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: 'aarch64-unknown-linux-ohos,armv7-unknown-linux-ohos,x86_64-unknown-linux-ohos'
 
       - name: install
         run: cargo install ohrs
 
       - name: run basic
         run: cd examples/hello && ohrs build
+        env: 
+          OHOS_NDK_HOME: "${{ steps.setup-ohos.outputs.ohos-base-sdk-home }}"
 
       - name: run example
         run: cd examples/napi && ohrs build
+        env: 
+          OHOS_NDK_HOME: "${{ steps.setup-ohos.outputs.ohos-base-sdk-home }}"
 
       - name: run compact exmaple
         run: cd examples/napi-compact-mode && ohrs build
+        env: 
+          OHOS_NDK_HOME: "${{ steps.setup-ohos.outputs.ohos-base-sdk-home }}"

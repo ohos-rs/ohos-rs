@@ -1,6 +1,3 @@
 export type Subscribable = {
-	subscribe(observer: {
-		error(error: any): void;
-		complete(): void;
-	}): void;
+  subscribe(observer: { error(error: any): void; complete(): void }): void;
 };

@@ -1,4 +1,4 @@
-import { MockKit } from '@ohos/hypium'
+import { MockKit } from "./framework.test";
 
 class MockName {
   test() {}
@@ -13,6 +13,6 @@ export const spy = () => {
 
   return {
     func: mockfunc,
-    mocker,
-  }
-}
+    mocker
+  };
+};

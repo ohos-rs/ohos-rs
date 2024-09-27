@@ -1,4 +1,4 @@
-import { test,describe } from '../utils/framework.test';
+import { test, describe } from '../utils/setup.test';
 import { spy } from '../utils/mock.test'
 import {
   DEFAULT_COST,
@@ -227,13 +227,29 @@ export default () => {
     })
 
     test('map', (t) => {
-      t.deepEqual(getMapping(), { a: 101, b: 102 })
-      t.is(sumMapping({ a: 101, b: 102 }), 203)
-      t.deepEqual(getBtreeMapping(), { a: 101, b: 102 })
-      t.is(sumBtreeMapping({ a: 101, b: 102 }), 203)
-      t.deepEqual(getIndexMapping(), { a: 101, b: 102 })
-      t.is(sumIndexMapping({ a: 101, b: 102 }), 203)
-      t.deepEqual(indexmapPassthrough({ a: 101, b: 102 }), { a: 101, b: 102 })
+      t.deepEqual(getMapping(), {
+        a: 101, b: 102
+      })
+      t.is(sumMapping({
+        a: 101, b: 102
+      }), 203)
+      t.deepEqual(getBtreeMapping(), {
+        a: 101, b: 102
+      })
+      t.is(sumBtreeMapping({
+        a: 101, b: 102
+      }), 203)
+      t.deepEqual(getIndexMapping(), {
+        a: 101, b: 102
+      })
+      t.is(sumIndexMapping({
+        a: 101, b: 102
+      }), 203)
+      t.deepEqual(indexmapPassthrough({
+        a: 101, b: 102
+      }), {
+        a: 101, b: 102
+      })
     })
 
     test('enum', (t) => {
@@ -263,8 +279,12 @@ export default () => {
       t.deepEqual(greeting, validateStructuredEnum(greeting))
       t.deepEqual(birthday, validateStructuredEnum(birthday))
       t.deepEqual(tuple, validateStructuredEnum(tuple))
-      t.throws(() => validateStructuredEnum({ type2: 'unknown' } as ESObject))
-      t.throws(() => validateStructuredEnum({ type2: 'Greeting' } as ESObject))
+      t.throws(() => validateStructuredEnum({
+        type2: 'unknown'
+      } as ESObject))
+      t.throws(() => validateStructuredEnum({
+        type2: 'Greeting'
+      } as ESObject))
     })
 
     test('function call', async (t) => {
@@ -339,7 +359,9 @@ export default () => {
       t.deepEqual(dog.returnOtherClass(), new Dog('Doge'))
       t.deepEqual(dog.returnOtherClassWithCustomConstructor(), new Bird('parrot'))
       t.is(
-        dog.overrideIndividualArgOnMethod('Jafar', { n: 'Iago' }).name,
+        dog.overrideIndividualArgOnMethod('Jafar', {
+          n: 'Iago'
+        }).name,
         'Jafar-Iago',
       )
       t.is(dog.returnOtherClassWithCustomConstructor().getCount(), 1234)
@@ -516,8 +538,12 @@ export default () => {
     })
 
     test('object', (t) => {
-      t.deepEqual(listObjKeys({ name: 'John Doe', age: 20 }), ['name', 'age'])
-      t.deepEqual(createObj(), { test: 1 })
+      t.deepEqual(listObjKeys({
+        name: 'John Doe', age: 20
+      }), ['name', 'age'])
+      t.deepEqual(createObj(), {
+        test: 1
+      })
       t.throws(
         () =>
         objectGetNamedPropertyShouldPerformTypecheck({
@@ -584,13 +610,17 @@ export default () => {
     })
 
     test('get undefined', (t) => {
-      for (const _ of Array.from({ length: 100 })) {
+      for (const _ of Array.from({
+        length: 100
+      })) {
         t.is(getUndefined(), undefined)
       }
     })
 
     test('get null', (t) => {
-      for (const _ of Array.from({ length: 100 })) {
+      for (const _ of Array.from({
+        length: 100
+      })) {
         t.is(getNull(), null)
       }
     })
@@ -638,7 +668,9 @@ export default () => {
 
     test('function ts type override', (t) => {
       // @ts-expect-error
-      t.deepEqual(tsRename({ foo: 1, bar: 2, baz: 2 }), ['foo', 'bar', 'baz'])
+      t.deepEqual(tsRename({
+        foo: 1, bar: 2, baz: 2
+      }), ['foo', 'bar', 'baz'])
     })
 
     test('function individual ts arg type override', (t) => {
@@ -662,13 +694,17 @@ export default () => {
 
     test('should throw if object type is not matched', (t) => {
       // @ts-expect-error
-      const err1 = t.throws(() => receiveStrictObject({ name: 1 }))
+      const err1 = t.throws(() => receiveStrictObject({
+        name: 1
+      }))
       t.is(
         err1?.message,
         'Failed to convert JavaScript value `Number 1 ` into rust type `String` on StrictObject.name',
       )
       // @ts-expect-error
-      const err2 = t.throws(() => receiveStrictObject({ bar: 1 }))
+      const err2 = t.throws(() => receiveStrictObject({
+        bar: 1
+      }))
       t.is(err2!.message, 'Missing field `name`')
     })
 
@@ -700,7 +736,9 @@ export default () => {
       t.is(testSerdeRoundtrip(-1), -1)
 
       t.deepEqual(testSerdeRoundtrip([1, 1.2, -1]), [1, 1.2, -1])
-      t.deepEqual(testSerdeRoundtrip({ a: 1, b: 1.2, c: -1 }), {
+      t.deepEqual(testSerdeRoundtrip({
+        a: 1, b: 1.2, c: -1
+      }), {
         a: 1,
         b: 1.2,
         c: -1,
@@ -712,7 +750,8 @@ export default () => {
       let err = t.throws(() => testSerdeRoundtrip(undefined))
       t.is(err?.message, 'undefined cannot be represented as a serde_json::Value')
 
-      err = t.throws(() => testSerdeRoundtrip(() => {}))
+      err = t.throws(() => testSerdeRoundtrip(() => {
+      }))
       t.is(
         err!.message,
         'JS functions cannot be represented as a serde_json::Value',
@@ -740,11 +779,19 @@ export default () => {
     })
 
     test('serde-buffer-bytes', (t) => {
-      t.is(testSerdeBufferBytes({ code: new Uint8Array([1, 2, 3]) }), 3n)
-      t.is(testSerdeBufferBytes({ code: new Uint8Array(0) }), 0n)
+      t.is(testSerdeBufferBytes({
+        code: new Uint8Array([1, 2, 3])
+      }), 3n)
+      t.is(testSerdeBufferBytes({
+        code: new Uint8Array(0)
+      }), 0n)
 
-      t.is(testSerdeBufferBytes({ code: Buffer.from([1, 2, 3]) }), 3n)
-      t.is(testSerdeBufferBytes({ code: Buffer.alloc(0) }), 0n)
+      t.is(testSerdeBufferBytes({
+        code: Buffer.from([1, 2, 3])
+      }), 3n)
+      t.is(testSerdeBufferBytes({
+        code: Buffer.alloc(0)
+      }), 0n)
     })
 
     test('buffer', (t) => {
@@ -943,9 +990,15 @@ export default () => {
     })
 
     test('either from objects', (t) => {
-      t.is(eitherFromObjects({ foo: 1 }), 'A')
-      t.is(eitherFromObjects({ bar: 2 }), 'B')
-      t.is(eitherFromObjects({ baz: 3 }), 'C')
+      t.is(eitherFromObjects({
+        foo: 1
+      }), 'A')
+      t.is(eitherFromObjects({
+        bar: 2
+      }), 'B')
+      t.is(eitherFromObjects({
+        baz: 3
+      }), 'C')
     })
 
     test('either3', (t) => {
@@ -960,8 +1013,12 @@ export default () => {
       t.is(either4('hello'), 'hello'.length)
       t.is(either4(true), 1)
       t.is(either4(false), 0)
-      t.is(either4({ v: 1 }), 1)
-      t.is(either4({ v: 'world' }), 'world'.length)
+      t.is(either4({
+        v: 1
+      }), 1)
+      t.is(either4({
+        v: 'world'
+      }), 'world'.length)
     })
 
     test('external', (t) => {
@@ -1081,7 +1138,9 @@ export default () => {
             resolve()
             t.is(
               value,
-              Array.from({ length: 100 }, (_, i) => i).reduce((a, b) => a + b),
+              Array.from({
+                length: 100
+              }, (_, i) => i).reduce((a, b) => a + b),
             )
           }
         })

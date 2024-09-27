@@ -18,7 +18,7 @@ jobs:
         id: setup-ohos
         with:
           version: '4.1'
-          components: 'native;toolchains;ets;js;previewe'
+          components: 'native;toolchains'
 
       - name: Setup Rust environment
         uses: dtolnay/rust-toolchain@stable

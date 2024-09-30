@@ -13,6 +13,7 @@ export const spy = () => {
 
   return {
     func: mockfunc,
-    mocker
+    mocker,
+    claser
   };
 };

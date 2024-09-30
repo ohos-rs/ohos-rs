@@ -42,6 +42,12 @@ function assertPromiseIsRejectedWith(actualPromise, expectedValue) {
       };
     },
     function (actualValue) {
+      if (actualValue?.message === expectedValue?.message) {
+        return {
+          pass: true,
+          message: "actualValue was rejected with " + actualValue.message + "."
+        };
+      }
       if (JSON.stringify(actualValue) == JSON.stringify(expectedValue[0])) {
         return {
           pass: true,

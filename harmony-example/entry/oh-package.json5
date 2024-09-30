@@ -9,6 +9,9 @@
     "libentry.so": "file:./src/main/cpp/types/libentry",
     "libhello.so": "file:./src/main/cpp/types/libhello",
     "libexample.so": "file:./src/main/cpp/types/libexample",
-    "libcompact.so": "file:./src/main/cpp/types/libcompact"
-  }
+    "libcompact.so": "file:./src/main/cpp/types/libcompact",
+    "@ohos-rs/abort-controller": "^0.0.2"
+  },
+  "devDependencies": {},
+  "dynamicDependencies": {}
 }

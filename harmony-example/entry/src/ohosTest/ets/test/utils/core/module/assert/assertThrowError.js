@@ -29,8 +29,14 @@ function assertThrowError(actualValue, expected) {
   } catch (e) {
     err = e;
   }
+  if (!expected && !(err instanceof Error)) {
+    return {
+      pass: false,
+      message: "An error is not thrown while it is expected!"
+    };
+  }
   if (err instanceof Error) {
-    let type = typeof expected[0];
+    let type = typeof expected?.[0];
     if (type === "function") {
       result = err.constructor.name === expected[0].name;
       message =
@@ -49,6 +55,8 @@ function assertThrowError(actualValue, expected) {
         err.message +
         " is not " +
         expected[0].message;
+    } else if (type === "undefined") {
+      result = true;
     }
   }
   return {

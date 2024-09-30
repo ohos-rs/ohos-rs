@@ -6,38 +6,28 @@ const testContext: ESObject = {
     expect(actual).assertEqual(expected);
   },
   deepEqual: (actual: ESObject, expected: ESObject) => {
-    expect(actual).assertEqual(expected);
+    expect(actual).assertDeepEquals(expected);
   },
   throws: (fn: ESObject, expected: ESObject) => {
-    if (expected) {
-      expect(fn).assertThrowError(expected);
-    } else {
-      expect(fn).not().assertThrowError(expected);
-    }
+    expect(fn).assertThrowError(expected);
   },
   notThrows: (fn: ESObject, expected: ESObject) => {
-    if (expected) {
-      expect(fn).assertThrowError(expected);
-    } else {
-      expect(fn).not().assertThrowError(expected);
-    }
+    expect(fn).not().assertThrowError(expected);
   },
   throwsAsync: async (fn: ESObject, expected: ESObject) => {
+    let ret = fn instanceof Promise ? fn : await fn();
     if (expected) {
-      expect(
-        fn instanceof Promise ? fn : await fn()
-      ).assertPromiseIsRejectedWith(expected);
+      expect(ret).assertPromiseIsRejectedWith(expected);
     } else {
-      expect(fn instanceof Promise ? fn : await fn()).assertPromiseIsRejected();
+      expect(ret).assertPromiseIsRejected();
     }
   },
   notThrowsAsync: async (fn: ESObject, expected: ESObject) => {
+    let ret = fn instanceof Promise ? fn : await fn();
     if (expected) {
-      expect(
-        fn instanceof Promise ? fn : await fn()
-      ).assertPromiseIsResolvedWith(expected);
+      expect(ret).assertPromiseIsResolvedWith(expected);
     } else {
-      expect(fn instanceof Promise ? fn : await fn()).assertPromiseIsResolved();
+      expect(ret).assertPromiseIsResolved();
     }
   },
   true: (actual: ESObject, message: ESObject) => {
@@ -50,7 +40,7 @@ const testContext: ESObject = {
 
 const testRunner = ((title: ESObject, spec: ESObject) => {
   test(title, 0, async (done) => {
-    await Promise.resolve(spec(testContext));
+    spec(testContext);
     done();
   });
 }) as TestFn;

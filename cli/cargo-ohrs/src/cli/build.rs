@@ -33,8 +33,8 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     dist,
     arch,
     release,
+    copy_static,
     cargo_args,
-    copy_static
   });
   construct!(crate::Options::Build(init_parser))
 }

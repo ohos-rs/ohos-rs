@@ -23,8 +23,8 @@ pub(crate) struct BuildArgs {
   dist: String,
   arch: Option<Vec<Arch>>,
   release: bool,
-  cargo_args: Option<Vec<String>>,
   copy_static: bool,
+  cargo_args: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone)]

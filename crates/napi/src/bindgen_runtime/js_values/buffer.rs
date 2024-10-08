@@ -487,7 +487,9 @@ impl ToNapiValue for Buffer {
         // Rust uses 0x1 as the data pointer for empty buffers,
         // but NAPI/V8 only allows multiple buffers to have
         // the same data pointer if it's 0x0.
-        unsafe { sys::napi_create_buffer(env, len, ptr::null_mut(), &mut ret) }
+        // TODO: should revert to create_buffer
+        let mut empty_data = ptr::null_mut();
+        unsafe { sys::napi_create_arraybuffer(env, len, &mut empty_data, &mut ret) }
       } else {
         let value_ptr = val.inner.as_ptr();
         let val_box_ptr = Box::into_raw(Box::new(val));

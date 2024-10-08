@@ -346,6 +346,7 @@ macro_rules! impl_typed_array {
             format!("Expected $name, got {}", typed_array_type),
           ));
         }
+        length /= $typed_array_type.byte_len();
         Ok($name {
           data: data as *mut $rust_type,
           length,
@@ -494,6 +495,7 @@ macro_rules! impl_from_slice {
             format!("Expected $name, got {}", typed_array_type),
           ));
         }
+        length /= $typed_array_type.byte_len();
         Ok(if length == 0 {
           &mut []
         } else {
@@ -529,6 +531,7 @@ macro_rules! impl_from_slice {
             format!("Expected $name, got {}", typed_array_type),
           ));
         }
+        length /= $typed_array_type.byte_len();
         Ok(if length == 0 {
           &[]
         } else {
@@ -710,6 +713,7 @@ impl<'scope> FromNapiValue for Uint8ClampedSlice<'scope> {
         format!("Expected $name, got {}", typed_array_type),
       ));
     }
+    length /= TypedArrayType::Uint8Clamped.byte_len();
     Ok(Self {
       inner: if length == 0 {
         &mut []

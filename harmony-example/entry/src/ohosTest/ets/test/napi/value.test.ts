@@ -1199,7 +1199,6 @@ export default () => {
       return new Promise((resolve) => {
         threadsafeFunctionClosureCapture(() => {
           resolve();
-          t.pass();
         });
       });
     });

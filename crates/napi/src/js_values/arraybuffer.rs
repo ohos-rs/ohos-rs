@@ -101,6 +101,25 @@ pub enum TypedArrayType {
   Unknown = 1024,
 }
 
+impl TypedArrayType {
+  pub fn byte_len(&self) -> usize {
+    match self {
+      TypedArrayType::Int8 => 1,
+      TypedArrayType::Uint8 => 1,
+      TypedArrayType::Uint8Clamped => 1,
+      TypedArrayType::Int16 => 2,
+      TypedArrayType::Uint16 => 2,
+      TypedArrayType::Int32 => 4,
+      TypedArrayType::Uint32 => 4,
+      TypedArrayType::Float32 => 4,
+      TypedArrayType::Float64 => 8,
+      TypedArrayType::BigInt64 => 8,
+      TypedArrayType::BigUint64 => 8,
+      TypedArrayType::Unknown => 1,
+    }
+  }
+}
+
 impl From<sys::napi_typedarray_type> for TypedArrayType {
   fn from(value: sys::napi_typedarray_type) -> Self {
     match value {
@@ -272,11 +291,14 @@ impl JsTypedArray {
       )
     })?;
 
+    let ty = TypedArrayType::from(typedarray_type);
+    len /= ty.byte_len();
+
     Ok(JsTypedArrayValue {
       data,
       length: len,
       byte_offset,
-      typedarray_type: typedarray_type.into(),
+      typedarray_type: ty,
       arraybuffer: unsafe { JsArrayBuffer::from_raw_unchecked(self.0.env, arraybuffer_value) },
     })
   }

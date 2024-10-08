@@ -299,7 +299,8 @@ impl Env {
         // Rust uses 0x1 as the data pointer for empty buffers,
         // but NAPI/V8 only allows multiple buffers to have
         // the same data pointer if it's 0x0.
-        sys::napi_create_arraybuffer(self.0, length, ptr::null_mut(), &mut raw_value)
+        let mut empty_data = ptr::null_mut();
+        sys::napi_create_arraybuffer(self.0, length, &mut empty_data, &mut raw_value)
       } else {
         let hint_ptr = Box::into_raw(Box::new((length, data.capacity())));
         let status = sys::napi_create_external_arraybuffer(

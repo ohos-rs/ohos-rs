@@ -388,8 +388,10 @@ macro_rules! impl_typed_array {
             // Rust uses 0x1 as the data pointer for empty buffers,
             // but NAPI/V8 only allows multiple buffers to have
             // the same data pointer if it's 0x0.
+            // For harmony we can't use ptr::null_mut() directly
+            let mut empty_data = ptr::null_mut();
             unsafe {
-              sys::napi_create_arraybuffer(env, length, ptr::null_mut(), &mut arraybuffer_value)
+              sys::napi_create_arraybuffer(env, length, &mut empty_data, &mut arraybuffer_value)
             }
           } else {
             let hint_ptr = Box::into_raw(Box::new(val));

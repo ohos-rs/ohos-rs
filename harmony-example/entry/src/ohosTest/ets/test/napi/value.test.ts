@@ -835,8 +835,9 @@ export default () => {
 
       const a = getEmptyBuffer();
       const b = getEmptyBuffer();
-      t.is(a.toString(), "");
-      t.is(b.toString(), "");
+      // TODO: should toString directly
+      t.is(buffer.from(a).toString(), "");
+      t.is(buffer.from(b).toString(), "");
 
       t.true(Array.isArray(asyncBufferToArray(buffer.from([1, 2, 3]).buffer)));
     });

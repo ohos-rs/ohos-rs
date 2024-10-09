@@ -74,3 +74,14 @@ impl From<Info> for Doc {
     doc
   }
 }
+
+// make sure cli is ok
+#[cfg(test)]
+mod test {
+  use super::cli_run;
+
+  #[test]
+  fn check_options() {
+      cli_run().check_invariants(false)
+  }
+}

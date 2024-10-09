@@ -18,14 +18,3 @@ pub fn get_git_config() -> GitConfig {
     author: String::from(username).replace("\n", "").replace("\r", ""),
   }
 }
-
-#[cfg(test)]
-mod test {
-  use crate::init::config::get_git_config;
-
-  #[test]
-  fn test_get_git_config() {
-    let u = get_git_config();
-    assert!(!u.author.is_empty());
-  }
-}

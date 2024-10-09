@@ -82,6 +82,6 @@ mod test {
 
   #[test]
   fn check_options() {
-      cli_run().check_invariants(false)
+    cli_run().check_invariants(false)
   }
 }

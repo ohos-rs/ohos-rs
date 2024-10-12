@@ -113,7 +113,9 @@ impl TypedArrayType {
       TypedArrayType::Uint32 => 4,
       TypedArrayType::Float32 => 4,
       TypedArrayType::Float64 => 8,
+      #[cfg(feature = "napi6")]
       TypedArrayType::BigInt64 => 8,
+      #[cfg(feature = "napi6")]
       TypedArrayType::BigUint64 => 8,
       TypedArrayType::Unknown => 1,
     }

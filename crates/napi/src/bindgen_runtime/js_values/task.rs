@@ -183,12 +183,15 @@ extern "C" fn on_abort(
 impl<T: Task> ToNapiValue for AsyncTask<T> {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> crate::Result<sys::napi_value> {
     if let Some(abort_controller) = val.abort_signal {
+      #[cfg(target_env = "ohos")]
       let async_promise = async_work::run(
         env,
         val.inner,
         Some(abort_controller.status.clone()),
         val.qos,
       )?;
+      #[cfg(not(target_env = "ohos"))]
+      let async_promise = async_work::run(env, val.inner, Some(abort_controller.status.clone()))?;
       abort_controller
         .raw_work
         .store(async_promise.napi_async_work, Ordering::Relaxed);
@@ -197,7 +200,11 @@ impl<T: Task> ToNapiValue for AsyncTask<T> {
         .store(async_promise.deferred, Ordering::Relaxed);
       Ok(async_promise.promise_object().inner)
     } else {
+      #[cfg(target_env = "ohos")]
       let async_promise = async_work::run(env, val.inner, None, val.qos)?;
+
+      #[cfg(not(target_env = "ohos"))]
+      let async_promise = async_work::run(env, val.inner, None)?;
       Ok(async_promise.promise_object().inner)
     }
   }

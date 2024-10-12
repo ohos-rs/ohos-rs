@@ -92,6 +92,7 @@ pub mod threadsafe_function;
 mod version;
 
 pub use napi_sys_ohos as sys;
+#[allow(unused_imports)]
 pub use ohos::*;
 
 pub use async_work::{AsyncWorkPromise, AsyncWorkQos};

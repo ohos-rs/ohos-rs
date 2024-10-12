@@ -10,7 +10,7 @@ pub enum ValueType {
   Boolean = 2,
   Number = 3,
   String = 4,
-  #[cfg(not(feature = "ohos"))]
+  #[cfg(not(target_env = "ohos"))]
   Symbol = 5,
   Object = 6,
   Function = 7,
@@ -39,7 +39,7 @@ impl From<i32> for ValueType {
       sys::ValueType::napi_number => ValueType::Number,
       sys::ValueType::napi_object => ValueType::Object,
       sys::ValueType::napi_string => ValueType::String,
-      #[cfg(not(feature = "ohos"))]
+      #[cfg(not(target_env = "ohos"))]
       sys::ValueType::napi_symbol => ValueType::Symbol,
       sys::ValueType::napi_undefined => ValueType::Undefined,
       _ => ValueType::Unknown,

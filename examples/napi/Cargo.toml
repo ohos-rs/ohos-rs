@@ -25,6 +25,7 @@ napi-ohos = { path = '../../crates/napi', features = [
   "tokio_fs",
   "tokio_macros",
   "deferred_trace",
+  "napi8",
 ] }
 napi-derive-ohos = { path = '../../crates/macro' }
 napi-shared = { path = "../napi-shared" }

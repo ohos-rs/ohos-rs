@@ -53,7 +53,6 @@ pub fn mutate_float64_array(ctx: CallContext) -> Result<JsUndefined> {
 }
 
 #[js_function(1)]
-#[cfg(feature = "latest")]
 pub fn mutate_i64_array(ctx: CallContext) -> Result<JsUndefined> {
   let mut buffer = ctx.get::<JsTypedArray>(0)?.into_value()?;
   let buffer_mut_ref: &mut [i64] = buffer.as_mut();
@@ -68,7 +67,6 @@ pub fn register_js(exports: &mut JsObject) -> Result<()> {
   exports.create_named_method("mutateInt16Array", mutate_int16_array)?;
   exports.create_named_method("mutateFloat32Array", mutate_float32_array)?;
   exports.create_named_method("mutateFloat64Array", mutate_float64_array)?;
-  #[cfg(feature = "latest")]
   exports.create_named_method("mutateI64Array", mutate_i64_array)?;
   Ok(())
 }

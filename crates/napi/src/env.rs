@@ -23,11 +23,13 @@ use crate::bindgen_runtime::PromiseRaw;
 #[cfg(feature = "napi4")]
 use crate::bindgen_runtime::ToNapiValue;
 use crate::bindgen_runtime::{FromNapiValue, Function, JsValuesTupleIntoVec, Unknown};
+#[cfg(target_env = "ohos")]
 use crate::check_pending_exception;
 #[cfg(feature = "napi3")]
 use crate::cleanup_env::{CleanupEnvHook, CleanupEnvHookData};
 #[cfg(feature = "serde-json")]
 use crate::js_values::{De, Ser};
+#[cfg(target_env = "ohos")]
 use crate::module::Module;
 #[cfg(feature = "napi3")]
 use crate::JsError;
@@ -217,14 +219,14 @@ impl Env {
   }
 
   // harmony not support symbol
-  #[cfg(not(feature = "ohos"))]
+  #[cfg(not(target_env = "ohos"))]
   pub fn create_symbol_from_js_string(&self, description: JsString) -> Result<JsSymbol> {
     let mut result = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_symbol(self.0, description.0.value, &mut result) })?;
     Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
   }
 
-  #[cfg(not(feature = "ohos"))]
+  #[cfg(not(target_env = "ohos"))]
   pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol> {
     let mut result = ptr::null_mut();
     check_status!(unsafe {
@@ -748,7 +750,11 @@ impl Env {
 
   /// Run [Task](./trait.Task.html) in libuv thread pool, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
   pub fn spawn<T: 'static + Task>(&self, task: T) -> Result<AsyncWorkPromise<T::JsValue>> {
-    async_work::run(self.0, task, None, None)
+    #[cfg(target_env = "ohos")]
+    return async_work::run(self.0, task, None, None);
+
+    #[cfg(not(target_env = "ohos"))]
+    return async_work::run(self.0, task, None);
   }
 
   pub fn run_in_scope<T, F>(&self, executor: F) -> Result<T>
@@ -765,6 +771,7 @@ impl Env {
   }
 
   /// Run [Task](./trait.Task.html) in libuv thread pool with qos, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
+  #[cfg(target_env = "ohos")]
   pub fn spawn_with_qos<T: 'static + Task>(
     &self,
     task: T,
@@ -782,7 +789,10 @@ impl Env {
   pub fn run_script<S: AsRef<str>, V: FromNapiValue>(&self, script: S) -> Result<V> {
     let s = self.create_string(script.as_ref())?;
     let mut raw_value = ptr::null_mut();
+    #[cfg(target_env = "ohos")]
     check_status!(unsafe { sys::napi_run_script_path(self.0, s.raw(), &mut raw_value) })?;
+    #[cfg(not(target_env = "ohos"))]
+    check_status!(unsafe { sys::napi_run_script(self.0, s.raw(), &mut raw_value) })?;
     unsafe { V::from_napi_value(self.0, raw_value) }
   }
 
@@ -1034,7 +1044,7 @@ impl Env {
     Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
   }
 
-  #[cfg(any(feature = "napi9", feature = "ohos"))]
+  #[cfg(any(feature = "napi9", target_env = "ohos"))]
   /// This API retrieves the file path of the currently running JS module as a URL. For a file on
   /// the local file system it will start with `file://`.
   ///
@@ -1064,6 +1074,7 @@ impl Env {
   ///   Ok(())
   /// }
   /// ```
+  #[cfg(target_env = "ohos")]
   pub fn load<T: AsRef<str>>(&self, path: T) -> Result<Module> {
     let c_path = CString::new(path.as_ref())?;
     let mut module = ptr::null_mut();
@@ -1163,15 +1174,15 @@ unsafe extern "C" fn drop_buffer(
   mem::drop(unsafe { Vec::from_raw_parts(finalize_data as *mut u8, length, cap) });
 }
 
+#[allow(unused_variables)]
 pub(crate) unsafe extern "C" fn raw_finalize<T>(
-  _env: sys::napi_env,
+  env: sys::napi_env,
   finalize_data: *mut c_void,
-  _finalize_hint: *mut c_void,
+  finalize_hint: *mut c_void,
 ) {
   let tagged_object = finalize_data as *mut T;
   drop(unsafe { Box::from_raw(tagged_object) });
-  #[cfg(not(any(target_family = "wasm", feature = "ohos")))]
-  #[cfg(not(target_family = "wasm"))]
+  #[cfg(not(any(target_family = "wasm", target_env = "ohos")))]
   if !finalize_hint.is_null() {
     let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut i64) };
     if size_hint != 0 {

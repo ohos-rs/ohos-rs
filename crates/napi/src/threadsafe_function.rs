@@ -512,6 +512,7 @@ impl<
   }
 
   /// Call the ThreadsafeFunction with priority, insert it at the end of queue.
+  #[cfg(target_env = "ohos")]
   pub fn call_with_priority(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
     self.handle.with_read_aborted(|aborted| {
       if aborted {
@@ -536,6 +537,7 @@ impl<
   }
 
   /// Call the ThreadsafeFunction with priority, insert it at the start of queue.
+  #[cfg(target_env = "ohos")]
   pub fn call_with_priority_first(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
     self.handle.with_read_aborted(|aborted| {
       if aborted {

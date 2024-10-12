@@ -77,20 +77,23 @@ impl TypeName for JsNull {
 
 impl ValidateNapiValue for JsNull {}
 
-// #[derive(Clone, Copy)]
-// pub struct JsSymbol(pub(crate) Value);
+#[cfg(not(target_env = "ohos"))]
+#[derive(Clone, Copy)]
+pub struct JsSymbol(pub(crate) Value);
 
-// impl TypeName for JsSymbol {
-//   fn type_name() -> &'static str {
-//     "symbol"
-//   }
+#[cfg(not(target_env = "ohos"))]
+impl TypeName for JsSymbol {
+  fn type_name() -> &'static str {
+    "symbol"
+  }
 
-//   fn value_type() -> ValueType {
-//     ValueType::Symbol
-//   }
-// }
+  fn value_type() -> ValueType {
+    ValueType::Symbol
+  }
+}
 
-// impl ValidateNapiValue for JsSymbol {}
+#[cfg(not(target_env = "ohos"))]
+impl ValidateNapiValue for JsSymbol {}
 
 macro_rules! impl_napi_value_trait {
   ($js_value:ident, $value_type:ident) => {
@@ -639,7 +642,7 @@ impl_js_value_methods!(JsObject);
 impl_js_value_methods!(JsGlobal);
 #[cfg(feature = "napi5")]
 impl_js_value_methods!(JsDate);
-#[cfg(not(feature = "ohos"))]
+#[cfg(not(target_env = "ohos"))]
 impl_js_value_methods!(JsSymbol);
 impl_js_value_methods!(JsTimeout);
 impl_js_value_methods!(JSON);
@@ -666,7 +669,7 @@ impl_napi_value_trait!(JsGlobal, Object);
 #[cfg(feature = "napi5")]
 impl_napi_value_trait!(JsDate, Object);
 impl_napi_value_trait!(JsTimeout, Object);
-#[cfg(not(feature = "ohos"))]
+#[cfg(not(target_env = "ohos"))]
 impl_napi_value_trait!(JsSymbol, Symbol);
 
 impl NapiValue for JsUnknown {

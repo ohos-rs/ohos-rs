@@ -45,11 +45,12 @@ mod napi1 {
         result: *mut napi_value,
       ) -> napi_status;
       // harmony not support symbol
-      // fn napi_create_symbol(
-      //   env: napi_env,
-      //   description: napi_value,
-      //   result: *mut napi_value,
-      // ) -> napi_status;
+      #[cfg(not(target_env = "ohos"))]
+      fn napi_create_symbol(
+        env: napi_env,
+        description: napi_value,
+        result: *mut napi_value,
+      ) -> napi_status;
       fn napi_create_function(
         env: napi_env,
         utf8name: *const c_char,
@@ -407,13 +408,15 @@ mod napi1 {
         rejection: napi_value,
       ) -> napi_status;
       fn napi_is_promise(env: napi_env, value: napi_value, is_promise: *mut bool) -> napi_status;
-      // fn napi_run_script(env: napi_env, script: napi_value, result: *mut napi_value)
-      //   -> napi_status;
-      // fn napi_adjust_external_memory(
-      //   env: napi_env,
-      //   change_in_bytes: i64,
-      //   adjusted_value: *mut i64,
-      // ) -> napi_status;
+      #[cfg(not(target_env = "ohos"))]
+      fn napi_run_script(env: napi_env, script: napi_value, result: *mut napi_value)
+        -> napi_status;
+      #[cfg(not(target_env = "ohos"))]
+      fn napi_adjust_external_memory(
+        env: napi_env,
+        change_in_bytes: i64,
+        adjusted_value: *mut i64,
+      ) -> napi_status;
       fn napi_module_register(mod_: *mut napi_module);
       fn napi_fatal_error(
         location: *const c_char,
@@ -487,6 +490,9 @@ mod napi1 {
 
 #[cfg(feature = "napi2")]
 mod napi2 {
+  #[cfg(not(target_env = "ohos"))]
+  use std::os::raw::c_int;
+
   use super::super::types::*;
 
   generate!(
@@ -494,7 +500,8 @@ mod napi2 {
       fn napi_get_uv_event_loop(env: napi_env, loop_: *mut *mut uv_loop_s) -> napi_status;
 
       // uv_run should be removed, which is provided by libuv. If you need to use it, please add ffi and link libuv.so
-      // fn uv_run(loop_: *mut uv_loop_s, mode: uv_run_mode) -> c_int;
+      #[cfg(not(target_env = "ohos"))]
+      fn uv_run(loop_: *mut uv_loop_s, mode: uv_run_mode) -> c_int;
     }
   );
 }
@@ -781,7 +788,7 @@ pub use napi8::*;
 #[cfg(feature = "napi9")]
 pub use napi9::*;
 
-#[cfg(feature = "ohos")]
+#[cfg(target_env = "ohos")]
 mod ohos {
   use std::os::raw::{c_char, c_void};
 
@@ -831,7 +838,7 @@ mod ohos {
   );
 }
 
-#[cfg(feature = "ohos")]
+#[cfg(target_env = "ohos")]
 pub use ohos::*;
 
 #[cfg(windows)]

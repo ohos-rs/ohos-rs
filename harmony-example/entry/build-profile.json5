@@ -5,6 +5,11 @@
       "path": "./src/main/cpp/CMakeLists.txt",
       "arguments": "",
       "cppFlags": "",
+    },
+    "sourceOption": {
+      "workers": [
+        "./src/ohosTest/ets/workers/worker.ts"
+      ]
     }
   },
   "buildOptionSet": [

@@ -1,5 +1,4 @@
-#[cfg(target_env = "ohos")]
-pub mod ark;
+#![cfg(target_env = "ohos")]
 
-#[cfg(target_env = "ohos")]
+pub mod ark;
 pub mod module;

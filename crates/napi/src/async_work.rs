@@ -61,6 +61,48 @@ impl<T> AsyncWorkPromise<T> {
   }
 }
 
+#[cfg(not(target_env = "ohos"))]
+pub fn run<T: Task>(
+  env: sys::napi_env,
+  task: T,
+  abort_status: Option<Rc<AtomicU8>>,
+) -> Result<AsyncWorkPromise<T::JsValue>> {
+  let mut undefined = ptr::null_mut();
+  check_status!(unsafe { sys::napi_get_undefined(env, &mut undefined) })?;
+  let mut raw_promise = ptr::null_mut();
+  let mut deferred = ptr::null_mut();
+  check_status!(unsafe { sys::napi_create_promise(env, &mut deferred, &mut raw_promise) })?;
+  let task_status = abort_status.unwrap_or_else(|| Rc::new(AtomicU8::new(0)));
+  let result = Box::leak(Box::new(AsyncWork {
+    inner_task: task,
+    deferred,
+    value: Ok(mem::MaybeUninit::zeroed()),
+    napi_async_work: ptr::null_mut(),
+    status: task_status.clone(),
+  }));
+  check_status!(unsafe {
+    sys::napi_create_async_work(
+      env,
+      raw_promise,
+      undefined,
+      Some(execute::<T>),
+      Some(complete::<T>),
+      (result as *mut AsyncWork<T>).cast(),
+      &mut result.napi_async_work,
+    )
+  })?;
+  check_status!(unsafe { sys::napi_queue_async_work(env, result.napi_async_work) })?;
+  Ok(AsyncWorkPromise {
+    napi_async_work: result.napi_async_work,
+    raw_promise,
+    deferred,
+    env,
+    status: task_status,
+    _phantom: PhantomData,
+  })
+}
+
+#[cfg(target_env = "ohos")]
 pub fn run<T: Task>(
   env: sys::napi_env,
   task: T,

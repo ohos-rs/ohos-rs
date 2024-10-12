@@ -71,10 +71,14 @@ macro_rules! generate {
 #[cfg(not(any(target_env = "msvc", feature = "dyn-symbols")))]
 macro_rules! generate {
   (extern "C" {
-    $(fn $name:ident($($param:ident: $ptype:ty$(,)?)*)$( -> $rtype:ty)?;)+
+    $(
+      $(#[$attr:meta])*
+      fn $name:ident($($param:ident: $ptype:ty$(,)?)*)$( -> $rtype:ty)?;
+    )+
   }) => {
     extern "C" {
       $(
+        $(#[$attr])*
         pub fn $name($($param: $ptype,)*)$( -> $rtype)*;
       ) *
     }

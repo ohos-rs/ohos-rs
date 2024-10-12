@@ -153,7 +153,7 @@ impl<T: 'static> ToNapiValue for External<T> {
       "Create external value failed"
     )?;
 
-    #[cfg(not(any(target_family = "wasm", feature = "ohos")))]
+    #[cfg(not(any(target_family = "wasm", target_env = "ohos")))]
     {
       let mut adjusted_external_memory_size = std::mem::MaybeUninit::new(0);
 

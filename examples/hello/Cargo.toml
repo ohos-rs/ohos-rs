@@ -9,7 +9,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi-ohos          = { path = '../../crates/napi' }
+napi-ohos          = { path = '../../crates/napi', features = ["napi8"] }
 napi-derive-ohos   = { path = '../../crates/macro' }
 lazy_static        = "*"
 ohos-hilog-binding = "*"

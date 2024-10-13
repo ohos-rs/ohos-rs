@@ -49,12 +49,20 @@ function assertThrowError(actualValue, expected) {
       message =
         "expected throw failed , " + err.message + " is not " + expected[0];
     } else if (type === "object") {
-      result = err.message.includes(expected[0].message);
-      message =
-        "expected throw failed , " +
-        err.message +
-        " is not " +
-        expected[0].message;
+      if (expected[0].message) {
+        result = err.message.includes(expected[0].message);
+        message =
+          "expected throw failed , " +
+          err.message +
+          " is not " +
+          expected[0].message;
+      }
+
+      if (expected[0].code) {
+        result = err.code.includes(expected[0].code);
+        message =
+          "expected throw failed , " + err.code + " is not " + expected[0].code;
+      }
     } else if (type === "undefined") {
       result = true;
     }

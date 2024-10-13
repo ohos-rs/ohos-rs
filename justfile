@@ -7,7 +7,6 @@ init:
     cargo binstall typos-cli taplo-cli -y
 
 ready:
-    #git diff --exit-code --quiet
     typos
     cargo fmt
     just check
@@ -23,6 +22,7 @@ check:
 fmt:
     cargo fmt
     taplo format
+    npx prettier --write '**/*.(ts|js|ets)' --trailing-comma=none
 
 test:
     bash ./scripts/test.sh

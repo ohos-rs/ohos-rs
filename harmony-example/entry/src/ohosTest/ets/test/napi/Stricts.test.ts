@@ -93,17 +93,17 @@ export default () => {
 
     test("should validate date", (t) => {
       const fx = new Date("2016-12-24");
-      t.is(validateDate(new Date()), fx.valueOf());
+      t.is(validateDate(fx), fx.valueOf());
       t.is(validateDateTime(fx), 1);
 
       t.throws(() => validateDate(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expected a Date value"
+        message: "Expected a Date object"
       });
 
       t.throws(() => validateDateTime(2 as ESObject), {
         code: "InvalidArg",
-        message: "Expected a Date value"
+        message: "Expected a Date object"
       });
     });
 

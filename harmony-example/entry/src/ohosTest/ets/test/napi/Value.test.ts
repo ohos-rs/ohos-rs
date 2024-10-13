@@ -706,21 +706,23 @@ export default () => {
     });
 
     test("should throw if object type is not matched", (t) => {
-      const err1 = t.throws(() =>
-        receiveStrictObject({
-          name: 1
-        } as ESObject)
+      t.throws(
+        () =>
+          receiveStrictObject({
+            name: 1
+          } as ESObject),
+        {
+          message:
+            "Failed to convert JavaScript value `Number 1 ` into rust type `String` on StrictObject.name"
+        }
       );
-      t.is(
-        err1?.message,
-        "Failed to convert JavaScript value `Number 1 ` into rust type `String` on StrictObject.name"
+      t.throws(
+        () =>
+          receiveStrictObject({
+            bar: 1
+          } as ESObject),
+        { message: "Missing field `name`" }
       );
-      const err2 = t.throws(() =>
-        receiveStrictObject({
-          bar: 1
-        } as ESObject)
-      );
-      t.is(err2!.message, "Missing field `name`");
     });
 
     test("aliased rust struct and enum", (t) => {

@@ -32,6 +32,14 @@ class DeepTypeUtils {
     return this.isA("Function", value);
   }
 
+  static isBigInt(value) {
+    return this.isA("BigInt", value);
+  }
+
+  static isTypedArray(value) {
+    return ArrayBuffer.isView(value);
+  }
+
   /**
    * 是否是undefined
    * @param obj

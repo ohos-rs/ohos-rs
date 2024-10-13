@@ -49,7 +49,7 @@ function logMsg(actualValue, expected) {
   } else if (aClassName == "[object ArrayBuffer]") {
     actualMsg = actualValue.byteLength;
   } else {
-    actualMsg = JSON.stringify(actualValue);
+    actualMsg = String(actualValue);
   }
   if (bClassName == "[object Function]") {
     expectMsg = "expected Function";
@@ -66,7 +66,7 @@ function logMsg(actualValue, expected) {
   } else if (bClassName == "[object ArrayBuffer]") {
     expectMsg = expected.byteLength;
   } else {
-    expectMsg = JSON.stringify(expected);
+    expectMsg = String(expected);
   }
   return actualMsg + " is not deep equal " + expectMsg;
 }
@@ -83,6 +83,23 @@ function eq(a, b) {
     result = a === b;
     return result;
   }
+
+  if (DeepTypeUtils.isBigInt(a)) {
+    return a.toString() === b.toString();
+  }
+
+  if (DeepTypeUtils.isTypedArray(a)) {
+    if (a.constructor !== b.constructor || a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+      if (!eq(a[i], b[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   // 获取a的对象名称
   const aClassName = Object.prototype.toString.call(a);
   const bClassName = Object.prototype.toString.call(b);

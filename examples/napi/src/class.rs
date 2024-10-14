@@ -2,7 +2,7 @@ use napi_ohos::{
   bindgen_prelude::{
     Buffer, ClassInstance, JavaScriptClassExt, ObjectFinalize, This, Uint8Array, Unknown,
   },
-  Env, Property, Result,
+  Env, Property, PropertyAttributes, Result,
 };
 
 use crate::r#enum::Kind;
@@ -262,7 +262,7 @@ impl NinjaTurtle {
   }
 
   #[napi]
-  pub fn return_this(&self, this: This) -> This {
+  pub fn return_this<'scope>(&'scope self, this: This<'scope>) -> This<'scope> {
     this
   }
 }
@@ -402,11 +402,10 @@ impl CustomFinalize {
 }
 
 impl ObjectFinalize for CustomFinalize {
-  fn finalize(self, mut _env: Env) -> Result<()> {
+  fn finalize(self, _env: Env) -> Result<()> {
     Ok(())
   }
 }
-
 #[napi(constructor)]
 pub struct Width {
   pub value: i32,
@@ -414,7 +413,7 @@ pub struct Width {
 
 #[napi]
 pub fn plus_one(this: This<&Width>) -> i32 {
-  this.value + 1
+  this.object.value + 1
 }
 
 #[napi]
@@ -456,5 +455,32 @@ impl CatchOnConstructor2 {
   #[napi(constructor, catch_unwind)]
   pub fn new() -> Self {
     panic!("CatchOnConstructor2 panic");
+  }
+}
+
+#[napi]
+pub struct ClassWithLifetime<'a> {
+  inner: ClassInstance<'a, Animal>,
+  inner2: ClassInstance<'a, Animal>,
+}
+
+#[napi]
+impl<'scope> ClassWithLifetime<'scope> {
+  #[napi(constructor)]
+  pub fn new(env: &Env, mut this: This<'scope>) -> Result<Self> {
+    let instance = Animal {
+      kind: Kind::Cat,
+      name: "alie".to_owned(),
+    }
+    .into_instance(env)?;
+    let inner = instance.assign_to_this("inner", &mut this)?;
+    let inner2 =
+      instance.assign_to_this_with_attributes("inner2", PropertyAttributes::Default, &mut this)?;
+    Ok(Self { inner, inner2 })
+  }
+
+  #[napi]
+  pub fn get_name(&self) -> &str {
+    self.inner.get_name()
   }
 }

@@ -3,10 +3,11 @@ use napi_ohos::{
   bindgen_prelude::Function, threadsafe_function::ThreadsafeFunction, CallContext, JsObject,
   JsUndefined,
 };
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct A {
-  pub cb: ThreadsafeFunction<String, napi_ohos::JsUnknown, String, false>,
+  pub cb: Arc<ThreadsafeFunction<String, napi_ohos::JsUnknown, String, false, true>>,
 }
 
 #[js_function(1)]
@@ -15,6 +16,12 @@ pub fn constructor(ctx: CallContext) -> napi_ohos::Result<JsUndefined> {
 
   let cb: ThreadsafeFunction<String, napi_ohos::JsUnknown, String, false> =
     callback.build_threadsafe_function().build()?;
+  let cb: Arc<ThreadsafeFunction<String, napi_ohos::JsUnknown, String, false, true>> = Arc::new(
+    callback
+      .build_threadsafe_function()
+      .weak::<true>()
+      .build()?,
+  );
 
   let mut this: JsObject = ctx.this_unchecked();
   let obj = A { cb };

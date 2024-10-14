@@ -260,6 +260,7 @@ impl Env {
     Ok(unsafe { JsObject::from_raw_unchecked(self.0, raw_value) })
   }
 
+  #[cfg(not(target_env = "ohos"))]
   // #[cfg(not(target_family = "wasm"))]
   // harmony don't need to call it
   /// This function gives V8 an indication of the amount of externally allocated memory that is kept alive by JavaScript objects (i.e. a JavaScript object that points to its own memory allocated by a native module).
@@ -272,9 +273,15 @@ impl Env {
   //   check_status!(unsafe { sys::napi_adjust_external_memory(self.0, size, &mut changed) })?;
   //   Ok(changed)
   // }
+  pub fn adjust_external_memory(&self, size: i64) -> Result<i64> {
+    let mut changed = 0i64;
+    check_status!(unsafe { sys::napi_adjust_external_memory(self.0, size, &mut changed) })?;
+    Ok(changed)
+  }
+
   #[cfg(target_family = "wasm")]
   #[allow(unused_variables)]
-  pub fn adjust_external_memory(&mut self, size: i64) -> Result<i64> {
+  pub fn adjust_external_memory(&self, size: i64) -> Result<i64> {
     Ok(0)
   }
 
@@ -818,7 +825,7 @@ impl Env {
 
   #[cfg(feature = "napi3")]
   pub fn add_env_cleanup_hook<T, F>(
-    &mut self,
+    &self,
     cleanup_data: T,
     cleanup_fn: F,
   ) -> Result<CleanupEnvHook<T>>
@@ -842,7 +849,7 @@ impl Env {
   }
 
   #[cfg(feature = "napi3")]
-  pub fn remove_env_cleanup_hook<T>(&mut self, hook: CleanupEnvHook<T>) -> Result<()>
+  pub fn remove_env_cleanup_hook<T>(&self, hook: CleanupEnvHook<T>) -> Result<()>
   where
     T: 'static,
   {
@@ -1320,12 +1327,12 @@ pub(crate) unsafe extern "C" fn trampoline<
 #[cfg(feature = "napi5")]
 pub(crate) unsafe extern "C" fn trampoline_setter<
   V: FromNapiValue,
-  F: Fn(Env, crate::bindgen_runtime::Object, V) -> Result<()>,
+  F: Fn(Env, crate::bindgen_runtime::This, V) -> Result<()>,
 >(
   raw_env: sys::napi_env,
   cb_info: sys::napi_callback_info,
 ) -> sys::napi_value {
-  use crate::bindgen_runtime::Object;
+  use crate::bindgen_runtime::This;
 
   let (raw_args, raw_this, closure_data_ptr) = {
     let mut argc = 1;
@@ -1362,7 +1369,7 @@ pub(crate) unsafe extern "C" fn trampoline_setter<
     .and_then(|value| {
       closure(
         env,
-        unsafe { Object::from_raw_unchecked(raw_env, raw_this) },
+        unsafe { This::from_raw_unchecked(raw_env, raw_this) },
         value,
       )
     })
@@ -1407,7 +1414,7 @@ pub(crate) unsafe extern "C" fn trampoline_getter<
   let closure: &F = Box::leak(unsafe { Box::from_raw(closure_data_ptr.cast()) });
   let env = Env::from_raw(raw_env);
   closure(env, unsafe {
-    crate::bindgen_runtime::Object::from_raw_unchecked(raw_env, raw_this)
+    crate::bindgen_runtime::This::from_raw_unchecked(raw_env, raw_this)
   })
   .and_then(|ret: R| unsafe { <R as ToNapiValue>::to_napi_value(env.0, ret) })
   .unwrap_or_else(|e| {

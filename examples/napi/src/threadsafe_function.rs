@@ -1,4 +1,4 @@
-use std::{thread, time::Duration};
+use std::{sync::Arc, thread, time::Duration};
 
 use napi_ohos::{
   bindgen_prelude::*,
@@ -6,7 +6,9 @@ use napi_ohos::{
 };
 
 #[napi]
-pub fn call_threadsafe_function(tsfn: ThreadsafeFunction<u32, UnknownReturnValue>) -> Result<()> {
+pub fn call_threadsafe_function(
+  tsfn: Arc<ThreadsafeFunction<u32, UnknownReturnValue>>,
+) -> Result<()> {
   for n in 0..100 {
     let tsfn = tsfn.clone();
     thread::spawn(move || {

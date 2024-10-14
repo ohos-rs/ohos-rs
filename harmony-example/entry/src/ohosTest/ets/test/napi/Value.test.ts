@@ -444,11 +444,9 @@ export default () => {
       doge.name = "旺财";
       t.is(doge.name, "旺财");
 
-      const error = t.throws(() => new ClassWithFactory());
-      let a = error?.message.startsWith(
-        "Class contains no `constructor`, can not new it!"
-      );
-      t.true(a);
+      t.throws(() => new ClassWithFactory(), {
+        message: "Class contains no `constructor`, can not new it!"
+      })
     });
 
     test("async class factory", async (t) => {
@@ -809,9 +807,7 @@ export default () => {
         3n
       );
       t.is(
-        testSerdeBufferBytes({
-          code: new Uint8Array(0)
-        }),
+        testSerdeBufferBytes(),
         0n
       );
 

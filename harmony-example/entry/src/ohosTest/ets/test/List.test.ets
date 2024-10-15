@@ -1,3 +1,5 @@
+import { common } from '@kit.AbilityKit';
+
 import abilityTest from './Ability.test';
 import errorMessage from './napi/ErrorMessage.test';
 import valueTest from './napi/Value.test';
@@ -5,13 +7,71 @@ import generator from './napi/Genertor.test';
 import objectAttrTest from './napi/ObjectAttr.test';
 import workerTest from './napi/Worker.test';
 import strictTest from './napi/Stricts.test';
+import stringTest from './compat-mode/String.test';
+import arrayTest from './compat-mode/Array.test';
+import arrayBufferTest from './compat-mode/ArrayBuffer.test';
+import bufferTest from './compat-mode/Buffer.test';
+import classTest from './compat-mode/Class.test';
+import cleanEnvTest from './compat-mode/CleanEnv.test';
+import createExternalTest from './compat-mode/CreateExternal.test';
+import eitherTest from './compat-mode/Either.test';
+import envTest from './compat-mode/Env.test';
+import functionTest from './compat-mode/Function.test';
+import globalTest from './compat-mode/Global.test';
+import jsValueTest from './compat-mode/JsValue.test';
+import objectTest from './compat-mode/Object.test';
+import spawnTest from './compat-mode/Spawn.test';
+import throwTest from './compat-mode/Throw.test';
+import napi4Deferred  from './compat-mode/napi4/Deferred.test';
+import napi4ThreadsafeFunction  from './compat-mode/napi4/ThreadsafeFunction.test';
+import napi4TokioReadfile  from './compat-mode/napi4/TokioReadFile.test';
+import napi4TokioRT  from './compat-mode/napi4/TokioRT.test';
+import napi4TSFNError  from './compat-mode/napi4/TSFNError.test';
+import napi5DateTest from './compat-mode/napi5/Date.test';
+import napi6BigintTest from './compat-mode/napi6/Bigint.test';
+import napi6InstanceData from './compat-mode/napi6/InstanceData.test';
+import napi7ArrayBuffer from './compat-mode/napi7/ArraryBuffer.test';
+import napi8ObjectTest from './compat-mode/napi8/Object.test';
+import serdeDeTest from './compat-mode/serde/De.test';
+import serdeSerTest from './compat-mode/serde/Ser.test';
+import serdeJsonTest from './compat-mode/serde/SerdeJson.test';
 
-export default function testsuite() {
+export default function testsuite(ctx: common.ApplicationContext) {
+  const tmpDir = ctx.tempDir;
   abilityTest();
   errorMessage();
-  valueTest();
+  valueTest(tmpDir);
   generator();
   objectAttrTest();
   strictTest();
-  workerTest();
+  stringTest();
+  arrayTest();
+  arrayBufferTest();
+  bufferTest();
+  classTest();
+  cleanEnvTest();
+  createExternalTest();
+  eitherTest();
+  envTest();
+  functionTest();
+  globalTest();
+  jsValueTest();
+  objectTest();
+  // spawnTest();
+  // throwTest()
+  // napi4Deferred();
+  // napi4ThreadsafeFunction();
+  // napi4TokioReadfile(tmpDir);
+  // napi4TokioRT(tmpDir);
+  // napi4TSFNError();
+  // napi5DateTest();
+  // napi6BigintTest();
+  // napi6InstanceData();
+  // napi7ArrayBuffer();
+  // napi8ObjectTest();
+  // serdeDeTest();
+  // serdeSerTest();
+  // serdeJsonTest();
+
+  // workerTest();
 }

@@ -41,7 +41,12 @@ class Hypium {
     return Hypium.context.get(key);
   }
 
-  static hypiumTest(abilityDelegator, abilityDelegatorArguments, testsuite) {
+  static hypiumTest(
+    abilityDelegator,
+    abilityDelegatorArguments,
+    ctx,
+    testsuite
+  ) {
     const core = Core.getInstance();
     const expectExtend = new ExpectExtend({
       id: "extend"
@@ -65,7 +70,7 @@ class Hypium {
       console.info(`${TAG}parameters:${JSON.stringify(testParameters)}`);
       configService.setConfig(testParameters);
     }
-    testsuite();
+    testsuite(ctx);
     core.execute(abilityDelegator);
   }
   static async hypiumInitWorkers(
@@ -265,6 +270,7 @@ class Hypium {
   static hypiumWorkerTest(
     abilityDelegator,
     abilityDelegatorArguments,
+    ctx,
     testsuite,
     workerPort
   ) {
@@ -274,7 +280,12 @@ class Hypium {
     console.info(
       `${TAG}, hypiumWorkerTest_currentWorkerName: ${currentWorkerName}`
     );
-    Hypium.hypiumTest(abilityDelegator, abilityDelegatorArguments, testsuite);
+    Hypium.hypiumTest(
+      abilityDelegator,
+      abilityDelegatorArguments,
+      ctx,
+      testsuite
+    );
   }
 
   static registerAssert(customAssertion) {

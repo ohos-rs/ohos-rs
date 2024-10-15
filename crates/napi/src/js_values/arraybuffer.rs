@@ -54,7 +54,7 @@ impl TypeName for JsTypedArray {
 
 pub struct JsTypedArrayValue {
   pub arraybuffer: JsArrayBuffer,
-  data: *mut c_void,
+  pub(crate) data: *mut c_void,
   pub byte_offset: usize,
   pub length: usize,
   pub typedarray_type: TypedArrayType,

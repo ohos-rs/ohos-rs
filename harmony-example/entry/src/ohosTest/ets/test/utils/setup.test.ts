@@ -15,7 +15,7 @@ const testContext: ESObject = {
     expect(fn).not().assertThrowError(expected);
   },
   throwsAsync: async (fn: ESObject, expected: ESObject) => {
-    let ret = fn instanceof Promise ? fn : await fn();
+    let ret = fn instanceof Promise ? fn : fn();
     if (expected) {
       expect(ret).assertPromiseIsRejectedWith(expected);
     } else {
@@ -23,7 +23,7 @@ const testContext: ESObject = {
     }
   },
   notThrowsAsync: async (fn: ESObject, expected: ESObject) => {
-    let ret = fn instanceof Promise ? fn : await fn();
+    let ret = fn instanceof Promise ? fn : fn();
     if (expected) {
       expect(ret).assertPromiseIsResolvedWith(expected);
     } else {
@@ -35,6 +35,9 @@ const testContext: ESObject = {
   },
   false: (actual: ESObject, message: ESObject) => {
     expect(actual).assertEqual(false);
+  },
+  not: (actual: ESObject, expected: ESObject) => {
+    expected(actual).not().assertDeepEquals(expected);
   }
 };
 

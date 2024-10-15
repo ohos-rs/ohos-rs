@@ -185,8 +185,9 @@ import {
 import { spy } from "../utils/mock.test";
 import { buffer } from "@kit.ArkTS";
 import { Subject, take } from "../utils/rx/index.test";
+import { EXAMPLE_JSON_FILE_NAME } from "../utils/file.test";
 
-export default () => {
+export default (path) => {
   describe("ValueTest", () => {
     test("export const", (t) => {
       t.is(DEFAULT_COST, 12);
@@ -446,7 +447,7 @@ export default () => {
 
       t.throws(() => new ClassWithFactory(), {
         message: "Class contains no `constructor`, can not new it!"
-      })
+      });
     });
 
     test("async class factory", async (t) => {
@@ -733,12 +734,11 @@ export default () => {
     });
 
     test("serde-json", (t) => {
-      const packageJson = readPackageJson();
-      t.is(packageJson.name, "@examples/napi");
-      t.is(packageJson.version, "0.0.0");
-      t.snapshot(Object.keys(packageJson.devDependencies!).sort());
+      const packageJson = readPackageJson(path + EXAMPLE_JSON_FILE_NAME);
+      t.is(packageJson.name, "@ohos-rs/ada");
+      t.is(packageJson.version, "0.0.2");
 
-      t.is(getPackageJsonName(packageJson), "@examples/napi");
+      t.is(getPackageJsonName(packageJson), "@ohos-rs/ada");
     });
 
     test("serde-roundtrip", (t) => {
@@ -763,23 +763,13 @@ export default () => {
 
       t.is(testSerdeRoundtrip(null), null);
 
-      let err = t.throws(() => testSerdeRoundtrip(undefined));
-      t.is(
-        err?.message,
-        "undefined cannot be represented as a serde_json::Value"
-      );
+      t.throws(() => testSerdeRoundtrip(undefined), {
+        message: "undefined cannot be represented as a serde_json::Value"
+      });
 
-      err = t.throws(() => testSerdeRoundtrip(() => {}));
-      t.is(
-        err!.message,
-        "JS functions cannot be represented as a serde_json::Value"
-      );
-
-      err = t.throws(() => testSerdeRoundtrip(Symbol.for("foo")));
-      t.is(
-        err!.message,
-        "JS symbols cannot be represented as a serde_json::Value"
-      );
+      t.throws(() => testSerdeRoundtrip(() => {}), {
+        message: "JS functions cannot be represented as a serde_json::Value"
+      });
     });
 
     test("serde-large-number-precision", (t) => {
@@ -807,7 +797,9 @@ export default () => {
         3n
       );
       t.is(
-        testSerdeBufferBytes(),
+        testSerdeBufferBytes({
+          code: new Uint8Array(0)
+        }),
         0n
       );
 

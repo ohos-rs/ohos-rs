@@ -9,7 +9,7 @@ use crate::JsBigInt;
 use crate::{type_of, NapiValue, Value, ValueType};
 use crate::{Error, JsBoolean, JsNumber, JsObject, JsString, JsUnknown, Result, Status};
 
-use super::JsArrayBuffer;
+use super::{JsArrayBuffer, JsTypedArray};
 
 pub struct De<'env>(pub(crate) &'env Value);
 impl<'env> De<'env> {
@@ -57,9 +57,12 @@ impl<'x, 'de, 'env> serde::de::Deserializer<'x> for &'de mut De<'env> {
         } else if js_object.is_buffer()? {
           visitor.visit_bytes(&unsafe { BufferSlice::from_napi_value(self.0.env, self.0.value)? })
         } else if js_object.is_arraybuffer()? {
+          let array_buf =
+            unsafe { JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()? };
+          if array_buf.data.is_null() {
+            return visitor.visit_bytes(&[]);
+          }
           visitor.visit_bytes(unsafe {
-            let array_buf =
-              JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()?;
             core::slice::from_raw_parts(array_buf.data as *const u8, array_buf.len)
           })
         } else {
@@ -101,13 +104,29 @@ impl<'x, 'de, 'env> serde::de::Deserializer<'x> for &'de mut De<'env> {
     match type_of!(self.0.env, self.0.value)? {
       ValueType::Object => {
         let js_object = unsafe { JsObject::from_raw_unchecked(self.0.env, self.0.value) };
-        if js_object.is_buffer()? {
+        // TODO: For openharmony, we need to use JsTypedArray to convert TypedArray avoid some error
+        if js_object.is_typedarray()? {
+          let typed_array =
+            unsafe { JsTypedArray::from_raw(self.0.env, self.0.value)? }.into_value()?;
+          if typed_array.data.is_null() {
+            return visitor.visit_bytes(&[]);
+          }
+          return visitor.visit_bytes(&unsafe {
+            core::slice::from_raw_parts(
+              typed_array.data as *const u8,
+              typed_array.length * typed_array.typedarray_type.byte_len(),
+            )
+          });
+        } else if js_object.is_buffer()? {
           return visitor
             .visit_bytes(&unsafe { BufferSlice::from_napi_value(self.0.env, self.0.value)? });
         } else if js_object.is_arraybuffer()? {
+          let array_buf =
+            unsafe { JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()? };
+          if array_buf.data.is_null() {
+            return visitor.visit_bytes(&[]);
+          }
           return visitor.visit_bytes(unsafe {
-            let array_buf =
-              JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()?;
             core::slice::from_raw_parts(array_buf.data as *const u8, array_buf.len)
           });
         }
@@ -124,14 +143,30 @@ impl<'x, 'de, 'env> serde::de::Deserializer<'x> for &'de mut De<'env> {
     match type_of!(self.0.env, self.0.value)? {
       ValueType::Object => {
         let js_object = unsafe { JsObject::from_raw_unchecked(self.0.env, self.0.value) };
-        if js_object.is_buffer()? {
+        if js_object.is_typedarray()? {
+          let typed_array =
+            unsafe { JsTypedArray::from_napi_value(self.0.env, self.0.value)? }.into_value()?;
+          if typed_array.data.is_null() {
+            return visitor.visit_byte_buf(Vec::new());
+          }
+          return visitor.visit_byte_buf(unsafe {
+            core::slice::from_raw_parts(
+              typed_array.data as *const u8,
+              typed_array.length * typed_array.typedarray_type.byte_len(),
+            )
+            .to_vec()
+          });
+        } else if js_object.is_buffer()? {
           return visitor.visit_byte_buf(
             unsafe { BufferSlice::from_napi_value(self.0.env, self.0.value)? }.to_vec(),
           );
         } else if js_object.is_arraybuffer()? {
+          let array_buf =
+            unsafe { JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()? };
+          if array_buf.data.is_null() {
+            return visitor.visit_byte_buf(Vec::new());
+          }
           return visitor.visit_byte_buf(unsafe {
-            let array_buf =
-              JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()?;
             core::slice::from_raw_parts(array_buf.data as *const u8, array_buf.len).to_vec()
           });
         }

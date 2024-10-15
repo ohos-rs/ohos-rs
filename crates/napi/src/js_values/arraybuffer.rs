@@ -122,6 +122,27 @@ impl TypedArrayType {
   }
 }
 
+impl AsRef<str> for TypedArrayType {
+  fn as_ref(&self) -> &str {
+    match self {
+      TypedArrayType::Int8 => "Int8",
+      TypedArrayType::Uint8 => "Uint8",
+      TypedArrayType::Uint8Clamped => "Uint8Clamped",
+      TypedArrayType::Int16 => "Int16",
+      TypedArrayType::Uint16 => "Uint16",
+      TypedArrayType::Int32 => "Int32",
+      TypedArrayType::Uint32 => "Uint32",
+      TypedArrayType::Float32 => "Float32",
+      TypedArrayType::Float64 => "Float64",
+      #[cfg(feature = "napi6")]
+      TypedArrayType::BigInt64 => "BigInt64",
+      #[cfg(feature = "napi6")]
+      TypedArrayType::BigUint64 => "BigUint64",
+      TypedArrayType::Unknown => "Unknown",
+    }
+  }
+}
+
 impl From<sys::napi_typedarray_type> for TypedArrayType {
   fn from(value: sys::napi_typedarray_type) -> Self {
     match value {
@@ -327,6 +348,9 @@ macro_rules! impl_as_ref {
     impl AsRef<[$ref_type]> for JsTypedArrayValue {
       fn as_ref(&self) -> &[$ref_type] {
         self.is_valid_as_ref($expect_type);
+        if self.data.is_null() {
+          return &[];
+        }
         unsafe { slice::from_raw_parts(self.data as *const $ref_type, self.length) }
       }
     }
@@ -334,6 +358,9 @@ macro_rules! impl_as_ref {
     impl AsMut<[$ref_type]> for JsTypedArrayValue {
       fn as_mut(&mut self) -> &mut [$ref_type] {
         self.is_valid_as_ref($expect_type);
+        if self.data.is_null() {
+          return &mut [];
+        }
         unsafe { slice::from_raw_parts_mut(self.data as *mut $ref_type, self.length) }
       }
     }

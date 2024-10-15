@@ -15,8 +15,8 @@ struct PackageJson {
 }
 
 #[napi]
-fn read_package_json() -> Result<PackageJson> {
-  let raw = fs::read_to_string("package.json")?;
+fn read_package_json(path: String) -> Result<PackageJson> {
+  let raw = fs::read_to_string(path)?;
   let p: PackageJson = serde_json::from_str(&raw)?;
   Ok(p)
 }

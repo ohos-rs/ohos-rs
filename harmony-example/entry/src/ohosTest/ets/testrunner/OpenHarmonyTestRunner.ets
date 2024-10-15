@@ -20,6 +20,7 @@ import { resourceManager } from '@kit.LocalizationKit';
 import { util } from '@kit.ArkTS';
 import { Hypium } from '../test/utils/framework.test';
 import testsuite from '../test/List.test';
+import { writeJsonFile, writeTxtFile } from '../test/utils/file.test';
 
 let abilityDelegator: abilityDelegatorRegistry.AbilityDelegator;
 let abilityDelegatorArguments: abilityDelegatorRegistry.AbilityDelegatorArgs;
@@ -40,11 +41,14 @@ export default class OpenHarmonyTestRunner implements TestRunner {
     abilityDelegatorArguments = abilityDelegatorRegistry.getArguments();
     abilityDelegator = abilityDelegatorRegistry.getAbilityDelegator();
     let moduleName = abilityDelegatorArguments.parameters['-m'];
-    let context = abilityDelegator.getAppContext().getApplicationContext().createModuleContext(moduleName);
+    let ctx = abilityDelegator.getAppContext().getApplicationContext();
+    let context = ctx.createModuleContext(moduleName);
     let mResourceManager = context.resourceManager;
     await checkMock(abilityDelegator, mResourceManager);
     hilog.info(domain, tag, '%{public}s', 'start run testcase!!!');
-    Hypium.hypiumTest(abilityDelegator, abilityDelegatorArguments, testsuite);
+    writeTxtFile(ctx.tempDir);
+    writeJsonFile(ctx.tempDir);
+    Hypium.hypiumTest(abilityDelegator, abilityDelegatorArguments, ctx,  testsuite);
     hilog.info(domain, tag, '%{public}s', 'OpenHarmonyTestRunner onRun end');
   }
 }

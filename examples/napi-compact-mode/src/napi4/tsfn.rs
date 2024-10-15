@@ -15,7 +15,7 @@ pub fn test_threadsafe_function(ctx: CallContext) -> Result<JsUndefined> {
   let tsfn = Arc::new(
     func
       .build_threadsafe_function()
-      .callee_handled::<true>()
+      .callee_handled::<false>()
       .build()?,
   );
 
@@ -24,13 +24,13 @@ pub fn test_threadsafe_function(ctx: CallContext) -> Result<JsUndefined> {
   thread::spawn(move || {
     let output: Vec<u32> = vec![0, 1, 2, 3];
     // It's okay to call a threadsafe function multiple times.
-    tsfn.call(Ok(output), ThreadsafeFunctionCallMode::Blocking);
+    tsfn.call(output, ThreadsafeFunctionCallMode::Blocking);
   });
 
   thread::spawn(move || {
     let output: Vec<u32> = vec![3, 2, 1, 0];
     // It's okay to call a threadsafe function multiple times.
-    tsfn_cloned.call(Ok(output), ThreadsafeFunctionCallMode::NonBlocking);
+    tsfn_cloned.call(output, ThreadsafeFunctionCallMode::NonBlocking);
   });
 
   ctx.env.get_undefined()

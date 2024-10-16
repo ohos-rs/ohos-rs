@@ -34,13 +34,16 @@ use crate::module::Module;
 #[cfg(feature = "napi3")]
 use crate::JsError;
 use crate::{
-  async_work::{self, AsyncWorkPromise, AsyncWorkQos},
+  async_work::{self, AsyncWorkPromise},
   check_status,
   js_values::*,
   sys,
   task::Task,
   Error, ExtendedErrorInfo, NodeVersion, Result, Status, ValueType,
 };
+
+#[cfg(target_env = "ohos")]
+use crate::async_work::AsyncWorkQos;
 
 pub type Callback = unsafe extern "C" fn(sys::napi_env, sys::napi_callback_info) -> sys::napi_value;
 

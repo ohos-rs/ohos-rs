@@ -13,11 +13,11 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi-ohos        = { version = "1.0.0-beta.8" }
-napi-derive-ohos = { version = "1.0.0-beta.8" }
+napi-ohos        = { version = "1.0.0" }
+napi-derive-ohos = { version = "1.0.0" }
 
 [build-dependencies]
-napi-build-ohos = { version = "1.0.0-beta.8" }
+napi-build-ohos = { version = "1.0.0" }
 
 [profile.release]
 lto = true

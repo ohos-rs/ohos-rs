@@ -93,6 +93,7 @@ mod version;
 
 pub use napi_sys_ohos as sys;
 #[allow(unused_imports)]
+#[cfg(target_env = "ohos")]
 pub use ohos::*;
 
 pub use async_work::{AsyncWorkPromise, AsyncWorkQos};

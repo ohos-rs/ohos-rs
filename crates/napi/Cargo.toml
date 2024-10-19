@@ -59,6 +59,7 @@ tokio_signal       = ["tokio/signal"]
 tokio_sync         = ["tokio/sync"]
 tokio_test_util    = ["tokio/test-util"]
 tokio_time         = ["tokio/time"]
+tokio_tracing      = ["tokio/tracing"]
 dyn-symbols        = ["napi-sys-ohos/dyn-symbols"]
 
 [dependencies]

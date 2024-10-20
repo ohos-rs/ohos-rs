@@ -68,7 +68,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   let mut rust_flags = format!("-Clink-args={}", &base_flags);
 
   if !args.is_empty() {
-    rust_flags = format!("{} {}", &rust_flags, &args)
+    rust_flags = format!("{}\x1f{}", &rust_flags, &args)
   }
 
   let prepare_env = HashMap::from([

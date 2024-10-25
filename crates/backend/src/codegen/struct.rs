@@ -650,7 +650,9 @@ impl NapiStruct {
         #[automatically_derived]
         #to_napi_value_impl {
           unsafe fn to_napi_value(env: napi_ohos::bindgen_prelude::sys::napi_env, val: #name_with_lifetime) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
+            #[allow(unused_variables)]
             let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
+            #[allow(unused_mut)]
             let mut obj = env_wrapper.create_object()?;
 
             let #destructed_fields = val;
@@ -677,7 +679,9 @@ impl NapiStruct {
             env: napi_ohos::bindgen_prelude::sys::napi_env,
             napi_val: napi_ohos::bindgen_prelude::sys::napi_value
           ) -> napi_ohos::bindgen_prelude::Result<#return_type> {
+            #[allow(unused_variables)]
             let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
+            #[allow(unused_mut)]
             let mut obj = napi_ohos::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
 
             #(#obj_field_getters)*
@@ -1027,7 +1031,9 @@ impl NapiStruct {
       quote! {
         impl napi_ohos::bindgen_prelude::ToNapiValue for #name {
           unsafe fn to_napi_value(env: napi_ohos::bindgen_prelude::sys::napi_env, val: #name) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
+            #[allow(unused_variables)]
             let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
+            #[allow(unused_mut)]
             let mut obj = env_wrapper.create_object()?;
             match val {
               #(#variant_arm_setters)*
@@ -1048,7 +1054,9 @@ impl NapiStruct {
             env: napi_ohos::bindgen_prelude::sys::napi_env,
             napi_val: napi_ohos::bindgen_prelude::sys::napi_value
           ) -> napi_ohos::bindgen_prelude::Result<Self> {
+            #[allow(unused_variables)]
             let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
+            #[allow(unused_mut)]
             let mut obj = napi_ohos::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
             let type_: String = obj.get(#discriminant).map_err(|mut err| {
               err.reason = format!("{} on {}.{}", err.reason, #name_str, #discriminant);

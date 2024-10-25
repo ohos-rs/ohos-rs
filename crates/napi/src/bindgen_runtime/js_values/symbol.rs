@@ -1,5 +1,6 @@
 #![cfg(not(target_env = "ohos"))]
 
+use std::ptr;
 use std::{ffi::CString, ptr};
 
 use crate::{check_status, sys};
@@ -70,10 +71,9 @@ impl ToNapiValue for Symbol {
           Some(desc) => {
             let mut desc_string = ptr::null_mut();
             let desc_len = desc.len();
-            let desc_c_string = CString::new(desc)?;
             check_status!(sys::napi_create_string_utf8(
               env,
-              desc_c_string.as_ptr(),
+              desc.as_ptr().cast(),
               desc_len,
               &mut desc_string
             ))?;

@@ -387,6 +387,8 @@ export declare function eitherStringOrNumber(input: string | number): number
 
 export declare function enumToI32(e: CustomNumEnum): number
 
+export declare function errorMessageContainsNullByte(msg: string): void
+
 export declare function f32ArrayToArray(input: Float32Array): Array<number>
 
 export declare function f64ArrayToArray(input: Float64Array): Array<number>
@@ -631,50 +633,31 @@ export declare function withoutAbortController(a: number, b: number): Promise<nu
 
 export declare function xxh64Alias(input: ArrayBuffer): bigint
 
-export declare class CatchOnConstructor2 {
-  constructor()
+export declare class NotWritableClass {
+  name: string
+  constructor(name: string)
+  setName(name: string): void
 }
 
-export declare class CustomFinalize {
-  constructor(width: number, height: number)
+/** Smoking test for type generation */
+export declare class Blake2BHasher {
+  static withKey(key: Blake2bKey): Blake2BHasher
+  update(data: ArrayBuffer): void
 }
-
-export declare class AnotherCssStyleSheet {
-  get rules(): CssRuleList
-}
-export type AnotherCSSStyleSheet = AnotherCssStyleSheet
-
-export declare class CustomStruct {
-  static customStatusCodeForFactory(): CustomStruct
-  constructor()
-}
+export type Blake2bHasher = Blake2BHasher
 
 export declare class CatchOnConstructor {
   constructor()
 }
 
-export declare class Width {
-  value: number
-  constructor(value: number)
-}
-
-export declare class AnimalWithDefaultConstructor {
+export declare class Dog {
   name: string
-  kind: number
-  constructor(name: string, kind: number)
+  constructor(name: string)
 }
 
-export declare class Context {
-  maybeNeed?: boolean
-  buffer: Uint8Array
-  constructor()
-  static withData(data: string): Context
-  static withBuffer(buf: Uint8Array): Context
-  method(): string
-}
-
-export declare class AnotherClassForEither {
-  constructor()
+export declare class JsRemote {
+  constructor(repo: JsRepo)
+  name(): string
 }
 
 export declare class ClassWithLifetime {
@@ -682,14 +665,46 @@ export declare class ClassWithLifetime {
   getName(): string
 }
 
-export declare class Fib2 {
-  static create(seed: number): Fib2
+export declare class Selector {
+  orderBy: Array<string>
+  select: Array<string>
+  struct: string
+  where?: string
+  constructor(orderBy: Array<string>, select: Array<string>, struct: string, where?: string)
+}
+
+export declare class AnotherClassForEither {
+  constructor()
+}
+
+export declare class Fib3 {
+  current: number
+  next: number
+  constructor(current: number, next: number)
   [Symbol.iterator](): Iterator<number, void, number>
 }
 
-export declare class JsRepo {
-  constructor(dir: string)
-  remote(): JsRemote
+export declare class JsClassForEither {
+  constructor()
+}
+
+export declare class Assets {
+  constructor()
+  get(id: number): JsAsset | null
+}
+export type JsAssets = Assets
+
+export declare class CustomStruct {
+  static customStatusCodeForFactory(): CustomStruct
+  constructor()
+}
+
+export declare class ClassWithFactory {
+  name: string
+  static withName(name: string): ClassWithFactory
+  static with4Name(name: string): Promise<ClassWithFactory>
+  static with4NameResult(name: string): Promise<ClassWithFactory>
+  setName(name: string): this
 }
 
 export declare class NotUseNullableClass {
@@ -700,18 +715,19 @@ export declare class NotUseNullableClass {
   constructor(requiredNumberField: number, requiredStringField: string, optionalNumberField?: number, optionalStringField?: string)
 }
 
-export declare class JsRemote {
-  constructor(repo: JsRepo)
-  name(): string
+export declare class Optional {
+  static optionEnd(required: string, optional?: string | undefined | null): string
+  static optionStart(optional: string | undefined | null, required: string): string
+  static optionStartEnd(optional1: string | undefined | null, required: string, optional2?: string | undefined | null): string
+  static optionOnly(optional?: string | undefined | null): string
 }
 
-export declare class Dog {
-  name: string
-  constructor(name: string)
-}
-
-export declare class GetterSetterWithClosures {
-  constructor()
+export declare class UseNullableClass {
+  requiredNumberField: number
+  requiredStringField: string
+  nullableNumberField: number | null
+  nullableStringField: string | null
+  constructor(requiredNumberField: number, requiredStringField: string, nullableNumberField: number | null, nullableStringField: string | null)
 }
 
 export declare class NinjaTurtle {
@@ -724,10 +740,23 @@ export declare class NinjaTurtle {
   returnThis(): this
 }
 
-export declare class Reader {
-
+export declare class CatchOnConstructor2 {
   constructor()
-  read(): ArrayBuffer
+}
+
+export declare class CssRuleList {
+  getRules(): Array<string>
+  get parentStyleSheet(): CSSStyleSheet
+  get name(): string | null
+}
+export type CSSRuleList = CssRuleList
+
+export declare class Bird {
+  name: string
+  constructor(name: string)
+  getCount(): number
+  getNameAsync(): Promise<string>
+  acceptSliceMethod(slice: Uint8Array): number
 }
 
 export declare class CssStyleSheet {
@@ -737,31 +766,56 @@ export declare class CssStyleSheet {
 }
 export type CSSStyleSheet = CssStyleSheet
 
-export declare class Fib3 {
-  current: number
-  next: number
-  constructor(current: number, next: number)
-  [Symbol.iterator](): Iterator<number, void, number>
+export declare class Blake2BKey {
+
+}
+export type Blake2bKey = Blake2BKey
+
+export declare class DefaultUseNullableClass {
+  requiredNumberField: number
+  requiredStringField: string
+  optionalNumberField?: number
+  optionalStringField?: string
+  constructor(requiredNumberField: number, requiredStringField: string, optionalNumberField?: number, optionalStringField?: string)
 }
 
-export declare class Optional {
-  static optionEnd(required: string, optional?: string | undefined | null): string
-  static optionStart(optional: string | undefined | null, required: string): string
-  static optionStartEnd(optional1: string | undefined | null, required: string, optional2?: string | undefined | null): string
-  static optionOnly(optional?: string | undefined | null): string
+export declare class Context {
+  maybeNeed?: boolean
+  buffer: Uint8Array
+  constructor()
+  static withData(data: string): Context
+  static withBuffer(buf: Uint8Array): Context
+  method(): string
 }
 
 export declare class Fib {
-  [Symbol.iterator](): Iterator<number, void, number>
   constructor()
+  [Symbol.iterator](): Iterator<number, void, number>
 }
 
-export declare class UseNullableClass {
-  requiredNumberField: number
-  requiredStringField: string
-  nullableNumberField: number | null
-  nullableStringField: string | null
-  constructor(requiredNumberField: number, requiredStringField: string, nullableNumberField: number | null, nullableStringField: string | null)
+export declare class Asset {
+  constructor()
+  get filePath(): number
+}
+export type JsAsset = Asset
+
+export declare class Width {
+  value: number
+  constructor(value: number)
+}
+
+export declare class CustomFinalize {
+  constructor(width: number, height: number)
+}
+
+export declare class Fib2 {
+  [Symbol.iterator](): Iterator<number, void, number>
+  static create(seed: number): Fib2
+}
+
+export declare class JsRepo {
+  constructor(dir: string)
+  remote(): JsRemote
 }
 
 /**
@@ -799,78 +853,26 @@ export declare class Animal {
   overrideIndividualArgOnMethod(normalTy: string, overriddenTy: {n: string}): Bird
 }
 
-export declare class DefaultUseNullableClass {
-  requiredNumberField: number
-  requiredStringField: string
-  optionalNumberField?: number
-  optionalStringField?: string
-  constructor(requiredNumberField: number, requiredStringField: string, optionalNumberField?: number, optionalStringField?: string)
-}
-
-export declare class ClassWithFactory {
+export declare class AnimalWithDefaultConstructor {
   name: string
-  static withName(name: string): ClassWithFactory
-  static with4Name(name: string): Promise<ClassWithFactory>
-  static with4NameResult(name: string): Promise<ClassWithFactory>
-  setName(name: string): this
+  kind: number
+  constructor(name: string, kind: number)
 }
 
-/** Smoking test for type generation */
-export declare class Blake2BHasher {
-  update(data: ArrayBuffer): void
-  static withKey(key: Blake2bKey): Blake2BHasher
+export declare class AnotherCssStyleSheet {
+  get rules(): CssRuleList
 }
-export type Blake2bHasher = Blake2BHasher
+export type AnotherCSSStyleSheet = AnotherCssStyleSheet
 
-export declare class NotWritableClass {
-  name: string
-  constructor(name: string)
-  setName(name: string): void
-}
-
-export declare class Bird {
-  name: string
-  constructor(name: string)
-  getCount(): number
-  getNameAsync(): Promise<string>
-  acceptSliceMethod(slice: Uint8Array): number
-}
-
-export declare class Blake2BKey {
-
-}
-export type Blake2bKey = Blake2BKey
-
-export declare class JsClassForEither {
+export declare class GetterSetterWithClosures {
   constructor()
 }
 
-export declare class Assets {
+export declare class Reader {
+
   constructor()
-  get(id: number): JsAsset | null
+  read(): ArrayBuffer
 }
-export type JsAssets = Assets
-
-export declare class Asset {
-  constructor()
-  get filePath(): number
-}
-export type JsAsset = Asset
-
-export declare class Selector {
-  orderBy: Array<string>
-  select: Array<string>
-  struct: string
-  where?: string
-  constructor(orderBy: Array<string>, select: Array<string>, struct: string, where?: string)
-}
-
-export declare class CssRuleList {
-  getRules(): Array<string>
-  get parentStyleSheet(): CSSStyleSheet
-  get name(): string | null
-}
-export type CSSRuleList = CssRuleList
 
 export namespace xxh2 {
   export function xxh2Plus(a: number, b: number): number

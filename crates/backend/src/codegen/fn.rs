@@ -135,7 +135,7 @@ impl TryToTokens for NapiFn {
     };
 
     let function_call_inner = quote! {
-      napi_ohos::bindgen_prelude::CallbackInfo::<#args_len>::new(env, cb, None, #use_after_async).and_then(|mut cb| {
+      napi_ohos::bindgen_prelude::CallbackInfo::<#args_len>::new(env, cb, None, #use_after_async).and_then(|#[allow(unused_mut)] mut cb| {
           let __wrapped_env = napi_ohos::bindgen_prelude::Env::from(env);
           #build_ref_container
           #(#arg_conversions)*
@@ -466,6 +466,11 @@ impl NapiFn {
             if let Some(syn::PathSegment { ident, .. }) = ele.path.segments.last() {
               if ident == "Env" {
                 return Ok((quote! {}, NapiArgType::Env));
+              } else if ident == "str" {
+                bail_span!(
+                  elem,
+                  "JavaScript String is primitive and cannot be passed by reference"
+                );
               }
             }
           }

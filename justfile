@@ -26,3 +26,6 @@ fmt:
 
 test:
     bash ./scripts/test.sh
+
+zig-build:
+    bash ./scripts/zig-build.sh

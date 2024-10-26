@@ -13,7 +13,10 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi-ohos        = { version = "1.0.0" }
+napi-ohos = { version = "1.0.0", default-features = false, features = [
+    "napi8",
+    "async",
+] }
 napi-derive-ohos = { version = "1.0.0" }
 
 [build-dependencies]

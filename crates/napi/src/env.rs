@@ -1094,6 +1094,30 @@ impl Env {
     Ok(Module::new(self.0, module))
   }
 
+  /// load builtin module or user's module with module info
+  /// ```rust
+  /// #[napi]
+  /// pub fn load_test(env: Env) -> Result<()> {
+  ///   let log = env.load_with_info("@ohos-rs/crc32", "com.example.myapplication/entry")?;
+  ///   Ok(())
+  /// }
+  /// ```
+  #[cfg(target_env = "ohos")]
+  pub fn load_with_info<T: AsRef<str>>(&self, path: T, info: T) -> Result<Module> {
+    let c_path = CString::new(path.as_ref())?;
+    let c_info = CString::new(info.as_ref())?;
+    let mut module = ptr::null_mut();
+    check_pending_exception!(self.0, unsafe {
+      napi_sys_ohos::napi_load_module_with_info(
+        self.0,
+        c_path.as_ptr(),
+        c_info.as_ptr().cast(),
+        &mut module,
+      )
+    })?;
+    Ok(Module::new(self.0, module))
+  }
+
   /// ### Serialize `Rust Struct` into `JavaScript Value`
   ///
   /// ```

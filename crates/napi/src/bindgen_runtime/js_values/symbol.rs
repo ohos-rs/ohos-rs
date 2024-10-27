@@ -1,6 +1,5 @@
 #![cfg(not(target_env = "ohos"))]
 
-use std::ptr;
 use std::{ffi::CString, ptr};
 
 use crate::{check_status, sys};

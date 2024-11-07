@@ -103,3 +103,7 @@ pub unsafe fn setup() -> libloading::Library {
     Ok(l) => l,
   }
 }
+
+/// On OpenHarmony we need to link against `ace_napi.z`.
+#[cfg_attr(target_env = "ohos", link(name = "ace_napi.z"))]
+extern "C" {}

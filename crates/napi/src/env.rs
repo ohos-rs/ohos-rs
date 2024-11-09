@@ -182,11 +182,11 @@ impl Env {
   }
 
   pub fn create_string(&self, s: &str) -> Result<JsString> {
-    unsafe { self.create_string_from_c_char(s.as_ptr().cast(), s.len()) }
+    unsafe { self.create_string_from_c_char(s.as_ptr().cast(), s.len() as isize) }
   }
 
   pub fn create_string_from_std(&self, s: String) -> Result<JsString> {
-    unsafe { self.create_string_from_c_char(s.as_ptr().cast(), s.len()) }
+    unsafe { self.create_string_from_c_char(s.as_ptr().cast(), s.len() as isize) }
   }
 
   /// This API is used for C ffi scenario.
@@ -198,7 +198,7 @@ impl Env {
   pub unsafe fn create_string_from_c_char(
     &self,
     data_ptr: *const c_char,
-    len: usize,
+    len: isize,
   ) -> Result<JsString> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_string_utf8(self.0, data_ptr, len, &mut raw_value) })?;
@@ -208,7 +208,7 @@ impl Env {
   pub fn create_string_utf16(&self, chars: &[u16]) -> Result<JsString> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
-      sys::napi_create_string_utf16(self.0, chars.as_ptr(), chars.len(), &mut raw_value)
+      sys::napi_create_string_utf16(self.0, chars.as_ptr(), chars.len() as isize, &mut raw_value)
     })?;
     Ok(unsafe { JsString::from_raw_unchecked(self.0, raw_value) })
   }
@@ -216,7 +216,12 @@ impl Env {
   pub fn create_string_latin1(&self, chars: &[u8]) -> Result<JsString> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
-      sys::napi_create_string_latin1(self.0, chars.as_ptr().cast(), chars.len(), &mut raw_value)
+      sys::napi_create_string_latin1(
+        self.0,
+        chars.as_ptr().cast(),
+        chars.len() as isize,
+        &mut raw_value,
+      )
     })?;
     Ok(unsafe { JsString::from_raw_unchecked(self.0, raw_value) })
   }
@@ -440,7 +445,7 @@ impl Env {
       sys::napi_create_function(
         self.0,
         name.as_ptr().cast(),
-        len,
+        len as isize,
         Some(callback),
         ptr::null_mut(),
         &mut raw_result,
@@ -468,7 +473,7 @@ impl Env {
       sys::napi_create_function(
         self.0,
         name.as_ptr().cast(),
-        len,
+        len as isize,
         Some(trampoline::<Return, F>),
         closure_data_ptr.cast(), // We let it borrow the data here
         &mut raw_result,
@@ -578,17 +583,13 @@ impl Env {
   pub fn fatal_error(self, location: &str, message: &str) {
     let location_len = location.len();
     let message_len = message.len();
-    let location =
-      CString::new(location).expect(format!("Convert [{}] to CString failed", location).as_str());
-    let message =
-      CString::new(message).expect(format!("Convert [{}] to CString failed", message).as_str());
 
     unsafe {
       sys::napi_fatal_error(
-        location.as_ptr(),
-        location_len,
-        message.as_ptr(),
-        message_len,
+        location.as_ptr().cast(),
+        location_len as isize,
+        message.as_ptr().cast(),
+        message_len as isize,
       )
     }
   }
@@ -616,12 +617,11 @@ impl Env {
       .iter()
       .map(|prop| prop.raw())
       .collect::<Vec<sys::napi_property_descriptor>>();
-    let c_name = CString::new(name)?;
     check_status!(unsafe {
       sys::napi_define_class(
         self.0,
-        c_name.as_ptr().cast(),
-        name.len(),
+        name.as_ptr().cast(),
+        name.len() as isize,
         Some(constructor_cb),
         ptr::null_mut(),
         raw_properties.len(),
@@ -704,20 +704,6 @@ impl Env {
         ))
       }
     }
-  }
-
-  /// This API create a new reference with the initial 1 ref count to the Object passed in.
-  pub fn create_reference<T>(&self, value: &T) -> Result<Ref<T>>
-  where
-    T: NapiRaw,
-  {
-    let mut raw_ref = ptr::null_mut();
-    let initial_ref_count = 1;
-    let raw_value = unsafe { value.raw() };
-    check_status!(unsafe {
-      sys::napi_create_reference(self.0, raw_value, initial_ref_count, &mut raw_ref)
-    })?;
-    Ref::new(self, value)
   }
 
   /// Get reference value from `Ref` with type check
@@ -1045,10 +1031,13 @@ impl Env {
   #[cfg(feature = "napi9")]
   pub fn symbol_for(&self, description: &str) -> Result<JsSymbol> {
     let mut result = ptr::null_mut();
-    let len = description.len();
-    let description = CString::new(description)?;
     check_status!(unsafe {
-      sys::node_api_symbol_for(self.0, description.as_ptr(), len, &mut result)
+      sys::node_api_symbol_for(
+        self.0,
+        description.as_ptr().cast(),
+        description.len() as isize,
+        &mut result,
+      )
     })?;
 
     Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })

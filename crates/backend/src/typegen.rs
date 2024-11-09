@@ -142,6 +142,8 @@ static KNOWN_TYPES: LazyLock<HashMap<&'static str, (&'static str, bool, bool)>> 
     ("HashMap", ("Record<{}, {}>", false, false)),
     ("BTreeMap", ("Record<{}, {}>", false, false)),
     ("IndexMap", ("Record<{}, {}>", false, false)),
+    ("HashSet", ("Set<{}>", false, false)),
+    ("BTreeSet", ("Set<{}>", false, false)),
     ("ArrayBuffer", ("ArrayBuffer", false, false)),
     ("JsArrayBuffer", ("ArrayBuffer", false, false)),
     ("Int8Array", ("Int8Array", false, false)),
@@ -394,6 +396,13 @@ pub fn ty_to_ts_type(
               Some((rust_ty, false))
             }
           });
+        } else if rust_ty == "AsyncBlock" {
+          if let Some(arg) = args.first() {
+            ts_ty = Some((format!("Promise<{}>", arg.0), false));
+          } else {
+            // Not NAPI-RS `AsyncBlock`
+            ts_ty = Some((rust_ty, false));
+          }
         } else if let Some(&(known_ty, _, _)) = KNOWN_TYPES.get(rust_ty.as_str()) {
           if rust_ty == "()" && is_return_ty {
             ts_ty = Some(("void".to_owned(), false));

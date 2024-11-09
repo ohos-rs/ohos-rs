@@ -137,7 +137,7 @@ impl ToNapiValue for Number {
           return unsafe { BigInt::to_napi_value(env, BigInt::from(n)) };
         }
 
-        #[cfg(feature = "napi6")]
+        #[cfg(not(feature = "napi6"))]
         return unsafe { String::to_napi_value(env, n.to_string()) };
       } else {
         unsafe { u32::to_napi_value(env, n as u32) }
@@ -145,7 +145,6 @@ impl ToNapiValue for Number {
     }
   }
 }
-
 impl FromNapiValue for Number {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     let n = unsafe { f64::from_napi_value(env, napi_val)? };

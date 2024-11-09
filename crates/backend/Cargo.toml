@@ -14,7 +14,7 @@ independent = true
 [features]
 noop     = []
 strict   = []
-type-def = ["regex"]
+type-def = ["semver"]
 
 [dependencies]
 convert_case = "0.6"
@@ -23,6 +23,6 @@ once_cell    = "1"
 quote        = "1"
 syn          = { version = "2", features = ["fold", "full", "extra-traits"] }
 
-[dependencies.regex]
+[dependencies.semver]
 optional = true
 version  = "1"

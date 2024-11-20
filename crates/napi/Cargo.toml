@@ -12,7 +12,7 @@ name = "napi-ohos"
 readme = "README.md"
 repository = "https://github.com/ohos-rs/ohos-rs"
 rust-version = "1.80"
-version = "1.0.2"
+version = "1.0.3"
 
 [lib]
 doctest = false
@@ -61,6 +61,8 @@ tokio_test_util    = ["tokio/test-util"]
 tokio_time         = ["tokio/time"]
 tokio_tracing      = ["tokio/tracing"]
 dyn-symbols        = ["napi-sys-ohos/dyn-symbols"]
+# Add a runtime Node version detection
+node_version_detect = []
 
 [dependencies]
 bitflags = "2"
@@ -72,7 +74,7 @@ version  = "1"
 
 [dependencies.napi-sys-ohos]
 path    = "../sys"
-version = "1.0.2"
+version = "1.0.3"
 
 [dependencies.encoding_rs]
 optional = true

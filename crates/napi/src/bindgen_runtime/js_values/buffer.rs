@@ -62,13 +62,18 @@ impl<'scope> BufferSlice<'scope> {
     };
     status = if status == sys::Status::napi_no_external_buffers_allowed {
       unsafe {
-        sys::napi_create_buffer_copy(
-          env.0,
-          len,
-          data.as_mut_ptr().cast(),
-          ptr::null_mut(),
-          &mut buf,
-        )
+        // TODO: napi_create_buffer_copy will check data is not null and throw error
+        if len == 0 {
+          sys::napi_create_arraybuffer(env.0, 0, ptr::null_mut(), &mut buf)
+        } else {
+          sys::napi_create_buffer_copy(
+            env.0,
+            len,
+            data.as_mut_ptr().cast(),
+            ptr::null_mut(),
+            &mut buf,
+          )
+        }
       }
     } else {
       status
@@ -140,6 +145,7 @@ impl<'scope> BufferSlice<'scope> {
     };
     status = if status == sys::Status::napi_no_external_buffers_allowed {
       let (hint, finalize) = *Box::from_raw(hint_ptr);
+      // Already sure data is not empty
       let status =
         unsafe { sys::napi_create_buffer_copy(env.0, len, data.cast(), ptr::null_mut(), &mut buf) };
       finalize(hint, *env);
@@ -169,7 +175,11 @@ impl<'scope> BufferSlice<'scope> {
     let mut result_ptr = ptr::null_mut();
     check_status!(
       unsafe {
-        sys::napi_create_buffer_copy(env.0, len, data_ptr.cast(), &mut result_ptr, &mut buf)
+        if len == 0 {
+          sys::napi_create_arraybuffer(env.0, len, ptr::null_mut(), &mut buf)
+        } else {
+          sys::napi_create_buffer_copy(env.0, len, data_ptr.cast(), &mut result_ptr, &mut buf)
+        }
       },
       "Faild to create a buffer from copied data"
     )?;

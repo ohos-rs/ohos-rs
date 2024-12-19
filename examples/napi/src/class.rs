@@ -176,7 +176,7 @@ pub struct Context {
   pub buffer: Uint8Array,
 }
 
-// Test for return `napi::Result` and `Result`
+// Test for return `napi_ohos::Result` and `Result`
 #[napi]
 impl Context {
   #[napi(constructor)]

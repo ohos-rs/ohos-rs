@@ -1,4 +1,4 @@
-use napi::Either;
+use napi_ohos::Either;
 
 #[napi(transparent)]
 struct MyVec(Vec<Either<u32, String>>);

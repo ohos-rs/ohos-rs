@@ -150,12 +150,12 @@ struct ThreadsafeFunctionCallJsBackData<T, Return = Unknown> {
 /// use std::thread;
 /// use std::sync::Arc;
 ///
-/// use napi::{
+/// use napi_ohos::{
 ///     threadsafe_function::{
 ///         ThreadSafeCallContext, ThreadsafeFunctionCallMode, ThreadsafeFunctionReleaseMode,
 ///     },
 /// };
-/// use napi_derive::napi;
+/// use napi_derive_ohos::napi;
 ///
 /// #[napi]
 /// pub fn call_threadsafe_function(callback: Arc<ThreadsafeFunction<(u32, bool, String), ()>>) {

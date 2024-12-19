@@ -51,9 +51,9 @@ static USER_DEFINED_RT: OnceLock<Mutex<Option<Runtime>>> = OnceLock::new();
 /// ### Example
 /// ```no_run
 /// use tokio::runtime::Builder;
-/// use napi::create_custom_tokio_runtime;
+/// use napi_ohos::create_custom_tokio_runtime;
 ///
-/// #[napi::module_init]
+/// #[napi_ohos::module_init]
 /// fn init() {
 ///    let rt = Builder::new_multi_thread().enable_all().thread_stack_size(32 * 1024 * 1024).build().unwrap();
 ///    create_custom_tokio_runtime(rt);

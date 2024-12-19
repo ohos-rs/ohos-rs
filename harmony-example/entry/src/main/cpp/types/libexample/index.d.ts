@@ -431,13 +431,21 @@ export declare function getGlobal(): typeof global
 
 export declare function getIndexMapping(): Record<string, number>
 
+export declare function getIndexMappingWithHasher(): Record<string, number>
+
 export declare function getMapping(): Record<string, number>
 
+export declare function getMappingWithHasher(): Record<string, number>
+
 export declare function getModuleFileName(): string
+
+export declare function getMyVec(): MyVec
 
 export declare function getNestedNumArr(): number[][][]
 
 export declare function getNull(): null
+
+export declare function getNullByteProperty(obj: object): string | null
 
 export declare function getNumArr(): number[]
 
@@ -466,6 +474,28 @@ export declare function i8ArrayToArray(input: Int8Array): Array<number>
 
 export declare function indexmapPassthrough(fixture: Record<string, number>): Record<string, number>
 
+export declare function jsErrorCallback(value: unknown): Array<Error>
+
+/** default enum values are continuos i32s start from 0 */
+export declare const enum Kind {
+  /** Barks */
+  Dog = 0,
+  /** Kills birds */
+  Cat = 1,
+  /** Tasty */
+  Duck = 2
+}
+
+/** default enum values are continuos i32s start from 0 */
+export declare const enum KindInValidate {
+  /** Barks */
+  Dog = 0,
+  /** Kills birds */
+  Cat = 1,
+  /** Tasty */
+  Duck = 2
+}
+
 export declare function listObjKeys(obj: object): Array<string>
 
 export declare function mapOption(val?: number | undefined | null): number | null
@@ -475,6 +505,24 @@ export declare function mutateExternal(external: ExternalObject<number>, newVal:
 export declare function mutateOptionalExternal(external: ExternalObject<number> | undefined | null, newVal: number): void
 
 export declare function mutateTypedArray(input: Float32Array): void
+
+export type MyVec =
+  Array<number | string>
+
+export interface NotUseNullableStruct {
+  requiredNumberField: number
+  requiredStringField: string
+  optionalNumberField?: number
+  optionalStringField?: string
+}
+
+export interface Obj {
+  v: string | number
+}
+
+export interface ObjectFieldClassInstance {
+  bird: Bird
+}
 
 export declare function objectGetNamedPropertyShouldPerformTypecheck(obj: { foo: number; bar: string; }): void
 
@@ -490,6 +538,17 @@ export declare function overrideIndividualArgOnFunction(notOverridden: string, f
 
 export declare function overrideIndividualArgOnFunctionWithCbArg(callback: (town: string, name?: string | undefined | null) => string, notOverridden: number): object
 
+export declare function overrideWholeFunctionType(operation: 'add' | 'subtract' | 'multiply', a: number, b: number): number
+
+/** This is an interface for package.json */
+export interface PackageJson {
+  name: string
+  /** The version of the package */
+  version: string
+  dependencies?: Record<string, any>
+  devDependencies?: Record<string, any>
+}
+
 export declare function panic(): void
 
 export declare function panicInAsync(): Promise<void>
@@ -497,6 +556,14 @@ export declare function panicInAsync(): Promise<void>
 export declare function passSetToJs(): Set<string>
 
 export declare function passSetToRust(set: Set<string>): void
+
+export declare function passSetWithHasherToJs(): Set<string>
+
+export interface Pet {
+  name: string
+  kind: number
+  eitherTsfn: string | ((err: Error | null, arg: number) => number)
+}
 
 export declare function plusOne(this: Width): number
 
@@ -550,6 +617,14 @@ export declare function returnUndefinedIfInvalidPromise(input: Promise<boolean>)
 export declare function roundtripStr(s: string): string
 
 export declare function runScript(script: string): unknown
+
+export declare function setNullByteProperty(obj: object): void
+
+export declare function setSymbolInObj(symbol: symbol): object
+
+export interface Shared {
+  value: number
+}
 
 export declare function spawnThreadInThread(tsfn: ((err: Error | null, arg: number) => number)): void
 

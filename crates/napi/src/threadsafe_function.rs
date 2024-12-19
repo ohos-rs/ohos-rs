@@ -150,12 +150,12 @@ struct ThreadsafeFunctionCallJsBackData<T, Return = Unknown> {
 /// use std::thread;
 /// use std::sync::Arc;
 ///
-/// use napi::{
+/// use napi_ohos::{
 ///     threadsafe_function::{
 ///         ThreadSafeCallContext, ThreadsafeFunctionCallMode, ThreadsafeFunctionReleaseMode,
 ///     },
 /// };
-/// use napi_derive::napi;
+/// use napi_derive_ohos::napi;
 ///
 /// #[napi]
 /// pub fn call_threadsafe_function(callback: Arc<ThreadsafeFunction<(u32, bool, String), ()>>) {
@@ -695,6 +695,8 @@ unsafe extern "C" fn call_js_cb<
           unsafe { sys::napi_create_reference(raw_env, exception, 1, &mut error_reference) };
           Err(Error {
             maybe_raw: error_reference,
+            maybe_env: raw_env,
+            raw: true,
             status: Status::from(status),
             reason: "".to_owned(),
           })

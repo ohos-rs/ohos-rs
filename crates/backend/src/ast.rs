@@ -19,6 +19,7 @@ pub struct NapiFn {
   pub return_if_invalid: bool,
   pub js_mod: Option<String>,
   pub ts_generic_types: Option<String>,
+  pub ts_type: Option<String>,
   pub ts_args_type: Option<String>,
   pub ts_return_type: Option<String>,
   pub skip_typescript: bool,
@@ -88,9 +89,17 @@ pub struct NapiStruct {
 
 #[derive(Debug, Clone)]
 pub enum NapiStructKind {
+  Transparent(NapiTransparent),
   Class(NapiClass),
   Object(NapiObject),
   StructuredEnum(NapiStructuredEnum),
+}
+
+#[derive(Debug, Clone)]
+pub struct NapiTransparent {
+  pub ty: Type,
+  pub object_from_js: bool,
+  pub object_to_js: bool,
 }
 
 #[derive(Debug, Clone)]

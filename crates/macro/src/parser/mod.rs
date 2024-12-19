@@ -12,7 +12,7 @@ use napi_derive_backend_ohos::{
   rm_raw_prefix, BindgenResult, CallbackArg, Diagnostic, FnKind, FnSelf, Napi, NapiClass,
   NapiConst, NapiEnum, NapiEnumValue, NapiEnumVariant, NapiFn, NapiFnArg, NapiFnArgKind, NapiImpl,
   NapiItem, NapiObject, NapiStruct, NapiStructField, NapiStructKind, NapiStructuredEnum,
-  NapiStructuredEnumVariant,
+  NapiStructuredEnumVariant, NapiTransparent,
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
@@ -722,6 +722,7 @@ fn napi_fn_from_decl(
       strict: opts.strict().is_some(),
       return_if_invalid: opts.return_if_invalid().is_some(),
       js_mod: opts.namespace().map(|(m, _)| m.to_owned()),
+      ts_type: opts.ts_type().map(|(m, _)| m.to_owned()),
       ts_generic_types: opts.ts_generic_types().map(|(m, _)| m.to_owned()),
       ts_args_type: opts.ts_args_type().map(|(m, _)| m.to_owned()),
       ts_return_type: opts.ts_return_type().map(|(m, _)| m.to_owned()),
@@ -755,10 +756,12 @@ impl ParseNapi for syn::Item {
 
 impl ParseNapi for syn::ItemFn {
   fn parse_napi(&mut self, tokens: &mut TokenStream, opts: &BindgenAttrs) -> BindgenResult<Napi> {
-    if opts.ts_type().is_some() {
+    if opts.ts_type().is_some()
+      && (opts.ts_args_type().is_some() || opts.ts_return_type().is_some())
+    {
       bail_span!(
         self,
-        "#[napi] can't be applied to a function with #[napi(ts_type)]"
+        "#[napi] with ts_type cannot be combined with ts_args_type, ts_return_type in function"
       );
     }
     if opts.return_if_invalid().is_some() && opts.strict().is_some() {
@@ -943,7 +946,7 @@ fn convert_fields(
   check_vis: bool,
 ) -> BindgenResult<(Vec<NapiStructField>, bool)> {
   let mut napi_fields = vec![];
-  let mut is_tuple = false;
+  let is_tuple = matches!(fields, syn::Fields::Unnamed(_));
   for (i, field) in fields.iter_mut().enumerate() {
     if check_vis && !matches!(field.vis, syn::Visibility::Public(_)) {
       continue;
@@ -959,10 +962,7 @@ fn convert_fields(
         ),
         syn::Member::Named(ident.clone()),
       ),
-      None => {
-        is_tuple = true;
-        (format!("field{}", i), syn::Member::Unnamed(i.into()))
-      }
+      None => (format!("field{}", i), syn::Member::Unnamed(i.into())),
     };
 
     let ignored = field_opts.skip().is_some();
@@ -1045,7 +1045,28 @@ impl ConvertToAST for syn::ItemStruct {
     generator_struct.insert(key, implement_iterator);
     drop(generator_struct);
 
-    let struct_kind = if opts.object().is_some() {
+    let transparent = opts
+      .transparent()
+      .is_some()
+      .then(|| -> Result<_, Diagnostic> {
+        if !is_tuple || self.fields.len() != 1 {
+          bail_span!(
+            self,
+            "#[napi(transparent)] can only be applied to a struct with a single field tuple",
+          )
+        }
+        let first_field = self.fields.iter().next().unwrap();
+        Ok(first_field.ty.clone())
+      })
+      .transpose()?;
+
+    let struct_kind = if let Some(transparent) = transparent {
+      NapiStructKind::Transparent(NapiTransparent {
+        ty: transparent,
+        object_from_js: opts.object_from_js(),
+        object_to_js: opts.object_to_js(),
+      })
+    } else if opts.object().is_some() {
       NapiStructKind::Object(NapiObject {
         fields,
         object_from_js: opts.object_from_js(),
@@ -1063,6 +1084,7 @@ impl ConvertToAST for syn::ItemStruct {
     };
 
     match &struct_kind {
+      NapiStructKind::Transparent(_) => {}
       NapiStructKind::Class(class) if !class.ctor => {}
       _ => {
         for field in self.fields.iter() {

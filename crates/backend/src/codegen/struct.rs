@@ -418,7 +418,7 @@ impl NapiStruct {
       return quote! {};
     }
     quote! {
-      napi_ohos::__private::create_iterator::<#name>(env, instance_value, wrapped_value);
+      unsafe { napi_ohos::__private::create_iterator::<#name>(env, instance_value, wrapped_value); }
     }
   }
 

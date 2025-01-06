@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 use napi_ohos::{
-  bindgen_prelude::{ClassInstance, Function, FunctionRef, PromiseRaw},
+  bindgen_prelude::{ClassInstance, FnArgs, Function, FunctionRef, PromiseRaw},
   threadsafe_function::ThreadsafeFunctionCallMode,
   Env, Error, Result, Status,
 };
@@ -19,8 +19,8 @@ pub fn call1(callback: Function<u32, u32>, arg: u32) -> Result<u32> {
 }
 
 #[napi]
-pub fn call2(callback: Function<(u32, u32), u32>, arg1: u32, arg2: u32) -> Result<u32> {
-  callback.call((arg1, arg2))
+pub fn call2(callback: Function<FnArgs<(u32, u32)>, u32>, arg1: u32, arg2: u32) -> Result<u32> {
+  callback.call((arg1, arg2).into())
 }
 
 #[napi]
@@ -43,12 +43,19 @@ pub fn call_function(cb: Function<(), u32>) -> Result<u32> {
 }
 
 #[napi]
-pub fn call_function_with_arg(cb: Function<(u32, u32), u32>, arg0: u32, arg1: u32) -> Result<u32> {
-  cb.call((arg0, arg1))
+pub fn call_function_with_arg(
+  cb: Function<FnArgs<(u32, u32)>, u32>,
+  arg0: u32,
+  arg1: u32,
+) -> Result<u32> {
+  cb.call((arg0, arg1).into())
 }
 
 #[napi(ts_return_type = "Promise<void>")]
-pub fn create_reference_on_function(env: Env, cb: Function<(), ()>) -> Result<PromiseRaw<()>> {
+pub fn create_reference_on_function<'env>(
+  env: &'env Env,
+  cb: Function<'env, (), ()>,
+) -> Result<PromiseRaw<'env, ()>> {
   let reference = cb.create_ref()?;
   env.spawn_future_with_callback(
     async {
@@ -56,7 +63,7 @@ pub fn create_reference_on_function(env: Env, cb: Function<(), ()>) -> Result<Pr
       Ok(())
     },
     move |env, _| {
-      let cb = reference.borrow_back(env)?;
+      let cb = reference.borrow_back(&env)?;
       cb.call(())?;
       Ok(())
     },
@@ -75,18 +82,20 @@ pub fn call_function_with_arg_and_ctx(
 #[napi]
 pub fn reference_as_callback(
   env: Env,
-  callback: FunctionRef<(u32, u32), u32>,
+  callback: FunctionRef<FnArgs<(u32, u32)>, u32>,
   arg0: u32,
   arg1: u32,
 ) -> Result<u32> {
-  callback.borrow_back(&env)?.call((arg0, arg1))
+  callback.borrow_back(&env)?.call((arg0, arg1).into())
 }
 
 #[napi]
-pub fn build_threadsafe_function_from_function(callback: Function<(u32, u32), u32>) -> Result<()> {
+pub fn build_threadsafe_function_from_function(
+  callback: Function<FnArgs<(u32, u32)>, u32>,
+) -> Result<()> {
   let tsfn = callback.build_threadsafe_function().build()?;
   std::thread::spawn(move || {
-    tsfn.call((1, 2), ThreadsafeFunctionCallMode::NonBlocking);
+    tsfn.call((1, 2).into(), ThreadsafeFunctionCallMode::NonBlocking);
   });
   let tsfn_max_queue_size_1 = callback
     .build_threadsafe_function()
@@ -94,7 +103,7 @@ pub fn build_threadsafe_function_from_function(callback: Function<(u32, u32), u3
     .build()?;
 
   std::thread::spawn(move || {
-    tsfn_max_queue_size_1.call((1, 2), ThreadsafeFunctionCallMode::NonBlocking);
+    tsfn_max_queue_size_1.call((1, 2).into(), ThreadsafeFunctionCallMode::NonBlocking);
   });
 
   let tsfn_weak = callback
@@ -103,7 +112,7 @@ pub fn build_threadsafe_function_from_function(callback: Function<(u32, u32), u3
     .build()?;
 
   std::thread::spawn(move || {
-    tsfn_weak.call((1, 2), ThreadsafeFunctionCallMode::NonBlocking);
+    tsfn_weak.call((1, 2).into(), ThreadsafeFunctionCallMode::NonBlocking);
   });
 
   Ok(())

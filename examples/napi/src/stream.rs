@@ -1,5 +1,5 @@
 use bytes::BytesMut;
-use napi::bindgen_prelude::*;
+use napi_ohos::bindgen_prelude::*;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 use tokio_util::io::{read_buf, StreamReader};

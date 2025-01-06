@@ -48,9 +48,9 @@ impl<T> TypeName for ReadableStream<'_, T> {
 
 impl<T> ValidateNapiValue for ReadableStream<'_, T> {
   unsafe fn validate(
-    env: napi_sys::napi_env,
-    napi_val: napi_sys::napi_value,
-  ) -> Result<napi_sys::napi_value> {
+    env: napi_sys_ohos::napi_env,
+    napi_val: napi_sys_ohos::napi_value,
+  ) -> Result<napi_sys_ohos::napi_value> {
     let constructor = Env::from(env)
       .get_global()?
       .get_named_property_unchecked::<Function>("ReadableStream")?;

@@ -1,4 +1,4 @@
-use napi::{
+use napi_ohos::{
   bindgen_prelude::{Either, Function, Promise},
   Result,
 };

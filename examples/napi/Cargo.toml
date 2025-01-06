@@ -30,7 +30,6 @@ tokio-util       = { version = "0.7", features = ["io"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 napi-ohos = { path = "../../crates/napi", default-features = false, features = [
-  "napi9",
   "serde-json",
   "latin1",
   "chrono_date",

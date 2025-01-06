@@ -2,26 +2,35 @@
 
 use std::ptr;
 
-use super::{FromNapiValue, ToNapiValue, TypeName, Unknown, ValidateNapiValue};
+use super::{Either, FromNapiValue, ToNapiValue, TypeName, Unknown, ValidateNapiValue};
 
-use crate::threadsafe_function::ThreadsafeCallContext;
 #[cfg(feature = "napi4")]
-use crate::threadsafe_function::ThreadsafeFunction;
-use crate::{check_pending_exception, check_status, sys, Env, NapiRaw, Result, ValueType};
+use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
+use crate::{
+  check_pending_exception, check_status, sys, Env, JsUndefined, NapiRaw, NapiValue, Result,
+  ValueType,
+};
 
 pub trait JsValuesTupleIntoVec {
   fn into_vec(self, env: sys::napi_env) -> Result<Vec<sys::napi_value>>;
 }
 
-impl<T: ToNapiValue> JsValuesTupleIntoVec for T {
+impl<T> JsValuesTupleIntoVec for T
+where
+  T: ToNapiValue,
+{
   #[allow(clippy::not_unsafe_ptr_arg_deref)]
   fn into_vec(self, env: sys::napi_env) -> Result<Vec<sys::napi_value>> {
-    Ok(vec![unsafe {
-      <T as ToNapiValue>::to_napi_value(env, self)?
-    }])
+    // allow call function with `()` and function's arguments should be empty array
+    if std::mem::size_of::<T>() == 0 {
+      Ok(vec![])
+    } else {
+      Ok(vec![unsafe {
+        <T as ToNapiValue>::to_napi_value(env, self)?
+      }])
+    }
   }
 }
-
 pub trait TupleFromSliceValues {
   #[allow(clippy::missing_safety_doc)]
   unsafe fn from_slice_values(env: sys::napi_env, values: &[sys::napi_value]) -> Result<Self>
@@ -29,13 +38,24 @@ pub trait TupleFromSliceValues {
     Self: Sized;
 }
 
+#[repr(C)]
+pub struct FnArgs<T> {
+  pub data: T,
+}
+
+impl<T> From<T> for FnArgs<T> {
+  fn from(value: T) -> Self {
+    FnArgs { data: value }
+  }
+}
+
 macro_rules! impl_tuple_conversion {
   ($($ident:ident),*) => {
-    impl<$($ident: ToNapiValue),*> JsValuesTupleIntoVec for ($($ident,)*) {
+    impl<$($ident: ToNapiValue),*> JsValuesTupleIntoVec for FnArgs<($($ident,)*)> {
       #[allow(clippy::not_unsafe_ptr_arg_deref)]
       fn into_vec(self, env: sys::napi_env) -> Result<Vec<sys::napi_value>> {
         #[allow(non_snake_case)]
-        let ($($ident,)*) = self;
+        let ($($ident,)*) = self.data;
         Ok(vec![$(unsafe { <$ident as ToNapiValue>::to_napi_value(env, $ident)? }),*])
       }
     }
@@ -237,6 +257,39 @@ impl<Args: JsValuesTupleIntoVec, Return: FromNapiValue> Function<'_, Args, Retur
     )?;
     unsafe { Return::from_napi_value(self.env, raw_return) }
   }
+
+  /// Call `Function.bind`
+  pub fn bind<T: ToNapiValue>(&self, this: T) -> Result<Function<'_, Args, Return>> {
+    let raw_this = unsafe { T::to_napi_value(self.env, this) }?;
+    let mut bind_function = ptr::null_mut();
+    check_status!(
+      unsafe {
+        sys::napi_get_named_property(self.env, self.value, c"bind".as_ptr(), &mut bind_function)
+      },
+      "Get bind function failed"
+    )?;
+    let mut bound_function = ptr::null_mut();
+    check_status!(
+      unsafe {
+        sys::napi_call_function(
+          self.env,
+          self.value,
+          bind_function,
+          1,
+          [raw_this].as_ptr(),
+          &mut bound_function,
+        )
+      },
+      "Bind function failed"
+    )?;
+    Ok(Function {
+      env: self.env,
+      value: bound_function,
+      _args: std::marker::PhantomData,
+      _return: std::marker::PhantomData,
+      _scope: std::marker::PhantomData,
+    })
+  }
 }
 
 #[cfg(feature = "napi4")]
@@ -407,6 +460,34 @@ impl FunctionCallContext<'_> {
   /// Get the number of arguments from the JavaScript function call.
   pub fn length(&self) -> usize {
     self.args.len()
+  }
+
+  pub fn get<ArgType: FromNapiValue>(&self, index: usize) -> Result<ArgType> {
+    if index >= self.length() {
+      Err(crate::Error::new(
+        crate::Status::GenericFailure,
+        "Arguments index out of range".to_owned(),
+      ))
+    } else {
+      unsafe { ArgType::from_napi_value(self.env.0, self.args[index]) }
+    }
+  }
+
+  pub fn try_get<ArgType: NapiValue + TypeName + FromNapiValue>(
+    &self,
+    index: usize,
+  ) -> Result<Either<ArgType, JsUndefined>> {
+    let len = self.length();
+    if index >= len {
+      Err(crate::Error::new(
+        crate::Status::GenericFailure,
+        "Arguments index out of range".to_owned(),
+      ))
+    } else if index < len {
+      unsafe { ArgType::from_raw(self.env.0, self.args[index]) }.map(Either::A)
+    } else {
+      self.env.get_undefined().map(Either::B)
+    }
   }
 
   /// Get the first argument from the JavaScript function call.

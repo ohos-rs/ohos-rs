@@ -5,6 +5,11 @@ members  = ["crates/*", "examples/*", "cli/*"]
 [profile.release]
 lto = true
 
+[profile.wasi]
+inherits  = "release"
+opt-level = "z"
+debug     = true
+
 [profile.napi-rs-custom]
 inherits      = "dev"
 codegen-units = 1024

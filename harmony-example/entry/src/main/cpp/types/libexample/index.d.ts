@@ -89,6 +89,8 @@ export declare const enum CustomStringEnum {
   Baz = "Baz"
 }
 
+export type CustomU32 = number;
+
 /** This is a const */
 export const DEFAULT_COST: number;
 
@@ -139,6 +141,8 @@ export interface LocalDates {
   end?: Date;
 }
 
+export type MyPromise = string | Promise<string>;
+
 export type MyVec = Array<number | string>;
 
 export interface NotUseNullableStruct {
@@ -147,6 +151,8 @@ export interface NotUseNullableStruct {
   optionalNumberField?: number;
   optionalStringField?: string;
 }
+
+export type Nullable<T> = T | undefined | null;
 
 export interface Obj {
   v: string | number;
@@ -180,6 +186,13 @@ export interface Pet {
   kind: number;
   eitherTsfn: string | ((err: Error | null, arg: number) => number);
 }
+
+export interface Rule {
+  name: string;
+  handler: RuleHandler<number, number>;
+}
+
+export type RuleHandler<Args, Ret> = (arg: Args) => Ret;
 
 export interface Shared {
   value: number;
@@ -235,9 +248,15 @@ export interface UtcDates {
   end?: Date;
 }
 
+export type VoidNullable<T = void> = Nullable<T>;
+
 export declare function acceptArraybuffer(fixture: ArrayBuffer): bigint;
 
 export declare function acceptSlice(fixture: Uint8Array): bigint;
+
+export declare function acceptStream(
+  stream: ReadableStream<Uint8Array>
+): Promise<ArrayBuffer>;
 
 export declare function acceptThreadsafeFunction(
   func: (err: Error | null, arg: number) => any
@@ -356,6 +375,8 @@ export declare function callLongThreadsafeFunction(
   tsfn: (err: Error | null, arg: number) => unknown
 ): void;
 
+export declare function callRuleHandler(rule: Rule, arg: number): number;
+
 export declare function callThenOnPromise(
   input: Promise<number>
 ): Promise<string>;
@@ -436,6 +457,12 @@ export declare function createOptionalExternal(
   size?: number | undefined | null
 ): ExternalObject<number> | null;
 
+export declare function createReadableStream(): ReadableStream<ArrayBuffer>;
+
+export declare function createReadableStreamFromClass(
+  readableStreamClass: typeof ReadableStream
+): ReadableStream<ArrayBuffer>;
+
 export declare function createReferenceOnFunction(
   cb: () => void
 ): Promise<void>;
@@ -468,6 +495,10 @@ export declare function eitherStringOrNumber(input: string | number): number;
 export declare function enumToI32(e: CustomNumEnum): number;
 
 export declare function errorMessageContainsNullByte(msg: string): void;
+
+export declare function esmResolve(
+  next: () => Promise<undefined>
+): Promise<undefined>;
 
 export declare function f32ArrayToArray(input: Float32Array): Array<number>;
 
@@ -836,127 +867,6 @@ export declare function withoutAbortController(
 
 export declare function xxh64Alias(input: ArrayBuffer): bigint;
 
-export declare class Blake2BKey {}
-export type Blake2bKey = Blake2BKey;
-
-export declare class AnimalWithDefaultConstructor {
-  name: string;
-  kind: number;
-  constructor(name: string, kind: number);
-}
-
-export declare class Dog {
-  name: string;
-  constructor(name: string);
-}
-
-export declare class Asset {
-  constructor();
-  get filePath(): number;
-}
-export type JsAsset = Asset;
-
-export declare class NotUseNullableClass {
-  requiredNumberField: number;
-  requiredStringField: string;
-  optionalNumberField?: number;
-  optionalStringField?: string;
-  constructor(
-    requiredNumberField: number,
-    requiredStringField: string,
-    optionalNumberField?: number,
-    optionalStringField?: string
-  );
-}
-
-export declare class CatchOnConstructor2 {
-  constructor();
-}
-
-export declare class NinjaTurtle {
-  name: string;
-  static isInstanceOf(value: unknown): boolean;
-  /** Create your ninja turtle! 🐢 */
-  static newRaph(): NinjaTurtle;
-  getMaskColor(): string;
-  getName(): string;
-  returnThis(): this;
-}
-
-export declare class Optional {
-  static optionEnd(
-    required: string,
-    optional?: string | undefined | null
-  ): string;
-  static optionStart(
-    optional: string | undefined | null,
-    required: string
-  ): string;
-  static optionStartEnd(
-    optional1: string | undefined | null,
-    required: string,
-    optional2?: string | undefined | null
-  ): string;
-  static optionOnly(optional?: string | undefined | null): string;
-}
-
-export declare class Width {
-  value: number;
-  constructor(value: number);
-}
-
-export declare class Reader {
-  constructor();
-  read(): ArrayBuffer;
-}
-
-export declare class AnotherClassForEither {
-  constructor();
-}
-
-export declare class Fib {
-  [Symbol.iterator](): Iterator<number, void, number>;
-  constructor();
-}
-
-export declare class Fib2 {
-  [Symbol.iterator](): Iterator<number, void, number>;
-  static create(seed: number): Fib2;
-}
-
-export declare class Context {
-  maybeNeed?: boolean;
-  buffer: Uint8Array;
-  constructor();
-  static withData(data: string): Context;
-  static withBuffer(buf: Uint8Array): Context;
-  method(): string;
-}
-
-export declare class CustomStruct {
-  static customStatusCodeForFactory(): CustomStruct;
-  constructor();
-}
-
-export declare class JsRemote {
-  constructor(repo: JsRepo);
-  name(): string;
-}
-
-export declare class Assets {
-  constructor();
-  get(id: number): JsAsset | null;
-}
-export type JsAssets = Assets;
-
-export declare class Bird {
-  name: string;
-  constructor(name: string);
-  getCount(): number;
-  getNameAsync(): Promise<string>;
-  acceptSliceMethod(slice: Uint8Array): number;
-}
-
 export declare class Selector {
   orderBy: Array<string>;
   select: Array<string>;
@@ -968,6 +878,29 @@ export declare class Selector {
     struct: string,
     where?: string
   );
+}
+
+export declare class CatchOnConstructor2 {
+  constructor();
+}
+
+export declare class ClassWithLifetime {
+  constructor();
+  getName(): string;
+}
+
+export declare class CustomStruct {
+  static customStatusCodeForFactory(): CustomStruct;
+  constructor();
+}
+
+export declare class Context {
+  maybeNeed?: boolean;
+  buffer: Uint8Array;
+  constructor();
+  static withData(data: string): Context;
+  static withBuffer(buf: Uint8Array): Context;
+  method(): string;
 }
 
 export declare class UseNullableClass {
@@ -983,38 +916,14 @@ export declare class UseNullableClass {
   );
 }
 
-export declare class CatchOnConstructor {
-  constructor();
-}
-
-export declare class CustomFinalize {
-  constructor(width: number, height: number);
-}
-
-export declare class Fib3 {
-  current: number;
-  next: number;
-  constructor(current: number, next: number);
-  [Symbol.iterator](): Iterator<number, void, number>;
-}
-
-export declare class NotWritableClass {
+export declare class Dog {
   name: string;
   constructor(name: string);
-  setName(name: string): void;
 }
 
-export declare class JsRepo {
-  constructor(dir: string);
-  remote(): JsRemote;
+export declare class AnotherClassForEither {
+  constructor();
 }
-
-/** Smoking test for type generation */
-export declare class Blake2BHasher {
-  update(data: ArrayBuffer): void;
-  static withKey(key: Blake2bKey): Blake2BHasher;
-}
-export type Blake2bHasher = Blake2BHasher;
 
 export declare class ClassWithFactory {
   name: string;
@@ -1024,28 +933,15 @@ export declare class ClassWithFactory {
   setName(name: string): this;
 }
 
-export declare class CssRuleList {
-  getRules(): Array<string>;
-  get parentStyleSheet(): CSSStyleSheet;
-  get name(): string | null;
-}
-export type CSSRuleList = CssRuleList;
-
-export declare class JsClassForEither {
-  constructor();
-}
-
-export declare class ClassWithLifetime {
-  constructor();
+export declare class NinjaTurtle {
+  name: string;
+  static isInstanceOf(value: unknown): boolean;
+  /** Create your ninja turtle! 🐢 */
+  static newRaph(): NinjaTurtle;
+  getMaskColor(): string;
   getName(): string;
+  returnThis(): this;
 }
-
-export declare class CssStyleSheet {
-  constructor(name: string, rules: Array<string>);
-  get rules(): CssRuleList;
-  anotherCssStyleSheet(): AnotherCssStyleSheet;
-}
-export type CSSStyleSheet = CssStyleSheet;
 
 /**
  * `constructor` option for `struct` requires all fields to be public,
@@ -1085,13 +981,103 @@ export declare class Animal {
   ): Bird;
 }
 
+export declare class Reader {
+  constructor();
+  read(): ArrayBuffer;
+}
+
+export declare class Fib {
+  [Symbol.iterator](): Iterator<number, void, number>;
+  constructor();
+}
+
+export declare class CatchOnConstructor {
+  constructor();
+}
+
+export declare class NotUseNullableClass {
+  requiredNumberField: number;
+  requiredStringField: string;
+  optionalNumberField?: number;
+  optionalStringField?: string;
+  constructor(
+    requiredNumberField: number,
+    requiredStringField: string,
+    optionalNumberField?: number,
+    optionalStringField?: string
+  );
+}
+
+export declare class Width {
+  value: number;
+  constructor(value: number);
+}
+
+export declare class JsRemote {
+  constructor(repo: JsRepo);
+  name(): string;
+}
+
+export declare class Blake2BKey {}
+export type Blake2bKey = Blake2BKey;
+
+export declare class Assets {
+  constructor();
+  get(id: number): JsAsset | null;
+}
+export type JsAssets = Assets;
+
+export declare class CustomFinalize {
+  constructor(width: number, height: number);
+}
+
+export declare class JsRepo {
+  constructor(dir: string);
+  remote(): JsRemote;
+}
+
 export declare class AnotherCssStyleSheet {
   get rules(): CssRuleList;
 }
 export type AnotherCSSStyleSheet = AnotherCssStyleSheet;
 
-export declare class GetterSetterWithClosures {
-  constructor();
+export declare class NotWritableClass {
+  name: string;
+  constructor(name: string);
+  setName(name: string): void;
+}
+
+export declare class Bird {
+  name: string;
+  constructor(name: string);
+  getCount(): number;
+  getNameAsync(): Promise<string>;
+  acceptSliceMethod(slice: Uint8Array): number;
+}
+
+export declare class CssStyleSheet {
+  constructor(name: string, rules: Array<string>);
+  get rules(): CssRuleList;
+  anotherCssStyleSheet(): AnotherCssStyleSheet;
+}
+export type CSSStyleSheet = CssStyleSheet;
+
+export declare class Fib3 {
+  current: number;
+  next: number;
+  constructor(current: number, next: number);
+  [Symbol.iterator](): Iterator<number, void, number>;
+}
+
+export declare class AnimalWithDefaultConstructor {
+  name: string;
+  kind: number;
+  constructor(name: string, kind: number);
+}
+
+export declare class Fib2 {
+  static create(seed: number): Fib2;
+  [Symbol.iterator](): Iterator<number, void, number>;
 }
 
 export declare class DefaultUseNullableClass {
@@ -1105,6 +1091,51 @@ export declare class DefaultUseNullableClass {
     optionalNumberField?: number,
     optionalStringField?: string
   );
+}
+
+export declare class Asset {
+  constructor();
+  get filePath(): number;
+}
+export type JsAsset = Asset;
+
+/** Smoking test for type generation */
+export declare class Blake2BHasher {
+  update(data: ArrayBuffer): void;
+  static withKey(key: Blake2bKey): Blake2BHasher;
+}
+export type Blake2bHasher = Blake2BHasher;
+
+export declare class CssRuleList {
+  getRules(): Array<string>;
+  get parentStyleSheet(): CSSStyleSheet;
+  get name(): string | null;
+}
+export type CSSRuleList = CssRuleList;
+
+export declare class Optional {
+  static optionEnd(
+    required: string,
+    optional?: string | undefined | null
+  ): string;
+  static optionStart(
+    optional: string | undefined | null,
+    required: string
+  ): string;
+  static optionStartEnd(
+    optional1: string | undefined | null,
+    required: string,
+    optional2?: string | undefined | null
+  ): string;
+  static optionOnly(optional?: string | undefined | null): string;
+}
+
+export declare class GetterSetterWithClosures {
+  constructor();
+}
+
+export declare class JsClassForEither {
+  constructor();
 }
 
 export namespace xxh2 {

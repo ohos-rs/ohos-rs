@@ -1,11 +1,3 @@
 [alias]
 ck = "check --workspace"
 lint = "clippy --workspace --all-targets"
-
-[target.'cfg(target_family = "wasm")']
-rustflags = [
-  "--cfg",
-  "tokio_unstable",
-  "-C",
-  "target-feature=+atomics,+bulk-memory",
-]

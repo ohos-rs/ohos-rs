@@ -32,7 +32,7 @@ pub(crate) struct BuildArgs {
 pub(crate) struct ArtifactArgs {
   dist: String,
   name: String,
-  skip_libs: bool
+  skip_libs: bool,
 }
 
 #[derive(Debug, Clone)]

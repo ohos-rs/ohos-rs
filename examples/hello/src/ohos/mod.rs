@@ -1,8 +1,7 @@
-use lazy_static::lazy_static;
 use napi_derive_ohos::napi;
 use napi_ohos::{
   ark::{ArkRuntime, EventLoopMode},
-  bindgen_prelude::Function,
+  bindgen_prelude::{FnArgs, Function},
   threadsafe_function::ThreadsafeFunction,
   Env, JsNumber, JsString, Result,
 };
@@ -10,32 +9,23 @@ use ohos_hilog_binding::hilog_info;
 use std::{
   sync::{
     mpsc::{self, Sender},
-    Arc, Mutex,
+    LazyLock, Mutex,
   },
   thread,
   time::Duration,
 };
 
-lazy_static! {
-  static ref GLOBAL_RUNTIME: Arc<Mutex<Option<ArkRuntime>>> = Arc::new(Mutex::new(None));
-  static ref TX: Arc<Mutex<Option<Sender<bool>>>> = Arc::new(Mutex::new(None));
-}
+static TX: LazyLock<Mutex<Option<Sender<bool>>>> = LazyLock::new(|| Mutex::new(None));
 
 #[napi]
 pub fn run_ble(cb: ThreadsafeFunction<JsNumber, ()>) -> Result<()> {
-  let global_runtime_clone = Arc::clone(&GLOBAL_RUNTIME);
   let (tx, rx) = mpsc::channel::<bool>();
 
   let mut tx_option = TX.lock().unwrap();
   *tx_option = Some(tx);
 
   let _handle = thread::spawn(move || {
-    let mut runtime_guard = global_runtime_clone.lock().unwrap();
-    if runtime_guard.is_none() {
-      *runtime_guard = Some(ArkRuntime::new().unwrap());
-    }
-
-    let runtime = runtime_guard.as_ref().unwrap();
+    let runtime = ArkRuntime::new().unwrap();
     let module = runtime.load_without_info("@ohos.bluetooth.access").unwrap();
 
     let func: Function<JsNumber, ()> = runtime
@@ -51,10 +41,11 @@ pub fn run_ble(cb: ThreadsafeFunction<JsNumber, ()>) -> Result<()> {
       })
       .unwrap();
 
-    let event_name = runtime.env.create_string("stateChange").unwrap();
-
     module
-      .call::<_, (JsString, Function<JsNumber, ()>), ()>("on", (event_name, func))
+      .call::<_, FnArgs<(String, Function<JsNumber, ()>)>, ()>(
+        "on",
+        (String::from("stateChange"), func).into(),
+      )
       .unwrap();
 
     loop {

@@ -20,6 +20,7 @@ impl From<EventLoopMode> for napi_sys_ohos::napi_event_mode {
 }
 
 /// Create a new virtual machine for ArkTS, we can use it to call some ArkTS method with rust code   
+/// ArkRuntime is not thread safe, so we should not use it in multi-thread. Every ark runtime instance should has its own thread.   
 /// See more: https://developer.huawei.com/consumer/cn/doc/harmonyos-references-V5/napi-V5#napi_create_ark_runtime
 pub struct ArkRuntime {
   pub env: Env,
@@ -117,7 +118,3 @@ impl Drop for ArkRuntime {
     }
   }
 }
-
-/// Note: we can use ArkRuntime in multi-thread with new env safety.
-unsafe impl Send for ArkRuntime {}
-unsafe impl Sync for ArkRuntime {}

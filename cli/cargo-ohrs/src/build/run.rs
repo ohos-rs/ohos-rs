@@ -135,6 +135,9 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
             }
             Message::BuildFinished(finished) => match finished.success {
               true => {
+                if ctx.skip_libs {
+                  return Ok(());
+                }
                 let bin_dir = &ctx.dist.join(&arch.to_arch());
                 check_and_clean_file_or_dir!(bin_dir);
                 create_dist_dir!(bin_dir);

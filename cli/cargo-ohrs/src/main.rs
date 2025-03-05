@@ -25,12 +25,14 @@ pub(crate) struct BuildArgs {
   release: bool,
   copy_static: bool,
   cargo_args: Option<Vec<String>>,
+  skip_libs: bool,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct ArtifactArgs {
   dist: String,
   name: String,
+  skip_libs: bool
 }
 
 #[derive(Debug, Clone)]

@@ -12,6 +12,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
 
   // set copy_static variable
   ctx.copy_static = args.copy_static;
+  ctx.skip_libs = args.skip_libs;
 
   // 判断当前构建环境以及获取metadata信息
   let cargo_file = ctx.pwd.join("./Cargo.toml");

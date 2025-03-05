@@ -45,6 +45,8 @@ pub struct Context<'a> {
 
   pub copy_static: bool,
   pub tmp_ts_file_path: PathBuf,
+
+  pub skip_libs: bool,
 }
 
 /// build逻辑

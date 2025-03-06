@@ -15,8 +15,9 @@ use std::env;
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use std::sync::atomic::{AtomicBool, Ordering};
+use syn::ItemFn;
 #[cfg(feature = "compat-mode")]
-use syn::{fold::Fold, parse_macro_input, ItemFn};
+use syn::{fold::Fold, parse_macro_input};
 
 // check if first napi macro expand
 static IS_FIRST_NAPI_MACRO: AtomicBool = AtomicBool::new(true);
@@ -31,7 +32,7 @@ fn auto_add_register_code() -> proc_macro2::TokenStream {
         .to_case(Case::Snake);
       IS_FIRST_NAPI_MACRO.store(false, Ordering::SeqCst);
       quote!(
-        #[napi_ohos::bindgen_prelude::module_init]
+        #[napi_derive_ohos::module_init]
         fn napi_register_module_v1_ohos_init() {
           let name = std::ffi::CString::new(#name).expect("Get module name failed");
           let mut modules = napi_ohos::sys::napi_module {
@@ -199,8 +200,8 @@ pub fn module_exports(_attr: TokenStream, input: TokenStream) -> TokenStream {
   };
 
   let register = quote! {
-    #[cfg_attr(not(target_family = "wasm"), napi_ohos::bindgen_prelude::ctor)]
-    fn __napi__explicit_module_register() {
+    #[cfg_attr(not(target_family = "wasm"), napi_ohos::ctor::ctor(crate_path=napi_ohos::ctor))]
+    fn __napi_explicit_module_register() {
       unsafe fn register(raw_env: napi_ohos::sys::napi_env, raw_exports: napi_ohos::sys::napi_value) -> napi_ohos::Result<()> {
         use napi_ohos::{Env, JsObject, NapiValue};
 
@@ -224,5 +225,15 @@ pub fn module_exports(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
     #register
   })
+  .into()
+}
+
+#[proc_macro_attribute]
+pub fn module_init(_: TokenStream, input: TokenStream) -> TokenStream {
+  let input = parse_macro_input!(input as ItemFn);
+  quote! {
+    #[napi_ohos::ctor::ctor(crate_path=napi_ohos::ctor)]
+    #input
+  }
   .into()
 }

@@ -8,22 +8,11 @@ use crate::{
   codegen::{get_intermediate_ident, js_mod_to_token_stream},
   BindgenResult, FnKind, NapiImpl, NapiStruct, NapiStructKind, TryToTokens,
 };
-use crate::{NapiClass, NapiObject, NapiStructuredEnum, NapiTransparent};
+use crate::{NapiArray, NapiClass, NapiObject, NapiStructuredEnum, NapiTransparent};
 
 static NAPI_IMPL_ID: AtomicU32 = AtomicU32::new(0);
-const TYPED_ARRAY_TYPE: &[&str] = &[
-  "Int8Array",
-  "Uint8Array",
-  "Uint8ClampedArray",
-  "Int16Array",
-  "Uint16Array",
-  "Int32Array",
-  "Uint32Array",
-  "Float32Array",
-  "Float64Array",
-  "BigInt64Array",
-  "BigUint64Array",
-];
+
+const STRUCT_FIELD_SPECIAL_CASE: &[&str] = &["Option", "Result"];
 
 // Generate trait implementations for given Struct.
 fn gen_napi_value_map_impl(
@@ -278,6 +267,7 @@ impl NapiStruct {
 
   fn gen_napi_value_map_impl(&self) -> TokenStream {
     match &self.kind {
+      NapiStructKind::Array(array) => self.gen_napi_value_array_impl(array),
       NapiStructKind::Transparent(transparent) => self.gen_napi_value_transparent_impl(transparent),
       NapiStructKind::Class(class) if !class.ctor => gen_napi_value_map_impl(
         &self.name,
@@ -742,8 +732,8 @@ impl NapiStruct {
 
       if field.getter {
         let default_to_napi_value_convert = quote! {
-          let val = obj.#field_ident.to_owned();
-          unsafe { <#ty as napi_ohos::bindgen_prelude::ToNapiValue>::to_napi_value(env, val) }
+          let val = &mut obj.#field_ident;
+          unsafe { <&mut #ty as napi_ohos::bindgen_prelude::ToNapiValue>::to_napi_value(env, val) }
         };
         let to_napi_value_convert = if let syn::Type::Path(syn::TypePath {
           path: syn::Path { segments, .. },
@@ -751,10 +741,10 @@ impl NapiStruct {
         }) = ty
         {
           if let Some(syn::PathSegment { ident, .. }) = segments.last() {
-            if TYPED_ARRAY_TYPE.iter().any(|name| ident == name) || ident == "Buffer" {
+            if STRUCT_FIELD_SPECIAL_CASE.iter().any(|name| ident == name) {
               quote! {
-                let val = &mut obj.#field_ident;
-                unsafe { <&mut #ty as napi_ohos::bindgen_prelude::ToNapiValue>::to_napi_value(env, val) }
+                let val = obj.#field_ident.as_mut();
+                unsafe { napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, val) }
               }
             } else {
               default_to_napi_value_convert
@@ -773,7 +763,7 @@ impl NapiStruct {
               cb: napi_ohos::bindgen_prelude::sys::napi_callback_info
             ) -> napi_ohos::bindgen_prelude::sys::napi_value {
               napi_ohos::bindgen_prelude::CallbackInfo::<0>::new(env, cb, Some(0), false)
-                .and_then(|mut cb| unsafe { cb.unwrap_borrow_mut::<#struct_name>() })
+                .and_then(|mut cb| cb.unwrap_borrow_mut::<#struct_name>())
                 .and_then(|obj| {
                   #to_napi_value_convert
                 })
@@ -879,7 +869,7 @@ impl NapiStruct {
       #[allow(non_snake_case)]
       #[allow(clippy::all)]
       #[cfg(all(not(test), not(target_family = "wasm")))]
-      #[napi_ohos::bindgen_prelude::ctor]
+      #[napi_ohos::ctor::ctor(crate_path=napi_ohos::ctor)]
       fn #struct_register_name() {
         napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*]);
       }
@@ -1171,6 +1161,166 @@ impl NapiStruct {
       #from_napi_value
     }
   }
+
+  fn gen_napi_value_array_impl(&self, array: &NapiArray) -> TokenStream {
+    let name = &self.name;
+    let name_str = self.name.to_string();
+
+    let mut obj_field_setters = vec![];
+    let mut obj_field_getters = vec![];
+    let mut field_destructions = vec![];
+
+    for field in array.fields.iter() {
+      let mut ty = field.ty.clone();
+      remove_lifetime_in_type(&mut ty);
+      let is_optional_field = if let syn::Type::Path(syn::TypePath {
+        path: syn::Path { segments, .. },
+        ..
+      }) = &ty
+      {
+        if let Some(last_path) = segments.last() {
+          last_path.ident == "Option"
+        } else {
+          false
+        }
+      } else {
+        false
+      };
+
+      if let syn::Member::Unnamed(i) = &field.name {
+        let arg_name = format_ident!("arg{}", i);
+        let field_index = i.index;
+        field_destructions.push(quote! { #arg_name });
+        if is_optional_field {
+          obj_field_setters.push(match self.use_nullable {
+            false => quote! {
+              if #arg_name.is_some() {
+                array.set(#field_index, #arg_name)?;
+              }
+            },
+            true => quote! {
+              if let Some(#arg_name) = #arg_name {
+                array.set(#field_index, #arg_name)?;
+              } else {
+                array.set(#field_index, napi_ohos::bindgen_prelude::Null)?;
+              }
+            },
+          });
+        } else {
+          obj_field_setters.push(quote! { array.set(#field_index, #arg_name)?; });
+        }
+        if is_optional_field && !self.use_nullable {
+          obj_field_getters.push(quote! { let #arg_name: #ty = array.get(#field_index)?; });
+        } else {
+          obj_field_getters.push(quote! {
+            let #arg_name: #ty = array.get(#field_index)?.ok_or_else(|| napi_ohos::bindgen_prelude::Error::new(
+              napi_ohos::bindgen_prelude::Status::InvalidArg,
+              format!("Failed to get element with index `{}`", #field_index),
+            ))?;
+          });
+        }
+      }
+    }
+
+    let destructed_fields = quote! {
+      Self (#(#field_destructions),*)
+    };
+
+    let name_with_lifetime = if self.has_lifetime {
+      quote! { #name<'_javascript_function_scope> }
+    } else {
+      quote! { #name }
+    };
+    let (from_napi_value_impl, to_napi_value_impl, validate_napi_value_impl, type_name_impl) =
+      if self.has_lifetime {
+        (
+          quote! { impl <'_javascript_function_scope> napi_ohos::bindgen_prelude::FromNapiValue for #name<'_javascript_function_scope> },
+          quote! { impl <'_javascript_function_scope> napi_ohos::bindgen_prelude::ToNapiValue for #name<'_javascript_function_scope> },
+          quote! { impl <'_javascript_function_scope> napi_ohos::bindgen_prelude::ValidateNapiValue for #name<'_javascript_function_scope> },
+          quote! { impl <'_javascript_function_scope> napi_ohos::bindgen_prelude::TypeName for #name<'_javascript_function_scope> },
+        )
+      } else {
+        (
+          quote! { impl napi_ohos::bindgen_prelude::FromNapiValue for #name },
+          quote! { impl napi_ohos::bindgen_prelude::ToNapiValue for #name },
+          quote! { impl napi_ohos::bindgen_prelude::ValidateNapiValue for #name },
+          quote! { impl napi_ohos::bindgen_prelude::TypeName for #name },
+        )
+      };
+
+    let array_len = array.fields.len() as u32;
+
+    let to_napi_value = if array.object_to_js {
+      quote! {
+        #[automatically_derived]
+        #to_napi_value_impl {
+          unsafe fn to_napi_value(env: napi_ohos::bindgen_prelude::sys::napi_env, val: #name_with_lifetime) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
+            #[allow(unused_variables)]
+            let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
+            #[allow(unused_mut)]
+            let mut array = env_wrapper.create_array(#array_len)?;
+
+            let #destructed_fields = val;
+            #(#obj_field_setters)*
+
+            napi_ohos::bindgen_prelude::Array::to_napi_value(env, array)
+          }
+        }
+      }
+    } else {
+      quote! {}
+    };
+
+    let from_napi_value = if array.object_from_js {
+      let return_type = if self.has_lifetime {
+        quote! { #name<'_javascript_function_scope> }
+      } else {
+        quote! { #name }
+      };
+      quote! {
+        #[automatically_derived]
+        #from_napi_value_impl {
+          unsafe fn from_napi_value(
+            env: napi_ohos::bindgen_prelude::sys::napi_env,
+            napi_val: napi_ohos::bindgen_prelude::sys::napi_value
+          ) -> napi_ohos::bindgen_prelude::Result<#return_type> {
+            #[allow(unused_variables)]
+            let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
+            #[allow(unused_mut)]
+            let mut array = napi_ohos::bindgen_prelude::Array::from_napi_value(env, napi_val)?;
+
+            #(#obj_field_getters)*
+
+            let val = #destructed_fields;
+
+            Ok(val)
+          }
+        }
+
+        #[automatically_derived]
+        #validate_napi_value_impl {}
+      }
+    } else {
+      quote! {}
+    };
+
+    quote! {
+      #[automatically_derived]
+      #type_name_impl {
+        fn type_name() -> &'static str {
+          #name_str
+        }
+
+        fn value_type() -> napi_ohos::ValueType {
+          napi_ohos::ValueType::Object
+        }
+      }
+
+      #to_napi_value
+
+      #from_napi_value
+    }
+  }
 }
 
 impl TryToTokens for NapiImpl {
@@ -1252,7 +1402,7 @@ impl NapiImpl {
         #(#methods)*
 
         #[cfg(all(not(test), not(target_family = "wasm")))]
-        #[napi_ohos::bindgen_prelude::ctor]
+        #[napi_ohos::ctor::ctor(crate_path=napi_ohos::ctor)]
         fn #register_name() {
           napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*]);
         }

@@ -3,7 +3,7 @@ use napi_ohos::{
   ark::{ArkRuntime, EventLoopMode},
   bindgen_prelude::{FnArgs, Function},
   threadsafe_function::ThreadsafeFunction,
-  Env, JsNumber, JsString, Result,
+  Env, JsNumber, Result,
 };
 use ohos_hilog_binding::hilog_info;
 use std::{

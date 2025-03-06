@@ -62,30 +62,22 @@ pub fn create_custom_tokio_runtime(rt: Runtime) {
   USER_DEFINED_RT.get_or_init(move || Mutex::new(Some(rt)));
 }
 
-static RT_REFERENCE_COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-
+#[cfg(not(feature = "noop"))]
 /// Ensure that the Tokio runtime is initialized.
 /// In windows the Tokio runtime will be dropped when Node env exits.
 /// But in Electron renderer process, the Node env will exits and recreate when the window reloads.
 /// So we need to ensure that the Tokio runtime is initialized when the Node env is created.
 pub(crate) fn ensure_runtime() {
-  use std::sync::atomic::Ordering;
-
   let mut rt = RT.write().unwrap();
   if rt.is_none() {
     *rt = create_runtime();
   }
-
-  RT_REFERENCE_COUNT.fetch_add(1, Ordering::Relaxed);
 }
 
-pub(crate) unsafe extern "C" fn drop_runtime(_arg: *mut std::ffi::c_void) {
-  use std::sync::atomic::Ordering;
-
-  if RT_REFERENCE_COUNT.fetch_sub(1, Ordering::AcqRel) == 1 {
-    if let Some(rt) = RT.write().unwrap().take() {
-      rt.shutdown_background();
-    }
+#[cfg(not(feature = "noop"))]
+pub(crate) fn drop_runtime() {
+  if let Some(rt) = RT.write().unwrap().take() {
+    rt.shutdown_background();
   }
 }
 

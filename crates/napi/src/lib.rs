@@ -7,7 +7,7 @@
 //!
 //! ## Feature flags
 //!
-//! ### napi1 ~ napi8
+//! ### napi1 ~ napi9
 //!
 //! Because `Node.js` N-API has versions. So there are feature flags to choose what version of `N-API` you want to build for.
 //! For example, if you want build a library which can be used by `node@10.17.0`, you should choose the `napi5` or lower.
@@ -65,7 +65,7 @@
 //! ```
 //!
 
-#[cfg(target_family = "wasm")]
+#[cfg(all(target_family = "wasm", not(feature = "noop"), feature = "napi3"))]
 #[link(wasm_import_module = "napi")]
 extern "C" {
   fn napi_add_env_cleanup_hook(
@@ -154,8 +154,6 @@ macro_rules! assert_type_of {
   };
 }
 
-pub use crate::bindgen_runtime::ctor as module_init;
-
 pub mod bindgen_prelude {
   #[cfg(all(feature = "compat-mode", not(feature = "noop")))]
   pub use crate::bindgen_runtime::register_module_exports;
@@ -166,8 +164,6 @@ pub mod bindgen_prelude {
     check_status_or_throw, error, error::*, sys, type_of, JsError, Property, PropertyAttributes,
     Result, Status, Task, ValueType,
   };
-
-  pub use crate::bindgen_runtime::ctor as module_init;
 
   // This function's signature must be kept in sync with the one in tokio_runtime.rs, otherwise napi
   // will fail to compile without the `tokio_rt` feature.
@@ -219,6 +215,8 @@ pub mod __private {
     };
   }
 }
+
+pub extern crate ctor;
 
 #[cfg(feature = "tokio_rt")]
 pub extern crate tokio;

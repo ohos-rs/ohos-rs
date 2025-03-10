@@ -9,9 +9,9 @@ use attrs::BindgenAttrs;
 
 use convert_case::{Case, Casing};
 use napi_derive_backend_ohos::{
-  rm_raw_prefix, BindgenResult, CallbackArg, Diagnostic, FnKind, FnSelf, Napi, NapiClass,
-  NapiConst, NapiEnum, NapiEnumValue, NapiEnumVariant, NapiFn, NapiFnArg, NapiFnArgKind, NapiImpl,
-  NapiItem, NapiObject, NapiStruct, NapiStructField, NapiStructKind, NapiStructuredEnum,
+  rm_raw_prefix, BindgenResult, CallbackArg, Diagnostic, FnKind, FnSelf, Napi, NapiArray,
+  NapiClass, NapiConst, NapiEnum, NapiEnumValue, NapiEnumVariant, NapiFn, NapiFnArg, NapiFnArgKind,
+  NapiImpl, NapiItem, NapiObject, NapiStruct, NapiStructField, NapiStructKind, NapiStructuredEnum,
   NapiStructuredEnumVariant, NapiTransparent, NapiType,
 };
 use proc_macro2::{Ident, Span, TokenStream};
@@ -992,7 +992,12 @@ fn convert_fields(
         ),
         syn::Member::Named(ident.clone()),
       ),
-      None => (format!("field{}", i), syn::Member::Unnamed(i.into())),
+      None => (
+        field_opts
+          .js_name()
+          .map_or_else(|| format!("field{}", i), |(js_name, _)| js_name.to_owned()),
+        syn::Member::Unnamed(i.into()),
+      ),
     };
 
     let ignored = field_opts.skip().is_some();
@@ -1093,6 +1098,15 @@ impl ConvertToAST for syn::ItemStruct {
     let struct_kind = if let Some(transparent) = transparent {
       NapiStructKind::Transparent(NapiTransparent {
         ty: transparent,
+        object_from_js: opts.object_from_js(),
+        object_to_js: opts.object_to_js(),
+      })
+    } else if opts.array().is_some() {
+      if !is_tuple {
+        bail_span!(self, "#[napi(array)] can only be applied to a tuple struct",)
+      }
+      NapiStructKind::Array(NapiArray {
+        fields,
         object_from_js: opts.object_from_js(),
         object_to_js: opts.object_to_js(),
       })
@@ -1432,6 +1446,8 @@ impl ConvertToAST for syn::ItemEnum {
         skip_typescript: opts.skip_typescript().is_some(),
         register_name: get_register_ident(self.ident.to_string().as_str()),
         is_string_enum,
+        object_from_js: opts.object_from_js(),
+        object_to_js: opts.object_to_js(),
       }),
     })
   }

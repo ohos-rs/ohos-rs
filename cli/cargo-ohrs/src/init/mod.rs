@@ -6,7 +6,7 @@ mod tmp;
 
 use anyhow::Error;
 use config::get_git_config;
-use package::{CHANGELOG, LICENSE, MODULE_CONTENT, PKG, README};
+use package::{CHANGELOG, INDEX_CONTENT, LICENSE, MODULE_CONTENT, PKG, README};
 use tmp::{BUILD_INIT, CARGO_TOML, GIT_IGNORE, LIB_CODE};
 
 pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
@@ -58,7 +58,9 @@ pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
       "package/LICENSE"
     );
 
-    let export = format!(r#"export * from "lib{}.so""#, (&arg.name).replace("-", "_"));
+    let lib_name = format!("lib{}.so", (&arg.name).replace("-", "_"));
+
+    let export = INDEX_CONTENT.replace("@lib", lib_name.as_str());
     create_project_file!(
       export,
       &target.join("package").join("index.ets"),

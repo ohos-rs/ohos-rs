@@ -22,14 +22,14 @@ SOFTWARE.
 "#;
 
 pub const PKG: &str = r#"{
-  license: "MIT",
-  author: "@author",
-  name: "@pkg",
-  description: "",
-  main: "index.ets",
-  version: "0.0.1",
-  types: "libs/index.d.ts",
-  dependencies: {}
+  "license: "MIT",
+  "author": "@author",
+  "name": "@pkg",
+  "description": "",
+  "main": "index.ets",
+  "version": "0.0.1",
+  "types": "libs/index.d.ts",
+  "dependencies": {}
 }"#;
 
 pub const README: &str = r#"# `@pkg`
@@ -66,4 +66,10 @@ pub const MODULE_CONTENT: &str = r#"{
     "deviceTypes": ["default", "tablet", "2in1"]
   },
 }
+"#;
+
+pub const INDEX_CONTENT: &str = r#"import * as api from "@lib";
+
+export * from '@lib';
+export default api;
 "#;

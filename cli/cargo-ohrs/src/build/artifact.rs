@@ -1,5 +1,11 @@
-use cargo_metadata::{Artifact, BuildScript};
 use std::path::PathBuf;
+
+use cargo_metadata::{camino::Utf8PathBuf, Artifact, BuildScript};
+
+fn is_rust_intermediate_lib(path: &Utf8PathBuf) -> bool {
+  let path_str = path.to_string();
+  path_str.contains("/target/") && path_str.contains("/deps/")
+}
 
 pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Vec<PathBuf>> {
   let sysroot = format!("{ndk}/native/sysroot/usr/lib");
@@ -21,10 +27,6 @@ pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Ve
       .linked_paths
       .iter()
       .filter_map(|i| {
-        if !i.is_dir() && !i.is_file() {
-          println!("Note: {} is not a dir or file.", i.as_str());
-          return None;
-        }
         let item_path = i.as_str();
         // ignore sysroot lib
         if item_path.starts_with(&sysroot) {
@@ -37,7 +39,15 @@ pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Ve
               .expect("Convert to absolute path failed."),
           );
         }
-        return Some(i.canonicalize().expect("Convert to absolute path failed."));
+        if is_rust_intermediate_lib(&i) {
+          return None;
+        }
+        let current_path = i.canonicalize().expect("Convert to absolute path failed.");
+        if !i.is_dir() && !i.is_file() {
+          println!("Note: {} is not a dir or file.", i.as_str());
+          return None;
+        }
+        Some(current_path)
       })
       .collect::<Vec<_>>();
 
@@ -63,7 +73,7 @@ pub fn resolve_artifact_library(target: Artifact) -> Option<Vec<PathBuf>> {
         // for example: build reqwest
         // support build exec, but ignore it
         if let Some(ext) = i.extension() {
-          if ext == "so" || ext == "a" {
+          if (ext == "so" || ext == "a") && !is_rust_intermediate_lib(i) {
             return Some(i);
           }
           return None;

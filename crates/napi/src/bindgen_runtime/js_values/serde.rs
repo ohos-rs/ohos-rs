@@ -9,16 +9,22 @@ use crate::{
 use super::BigInt;
 use super::{FromNapiValue, Object, ToNapiValue};
 
-impl ToNapiValue for Value {
+impl ToNapiValue for &Value {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     match val {
       Value::Null => unsafe { Null::to_napi_value(env, Null) },
-      Value::Bool(b) => unsafe { bool::to_napi_value(env, b) },
-      Value::Number(n) => unsafe { Number::to_napi_value(env, n) },
-      Value::String(s) => unsafe { String::to_napi_value(env, s) },
-      Value::Array(arr) => unsafe { Vec::<Value>::to_napi_value(env, arr) },
-      Value::Object(obj) => unsafe { Map::to_napi_value(env, obj) },
+      Value::Bool(b) => unsafe { ToNapiValue::to_napi_value(env, b) },
+      Value::Number(n) => unsafe { ToNapiValue::to_napi_value(env, n) },
+      Value::String(s) => unsafe { ToNapiValue::to_napi_value(env, s) },
+      Value::Array(arr) => unsafe { ToNapiValue::to_napi_value(env, arr) },
+      Value::Object(obj) => unsafe { ToNapiValue::to_napi_value(env, obj) },
     }
+  }
+}
+
+impl ToNapiValue for Value {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    ToNapiValue::to_napi_value(env, &val)
   }
 }
 
@@ -82,7 +88,7 @@ impl FromNapiValue for Value {
   }
 }
 
-impl ToNapiValue for Map<String, Value> {
+impl ToNapiValue for &Map<String, Value> {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let mut obj = Object::new(env)?;
 
@@ -91,6 +97,12 @@ impl ToNapiValue for Map<String, Value> {
     }
 
     unsafe { Object::to_napi_value(env, obj) }
+  }
+}
+
+impl ToNapiValue for Map<String, Value> {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    ToNapiValue::to_napi_value(env, &val)
   }
 }
 
@@ -113,7 +125,7 @@ impl FromNapiValue for Map<String, Value> {
   }
 }
 
-impl ToNapiValue for Number {
+impl ToNapiValue for &Number {
   unsafe fn to_napi_value(env: sys::napi_env, n: Self) -> Result<sys::napi_value> {
     #[cfg(feature = "napi6")]
     const MAX_SAFE_INT: i64 = 9007199254740991i64; // 2 ^ 53 - 1
@@ -145,6 +157,13 @@ impl ToNapiValue for Number {
     }
   }
 }
+
+impl ToNapiValue for Number {
+  unsafe fn to_napi_value(env: sys::napi_env, n: Self) -> Result<sys::napi_value> {
+    ToNapiValue::to_napi_value(env, &n)
+  }
+}
+
 impl FromNapiValue for Number {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     let n = unsafe { f64::from_napi_value(env, napi_val)? };

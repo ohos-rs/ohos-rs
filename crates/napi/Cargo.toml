@@ -67,7 +67,7 @@ node_version_detect = []
 
 [dependencies]
 bitflags = "2"
-ctor     = "0.4.0"
+ctor     = "0.4.1"
 
 [dependencies.anyhow]
 optional = true
@@ -85,8 +85,11 @@ version  = "0.8"
 optional = true
 version  = "0.4"
 
-[target.'cfg(not(target_os = "wasm"))'.dependencies]
-tokio = { version = "1", optional = true, features = ["rt", "rt-multi-thread", "sync"] }
+[target.'cfg(any(all(target_family = "wasm", tokio_unstable), not(target_family = "wasm")))'.dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "sync"], optional = true }
+
+[target.'cfg(all(target_family = "wasm", not(tokio_unstable)))'.dependencies]
+tokio = { version = "1", features = ["rt", "sync"], optional = true }
 
 [dependencies.serde]
 optional = true
@@ -107,3 +110,6 @@ version  = "0.3"
 [dependencies.tokio-stream]
 optional = true
 version  = "0.1"
+
+[build-dependencies]
+napi-build-ohos = { path = "../build", version = "1.0.4" }

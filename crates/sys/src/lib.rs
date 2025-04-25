@@ -5,10 +5,14 @@
 #[cfg(any(target_env = "msvc", feature = "dyn-symbols"))]
 macro_rules! generate {
   (extern "C" {
-    $(fn $name:ident($($param:ident: $ptype:ty$(,)?)*)$( -> $rtype:ty)?;)+
+    $(
+      $(#[$attr:meta])*
+      fn $name:ident($($param:ident: $ptype:ty$(,)?)*)$( -> $rtype:ty)?;
+    )+
   }) => {
     struct Napi {
       $(
+        $(#[$attr])*
         $name: unsafe extern "C" fn(
           $($param: $ptype,)*
         )$( -> $rtype)*,
@@ -22,6 +26,7 @@ macro_rules! generate {
 
     static mut NAPI: Napi = {
       $(
+        $(#[$attr])*
         unsafe extern "C" fn $name($(_: $ptype,)*)$( -> $rtype)* {
           panic_load()
         }
@@ -40,6 +45,7 @@ macro_rules! generate {
     ) -> Result<(), libloading::Error> {
       NAPI = Napi {
         $(
+          $(#[$attr])*
           $name: {
             let symbol: Result<libloading::Symbol<unsafe extern "C" fn ($(_: $ptype,)*)$( -> $rtype)*>, libloading::Error> = host.get(stringify!($name).as_bytes());
             match symbol {
@@ -59,6 +65,7 @@ macro_rules! generate {
     }
 
     $(
+      $(#[$attr])*
       #[inline]
       #[allow(clippy::missing_safety_doc)]
       pub unsafe fn $name($($param: $ptype,)*)$( -> $rtype)* {

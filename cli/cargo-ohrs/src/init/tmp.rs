@@ -2,6 +2,11 @@ pub const BUILD_INIT: &str = r#"fn main() {
   napi_build_ohos::setup();
 }
 "#;
+
+pub const VSCODE_SETTINGS: &str = r#"{
+  "rust-analyzer.cargo.target": "aarch64-unknown-linux-ohos"
+}"#;
+
 pub const CARGO_TOML: &str = r#"[package]
 name    = "entry"
 version = "0.1.0"

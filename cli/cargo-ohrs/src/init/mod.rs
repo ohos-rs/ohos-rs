@@ -7,7 +7,7 @@ mod tmp;
 use anyhow::Error;
 use config::get_git_config;
 use package::{CHANGELOG, INDEX_CONTENT, LICENSE, MODULE_CONTENT, PKG, README};
-use tmp::{BUILD_INIT, CARGO_TOML, GIT_IGNORE, LIB_CODE};
+use tmp::{BUILD_INIT, CARGO_TOML, GIT_IGNORE, LIB_CODE, VSCODE_SETTINGS};
 
 pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
   let pwd = std::env::current_dir().map_err(|_e| Error::msg("Can't get current work path"))?;
@@ -20,6 +20,14 @@ pub fn init(arg: crate::InitArgs) -> anyhow::Result<()> {
       &arg.name
     )));
   }
+
+  // add vscode settings
+  create_dist_dir!(&target.join(".vscode"));
+  create_project_file!(
+    VSCODE_SETTINGS,
+    &target.join(".vscode").join("settings.json"),
+    "settings.json"
+  );
 
   create_dist_dir!(&target.join("src"));
 

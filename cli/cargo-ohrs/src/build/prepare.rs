@@ -5,6 +5,7 @@ use cargo_metadata::MetadataCommand;
 use sha2::{Digest, Sha256};
 use std::env;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 /// 构建前初始化工作，包括获取当前运行环境等。  
 pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result<()> {
@@ -13,6 +14,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   // set copy_static variable
   ctx.copy_static = args.copy_static;
   ctx.skip_libs = args.skip_libs;
+  ctx.dts_cache = args.dts_cache;
 
   // 判断当前构建环境以及获取metadata信息
   let cargo_file = ctx.pwd.join("./Cargo.toml");
@@ -68,10 +70,26 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   let hash_result = hasher.finalize();
   let hash_hex = format!("{:x}", hash_result);
   let short_hash = &hash_hex[..8];
-  let file_name = format!("{}-{}.napi_type_def.tmp", &pkg.name, short_hash);
+  let file_name = format!("{}-{}.napi_type_def", &pkg.name, short_hash);
+  let final_file_name;
+
+  if !ctx.dts_cache {
+    let _ = fs_extra::file::remove(&file_name).is_err();
+    final_file_name = format!(
+      "{}_{}.tmp",
+      &file_name,
+      SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+        .to_string()
+    );
+  } else {
+    final_file_name = format!("{}.tmp", &file_name);
+  }
 
   // 拼接完整的文件路径
-  let file_path = PathBuf::from(tmp_dir).join(file_name);
+  let file_path = PathBuf::from(tmp_dir).join(final_file_name);
   env::set_var(
     "TYPE_DEF_TMP_PATH",
     file_path

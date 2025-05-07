@@ -47,6 +47,7 @@ pub struct Context<'a> {
   pub tmp_ts_file_path: PathBuf,
 
   pub skip_libs: bool,
+  pub dts_cache: bool,
 }
 
 /// build逻辑

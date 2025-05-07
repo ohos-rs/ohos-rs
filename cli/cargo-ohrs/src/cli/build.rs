@@ -37,12 +37,20 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     .switch()
     .fallback(false);
 
+  let dts_cache = long("dts-cache")
+    .help(
+      "Use the dts cache file to generate the final output file, will be set to false by default.",
+    )
+    .switch()
+    .fallback(false);
+
   let init_parser = construct!(crate::BuildArgs {
     dist,
     arch,
     release,
     copy_static,
     skip_libs,
+    dts_cache,
     cargo_args,
   });
   construct!(crate::Options::Build(init_parser))

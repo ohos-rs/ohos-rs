@@ -1,19 +1,16 @@
-use std::convert::TryInto;
-
 use serde::de::Visitor;
 use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, Unexpected, VariantAccess};
 
-use crate::bindgen_runtime::{BufferSlice, FromNapiValue};
 #[cfg(feature = "napi6")]
-use crate::JsBigInt;
-use crate::{type_of, NapiValue, Value, ValueType};
-use crate::{Error, JsBoolean, JsNumber, JsObject, JsString, JsUnknown, Result, Status};
-
-use super::{JsArrayBuffer, JsTypedArray};
+use crate::bindgen_runtime::BigInt;
+use crate::{
+  bindgen_runtime::{ArrayBuffer, BufferSlice, FromNapiValue, JsObjectValue, Object, Unknown},
+  type_of, Error, JsValue, Result, Status, Value, ValueType,
+};
 
 pub struct De<'env>(pub(crate) &'env Value);
 impl<'env> De<'env> {
-  pub fn new(value: &'env JsObject) -> Self {
+  pub fn new(value: &'env Object<'env>) -> Self {
     Self(&value.0)
   }
 }
@@ -30,24 +27,22 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
     match js_value_type {
       ValueType::Null | ValueType::Undefined => visitor.visit_unit(),
       ValueType::Boolean => {
-        let js_boolean = unsafe { JsBoolean::from_raw_unchecked(self.0.env, self.0.value) };
-        visitor.visit_bool(js_boolean.get_value()?)
+        let val: bool = unsafe { FromNapiValue::from_napi_value(self.0.env, self.0.value)? };
+        visitor.visit_bool(val)
       }
       ValueType::Number => {
-        let js_number: f64 =
-          unsafe { JsNumber::from_raw_unchecked(self.0.env, self.0.value).try_into()? };
+        let js_number: f64 = unsafe { FromNapiValue::from_napi_value(self.0.env, self.0.value)? };
         if (js_number.trunc() - js_number).abs() < f64::EPSILON {
           visitor.visit_i64(js_number as i64)
         } else {
           visitor.visit_f64(js_number)
         }
       }
-      ValueType::String => {
-        let js_string = unsafe { JsString::from_raw_unchecked(self.0.env, self.0.value) };
-        visitor.visit_str(js_string.into_utf8()?.as_str()?)
-      }
+      ValueType::String => visitor.visit_str(
+        unsafe { <String as FromNapiValue>::from_napi_value(self.0.env, self.0.value) }?.as_str(),
+      ),
       ValueType::Object => {
-        let js_object = unsafe { JsObject::from_raw_unchecked(self.0.env, self.0.value) };
+        let js_object = Object::from_raw(self.0.env, self.0.value);
         if js_object.is_array()? {
           let mut deserializer =
             JsArrayAccess::new(&js_object, js_object.get_array_length_unchecked()?);
@@ -57,14 +52,11 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
         } else if js_object.is_buffer()? {
           visitor.visit_bytes(&unsafe { BufferSlice::from_napi_value(self.0.env, self.0.value)? })
         } else if js_object.is_arraybuffer()? {
-          let array_buf =
-            unsafe { JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()? };
-          if array_buf.data.is_null() {
+          let array_buf = unsafe { ArrayBuffer::from_napi_value(self.0.env, self.0.value)? };
+          if array_buf.data.is_empty() {
             return visitor.visit_bytes(&[]);
           }
-          visitor.visit_bytes(unsafe {
-            core::slice::from_raw_parts(array_buf.data as *const u8, array_buf.len)
-          })
+          visitor.visit_bytes(array_buf.data)
         } else {
           let mut deserializer = JsObjectAccess::new(&js_object)?;
           visitor.visit_map(&mut deserializer)
@@ -72,26 +64,27 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
       }
       #[cfg(feature = "napi6")]
       ValueType::BigInt => {
-        let mut js_bigint = unsafe { JsBigInt::from_raw(self.0.env, self.0.value)? };
+        let js_bigint = unsafe { BigInt::from_napi_value(self.0.env, self.0.value)? };
 
-        let (signed, words) = js_bigint.get_words()?;
+        let BigInt { sign_bit, words } = &js_bigint;
         let word_sized = words.len() < 2;
 
-        match (signed, word_sized) {
-          (true, true) => visitor.visit_i64(js_bigint.get_i64()?.0),
-          (true, false) => visitor.visit_i128(js_bigint.get_i128()?.0),
-          (false, true) => visitor.visit_u64(js_bigint.get_u64()?.0),
-          (false, false) => visitor.visit_u128(js_bigint.get_u128()?.1),
+        match (sign_bit, word_sized) {
+          (true, true) => visitor.visit_i64(js_bigint.get_i64().0),
+          (true, false) => visitor.visit_i128(js_bigint.get_i128().0),
+          (false, true) => visitor.visit_u64(js_bigint.get_u64().1),
+          (false, false) => visitor.visit_u128(js_bigint.get_u128().1),
         }
       }
-      ValueType::External | ValueType::Function => Err(Error::new(
-        Status::InvalidArg,
-        format!("typeof {:?} value could not be deserialized", js_value_type),
-      )),
       #[cfg(not(target_env = "ohos"))]
-      ValueType::Symbol => Err(Error::new(
+      ValueType::External | ValueType::Function | ValueType::Symbol => Err(Error::new(
         Status::InvalidArg,
-        format!("typeof {:?} value could not be deserialized", js_value_type),
+        format!("typeof {js_value_type:?} value could not be deserialized"),
+      )),
+      #[cfg(target_env = "ohos")]
+      ValueType::External | ValueType::Function=> Err(Error::new(
+        Status::InvalidArg,
+        format!("typeof {js_value_type:?} value could not be deserialized"),
       )),
       ValueType::Unknown => unreachable!(),
     }
@@ -103,32 +96,16 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
   {
     match type_of!(self.0.env, self.0.value)? {
       ValueType::Object => {
-        let js_object = unsafe { JsObject::from_raw_unchecked(self.0.env, self.0.value) };
-        // TODO: For openharmony, we need to use JsTypedArray to convert TypedArray avoid some error
-        if js_object.is_typedarray()? {
-          let typed_array =
-            unsafe { JsTypedArray::from_raw(self.0.env, self.0.value)? }.into_value()?;
-          if typed_array.data.is_null() {
-            return visitor.visit_bytes(&[]);
-          }
-          return visitor.visit_bytes(&unsafe {
-            core::slice::from_raw_parts(
-              typed_array.data as *const u8,
-              typed_array.length * typed_array.typedarray_type.byte_len(),
-            )
-          });
-        } else if js_object.is_buffer()? {
+        let js_object = Object::from_raw(self.0.env, self.0.value);
+        if js_object.is_buffer()? {
           return visitor
             .visit_bytes(&unsafe { BufferSlice::from_napi_value(self.0.env, self.0.value)? });
         } else if js_object.is_arraybuffer()? {
-          let array_buf =
-            unsafe { JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()? };
-          if array_buf.data.is_null() {
+          let array_buf = unsafe { ArrayBuffer::from_napi_value(self.0.env, self.0.value)? };
+          if array_buf.data.is_empty() {
             return visitor.visit_bytes(&[]);
           }
-          return visitor.visit_bytes(unsafe {
-            core::slice::from_raw_parts(array_buf.data as *const u8, array_buf.len)
-          });
+          return visitor.visit_bytes(array_buf.data);
         }
         visitor.visit_bytes(unsafe { FromNapiValue::from_napi_value(self.0.env, self.0.value)? })
       }
@@ -142,21 +119,8 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
   {
     match type_of!(self.0.env, self.0.value)? {
       ValueType::Object => {
-        let js_object = unsafe { JsObject::from_raw_unchecked(self.0.env, self.0.value) };
-        if js_object.is_typedarray()? {
-          let typed_array =
-            unsafe { JsTypedArray::from_napi_value(self.0.env, self.0.value)? }.into_value()?;
-          if typed_array.data.is_null() {
-            return visitor.visit_byte_buf(Vec::new());
-          }
-          return visitor.visit_byte_buf(unsafe {
-            core::slice::from_raw_parts(
-              typed_array.data as *const u8,
-              typed_array.length * typed_array.typedarray_type.byte_len(),
-            )
-            .to_vec()
-          });
-        } else if js_object.is_buffer()? {
+        let js_object = Object::from_raw(self.0.env, self.0.value);
+        if js_object.is_buffer()? {
           return visitor.visit_byte_buf(
             unsafe { BufferSlice::from_napi_value(self.0.env, self.0.value)? }.to_vec(),
           );
@@ -166,14 +130,11 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
             u8_slice.to_vec()
           });
         } else if js_object.is_arraybuffer()? {
-          let array_buf =
-            unsafe { JsArrayBuffer::from_napi_value(self.0.env, self.0.value)?.into_value()? };
-          if array_buf.data.is_null() {
+          let array_buf = unsafe { ArrayBuffer::from_napi_value(self.0.env, self.0.value)? };
+          if array_buf.data.is_empty() {
             return visitor.visit_byte_buf(Vec::new());
           }
-          return visitor.visit_byte_buf(unsafe {
-            core::slice::from_raw_parts(array_buf.data as *const u8, array_buf.len).to_vec()
-          });
+          return visitor.visit_byte_buf(array_buf.data.to_vec());
         }
         visitor.visit_byte_buf(unsafe { FromNapiValue::from_napi_value(self.0.env, self.0.value)? })
       }
@@ -203,38 +164,27 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
     let js_value_type = type_of!(self.0.env, self.0.value)?;
     match js_value_type {
       ValueType::String => visitor.visit_enum(JsEnumAccess::new(
-        unsafe { JsString::from_raw_unchecked(self.0.env, self.0.value) }
-          .into_utf8()?
-          .into_owned()?,
+        unsafe { FromNapiValue::from_napi_value(self.0.env, self.0.value) }?,
         None,
       )),
       ValueType::Object => {
-        let js_object = unsafe { JsObject::from_raw_unchecked(self.0.env, self.0.value) };
+        let js_object = Object::from_raw(self.0.env, self.0.value);
         let properties = js_object.get_property_names()?;
         let property_len = properties.get_array_length_unchecked()?;
         if property_len != 1 {
           Err(Error::new(
             Status::InvalidArg,
-            format!(
-              "object key length: {}, can not deserialize to Enum",
-              property_len
-            ),
+            format!("object key length: {property_len}, can not deserialize to Enum"),
           ))
         } else {
-          let key = properties.get_element::<JsString>(0)?;
-          let value: JsUnknown = js_object.get_property(key)?;
-          visitor.visit_enum(JsEnumAccess::new(
-            key.into_utf8()?.into_owned()?,
-            Some(&value.0),
-          ))
+          let key = properties.get_element::<String>(0)?;
+          let value: Unknown = js_object.get_named_property_unchecked(&key)?;
+          visitor.visit_enum(JsEnumAccess::new(key, Some(&value.0)))
         }
       }
       _ => Err(Error::new(
         Status::InvalidArg,
-        format!(
-          "{:?} type could not deserialize to Enum type",
-          js_value_type
-        ),
+        format!("{js_value_type:?} type could not deserialize to Enum type"),
       )),
     }
   }
@@ -323,7 +273,7 @@ impl<'de> VariantAccess<'de> for JsVariantAccess<'_> {
   {
     match self.value {
       Some(js_value) => {
-        let js_object = unsafe { JsObject::from_raw(js_value.env, js_value.value)? };
+        let js_object = Object::from_raw(js_value.env, js_value.value);
         if js_object.is_array()? {
           let mut deserializer =
             JsArrayAccess::new(&js_object, js_object.get_array_length_unchecked()?);
@@ -348,7 +298,7 @@ impl<'de> VariantAccess<'de> for JsVariantAccess<'_> {
   {
     match self.value {
       Some(js_value) => {
-        if let Ok(val) = unsafe { JsObject::from_raw(js_value.env, js_value.value) } {
+        if let Ok(val) = unsafe { Object::from_napi_value(js_value.env, js_value.value) } {
           let mut deserializer = JsObjectAccess::new(&val)?;
           visitor.visit_map(&mut deserializer)
         } else {
@@ -368,14 +318,14 @@ impl<'de> VariantAccess<'de> for JsVariantAccess<'_> {
 
 #[doc(hidden)]
 struct JsArrayAccess<'env> {
-  input: &'env JsObject,
+  input: &'env Object<'env>,
   idx: u32,
   len: u32,
 }
 
 #[doc(hidden)]
 impl<'env> JsArrayAccess<'env> {
-  fn new(input: &'env JsObject, len: u32) -> Self {
+  fn new(input: &'env Object, len: u32) -> Self {
     Self { input, idx: 0, len }
   }
 }
@@ -391,7 +341,7 @@ impl<'de> SeqAccess<'de> for JsArrayAccess<'_> {
     if self.idx >= self.len {
       return Ok(None);
     }
-    let v = self.input.get_element::<JsUnknown>(self.idx)?;
+    let v = self.input.get_element::<Unknown>(self.idx)?;
     self.idx += 1;
 
     let mut de = De(&v.0);
@@ -401,15 +351,15 @@ impl<'de> SeqAccess<'de> for JsArrayAccess<'_> {
 
 #[doc(hidden)]
 pub(crate) struct JsObjectAccess<'env> {
-  value: &'env JsObject,
-  properties: JsObject,
+  value: &'env Object<'env>,
+  properties: Object<'env>,
   idx: u32,
   property_len: u32,
 }
 
 #[doc(hidden)]
 impl<'env> JsObjectAccess<'env> {
-  fn new(value: &'env JsObject) -> Result<Self> {
+  fn new(value: &'env Object) -> Result<Self> {
     let properties = value.get_property_names()?;
     let property_len = properties.get_array_length_unchecked()?;
     Ok(Self {
@@ -433,7 +383,7 @@ impl<'de> MapAccess<'de> for JsObjectAccess<'_> {
       return Ok(None);
     }
 
-    let prop_name = self.properties.get_element::<JsUnknown>(self.idx)?;
+    let prop_name = self.properties.get_element::<Unknown>(self.idx)?;
 
     let mut de = De(&prop_name.0);
     seed.deserialize(&mut de).map(Some)
@@ -449,8 +399,8 @@ impl<'de> MapAccess<'de> for JsObjectAccess<'_> {
         format!("Index:{} out of range: {}", self.property_len, self.idx),
       ));
     }
-    let prop_name = self.properties.get_element::<JsString>(self.idx)?;
-    let value: JsUnknown = self.value.get_property(prop_name)?;
+    let prop_name = self.properties.get_element::<String>(self.idx)?;
+    let value: Unknown = self.value.get_named_property_unchecked(&prop_name)?;
 
     self.idx += 1;
     let mut de = De(&value.0);

@@ -10,8 +10,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
 
   let release = long("release")
     .help("Build with release mode.")
-    .switch()
-    .fallback(false);
+    .flag(true, false);
 
   let arch = long("arch")
     .short('a')
@@ -23,8 +22,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
 
   let copy_static = long("static")
     .help("Copy the static link library to the final output directory, will be set to false by default.")
-    .switch()
-    .fallback(false);
+    .flag(true, false);
 
   let cargo_args = positional("CARGO_ARGS")
     .help("The custom parameters for cargo build in the current project.")
@@ -34,15 +32,18 @@ pub fn cli_build() -> impl Parser<crate::Options> {
 
   let skip_libs = long("skip-libs")
     .help("Do not copy the dynamic link library to the final output directory, will be set to false by default.")
-    .switch()
-    .fallback(false);
+    .flag(true, false);
 
   let dts_cache = long("dts-cache")
     .help(
-      "Use the dts cache file to generate the final output file, will be set to false by default.",
+      "Use the dts cache file to generate the final output file, will be set to true by default.",
     )
-    .switch()
-    .fallback(false);
+    .flag(true, true);
+
+  let target_dir = long("target-dir")
+    .help("The temp directory of the ohrs build, will be set to the current directory by default.")
+    .argument::<String>("TARGET_DIR")
+    .optional();
 
   let init_parser = construct!(crate::BuildArgs {
     dist,
@@ -51,6 +52,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     copy_static,
     skip_libs,
     dts_cache,
+    target_dir,
     cargo_args,
   });
   construct!(crate::Options::Build(init_parser))

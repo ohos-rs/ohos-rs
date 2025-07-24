@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use std::ptr;
 
 use super::{Either, FromNapiValue, ToNapiValue, TypeName, Unknown, ValidateNapiValue};
@@ -7,8 +5,8 @@ use super::{Either, FromNapiValue, ToNapiValue, TypeName, Unknown, ValidateNapiV
 #[cfg(feature = "napi4")]
 use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
 use crate::{
-  check_pending_exception, check_status, sys, Env, JsUndefined, NapiRaw, NapiValue, Result,
-  ValueType,
+  bindgen_runtime::JsObjectValue, check_pending_exception, check_status, sys, Env, JsValue, Result,
+  Status, ValueType,
 };
 
 pub trait JsValuesTupleIntoVec {
@@ -104,16 +102,18 @@ impl_tuple_conversion!(
   A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
 );
 
+#[derive(Clone, Copy)]
 /// A JavaScript function.
 /// It can only live in the scope of a function call.
 /// If you want to use it outside the scope of a function call, you can turn it into a reference.
 /// By calling the `create_ref` method.
-pub struct Function<'scope, Args: JsValuesTupleIntoVec = Unknown, Return = Unknown> {
+pub struct Function<'scope, Args: JsValuesTupleIntoVec = Unknown<'scope>, Return = Unknown<'scope>>
+{
   pub(crate) env: sys::napi_env,
   pub(crate) value: sys::napi_value,
   pub(crate) _args: std::marker::PhantomData<Args>,
   pub(crate) _return: std::marker::PhantomData<Return>,
-  _scope: std::marker::PhantomData<&'scope ()>,
+  pub(crate) _scope: std::marker::PhantomData<&'scope ()>,
 }
 
 impl<Args: JsValuesTupleIntoVec, Return> TypeName for Function<'_, Args, Return> {
@@ -126,10 +126,19 @@ impl<Args: JsValuesTupleIntoVec, Return> TypeName for Function<'_, Args, Return>
   }
 }
 
-impl<Args: JsValuesTupleIntoVec, Return> NapiRaw for Function<'_, Args, Return> {
-  unsafe fn raw(&self) -> sys::napi_value {
-    self.value
+impl<'env, Args: JsValuesTupleIntoVec, Return> JsValue<'env> for Function<'env, Args, Return> {
+  fn value(&self) -> crate::Value {
+    crate::Value {
+      value: self.value,
+      env: self.env,
+      value_type: ValueType::Function,
+    }
   }
+}
+
+impl<'env, Args: JsValuesTupleIntoVec, Return> JsObjectValue<'env>
+  for Function<'env, Args, Return>
+{
 }
 
 impl<Args: JsValuesTupleIntoVec, Return> FromNapiValue for Function<'_, Args, Return> {
@@ -175,7 +184,7 @@ impl<Args: JsValuesTupleIntoVec, Return> Function<'_, Args, Return> {
   }
 
   /// Create a new instance of the JavaScript Class.
-  pub fn new_instance(&self, args: Args) -> Result<Unknown> {
+  pub fn new_instance(&self, args: Args) -> Result<Unknown<'_>> {
     let mut raw_instance = ptr::null_mut();
     let mut args = args.into_vec(self.env)?;
     check_status!(
@@ -197,7 +206,7 @@ impl<Args: JsValuesTupleIntoVec, Return> Function<'_, Args, Return> {
   /// Create a threadsafe function from the JavaScript function.
   pub fn build_threadsafe_function<T: 'static>(
     &self,
-  ) -> ThreadsafeFunctionBuilder<T, Args, Return> {
+  ) -> ThreadsafeFunctionBuilder<'_, T, Args, Return> {
     ThreadsafeFunctionBuilder {
       env: self.env,
       value: self.value,
@@ -298,13 +307,14 @@ pub struct ThreadsafeFunctionBuilder<
   T: 'static,
   Args: 'static + JsValuesTupleIntoVec,
   Return,
+  ErrorStatus: AsRef<str> + From<Status> = Status,
   const CalleeHandled: bool = false,
   const Weak: bool = false,
   const MaxQueueSize: usize = 0,
 > {
   pub(crate) env: sys::napi_env,
   pub(crate) value: sys::napi_value,
-  _args: std::marker::PhantomData<(T, &'env Args)>,
+  _args: std::marker::PhantomData<(T, &'env Args, ErrorStatus)>,
   _return: std::marker::PhantomData<Return>,
 }
 
@@ -314,14 +324,45 @@ impl<
     T: 'static,
     Args: 'static + JsValuesTupleIntoVec,
     Return: FromNapiValue,
+    ErrorStatus: AsRef<str> + From<Status>,
     const CalleeHandled: bool,
     const Weak: bool,
     const MaxQueueSize: usize,
-  > ThreadsafeFunctionBuilder<'env, T, Args, Return, CalleeHandled, Weak, MaxQueueSize>
+  >
+  ThreadsafeFunctionBuilder<'env, T, Args, Return, ErrorStatus, CalleeHandled, Weak, MaxQueueSize>
 {
+  pub fn error_status<NewErrorStatus: AsRef<str> + From<Status>>(
+    self,
+  ) -> ThreadsafeFunctionBuilder<
+    'env,
+    T,
+    Args,
+    Return,
+    NewErrorStatus,
+    CalleeHandled,
+    Weak,
+    MaxQueueSize,
+  > {
+    ThreadsafeFunctionBuilder {
+      env: self.env,
+      value: self.value,
+      _args: std::marker::PhantomData,
+      _return: std::marker::PhantomData,
+    }
+  }
+
   pub fn weak<const NewWeak: bool>(
     self,
-  ) -> ThreadsafeFunctionBuilder<'env, T, Args, Return, CalleeHandled, NewWeak, MaxQueueSize> {
+  ) -> ThreadsafeFunctionBuilder<
+    'env,
+    T,
+    Args,
+    Return,
+    ErrorStatus,
+    CalleeHandled,
+    NewWeak,
+    MaxQueueSize,
+  > {
     ThreadsafeFunctionBuilder {
       env: self.env,
       value: self.value,
@@ -332,7 +373,16 @@ impl<
 
   pub fn callee_handled<const NewCalleeHandled: bool>(
     self,
-  ) -> ThreadsafeFunctionBuilder<'env, T, Args, Return, NewCalleeHandled, Weak, MaxQueueSize> {
+  ) -> ThreadsafeFunctionBuilder<
+    'env,
+    T,
+    Args,
+    Return,
+    ErrorStatus,
+    NewCalleeHandled,
+    Weak,
+    MaxQueueSize,
+  > {
     ThreadsafeFunctionBuilder {
       env: self.env,
       value: self.value,
@@ -343,7 +393,16 @@ impl<
 
   pub fn max_queue_size<const NewMaxQueueSize: usize>(
     self,
-  ) -> ThreadsafeFunctionBuilder<'env, T, Args, Return, CalleeHandled, Weak, NewMaxQueueSize> {
+  ) -> ThreadsafeFunctionBuilder<
+    'env,
+    T,
+    Args,
+    Return,
+    ErrorStatus,
+    CalleeHandled,
+    Weak,
+    NewMaxQueueSize,
+  > {
     ThreadsafeFunctionBuilder {
       env: self.env,
       value: self.value,
@@ -355,12 +414,16 @@ impl<
   pub fn build_callback<CallJsBackArgs, Callback>(
     &self,
     call_js_back: Callback,
-  ) -> Result<ThreadsafeFunction<T, Return, CallJsBackArgs, CalleeHandled, Weak, MaxQueueSize>>
+  ) -> Result<
+    ThreadsafeFunction<T, Return, CallJsBackArgs, ErrorStatus, CalleeHandled, Weak, MaxQueueSize>,
+  >
   where
     CallJsBackArgs: 'static + JsValuesTupleIntoVec,
     Callback: 'static + FnMut(ThreadsafeCallContext<T>) -> Result<CallJsBackArgs>,
+    ErrorStatus: AsRef<str>,
+    ErrorStatus: From<Status>,
   {
-    ThreadsafeFunction::<T, Return, Args, CalleeHandled, Weak, MaxQueueSize>::create(
+    ThreadsafeFunction::<T, Return, Args, ErrorStatus, CalleeHandled, Weak, MaxQueueSize>::create(
       self.env,
       self.value,
       call_js_back,
@@ -372,14 +435,15 @@ impl<
 impl<
     T: 'static + JsValuesTupleIntoVec,
     Return: FromNapiValue,
+    ErrorStatus: AsRef<str> + From<Status>,
     const CalleeHandled: bool,
     const Weak: bool,
     const MaxQueueSize: usize,
-  > ThreadsafeFunctionBuilder<'_, T, T, Return, CalleeHandled, Weak, MaxQueueSize>
+  > ThreadsafeFunctionBuilder<'_, T, T, Return, ErrorStatus, CalleeHandled, Weak, MaxQueueSize>
 {
   pub fn build(
     &self,
-  ) -> Result<ThreadsafeFunction<T, Return, T, CalleeHandled, Weak, MaxQueueSize>> {
+  ) -> Result<ThreadsafeFunction<T, Return, T, ErrorStatus, CalleeHandled, Weak, MaxQueueSize>> {
     unsafe { ThreadsafeFunction::from_napi_value(self.env, self.value) }
   }
 }
@@ -473,10 +537,10 @@ impl FunctionCallContext<'_> {
     }
   }
 
-  pub fn try_get<ArgType: NapiValue + TypeName + FromNapiValue>(
+  pub fn try_get<ArgType: TypeName + FromNapiValue>(
     &self,
     index: usize,
-  ) -> Result<Either<ArgType, JsUndefined>> {
+  ) -> Result<Either<ArgType, ()>> {
     let len = self.length();
     if index >= len {
       Err(crate::Error::new(
@@ -484,9 +548,9 @@ impl FunctionCallContext<'_> {
         "Arguments index out of range".to_owned(),
       ))
     } else if index < len {
-      unsafe { ArgType::from_raw(self.env.0, self.args[index]) }.map(Either::A)
+      unsafe { ArgType::from_napi_value(self.env.0, self.args[index]) }.map(Either::A)
     } else {
-      self.env.get_undefined().map(Either::B)
+      Ok(Either::B(()))
     }
   }
 
@@ -525,4 +589,66 @@ impl FunctionCallContext<'_> {
   pub fn this<This: FromNapiValue>(&self) -> Result<This> {
     unsafe { This::from_napi_value(self.env.0, self.this) }
   }
+}
+
+#[cfg(feature = "compat-mode")]
+macro_rules! impl_call_apply {
+  ($fn_call_name:ident, $fn_apply_name:ident, $($ident:ident),*) => {
+    #[allow(non_snake_case, deprecated, clippy::too_many_arguments)]
+    pub fn $fn_call_name<$($ident: ToNapiValue),*, Return: FromNapiValue>(
+      &self,
+      $($ident: $ident),*
+    ) -> Result<Return> {
+      let raw_this = unsafe { ToNapiValue::to_napi_value(self.0.env, ()) }?;
+
+      let raw_args = vec![
+        $(
+          unsafe { $ident::to_napi_value(self.0.env, $ident) }?
+        ),*
+      ];
+
+      let mut return_value = ptr::null_mut();
+      check_pending_exception!(self.0.env, unsafe {
+        sys::napi_call_function(
+          self.0.env,
+          raw_this,
+          self.0.value,
+          raw_args.len(),
+          raw_args.as_ptr(),
+          &mut return_value,
+        )
+      })?;
+
+      unsafe { Return::from_napi_value(self.0.env, return_value) }
+    }
+
+    #[allow(non_snake_case, deprecated, clippy::too_many_arguments)]
+    pub fn $fn_apply_name<$($ident: ToNapiValue),*, Context: ToNapiValue, Return: FromNapiValue>(
+      &self,
+      this: Context,
+      $($ident: $ident),*
+    ) -> Result<Return> {
+      let raw_this = unsafe { Context::to_napi_value(self.0.env, this) }?;
+
+      let raw_args = vec![
+        $(
+          unsafe { $ident::to_napi_value(self.0.env, $ident) }?
+        ),*
+      ];
+
+      let mut return_value = ptr::null_mut();
+      check_pending_exception!(self.0.env, unsafe {
+        sys::napi_call_function(
+          self.0.env,
+          raw_this,
+          self.0.value,
+          raw_args.len(),
+          raw_args.as_ptr(),
+          &mut return_value,
+        )
+      })?;
+
+      unsafe { Return::from_napi_value(self.0.env, return_value) }
+    }
+  };
 }

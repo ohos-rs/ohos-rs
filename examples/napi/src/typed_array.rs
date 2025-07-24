@@ -1,5 +1,6 @@
-use napi_ohos::{bindgen_prelude::*, JsArrayBuffer};
 use std::sync::Arc;
+
+use napi_ohos::bindgen_prelude::*;
 
 #[napi]
 fn get_buffer() -> Buffer {
@@ -7,7 +8,7 @@ fn get_buffer() -> Buffer {
 }
 
 #[napi]
-fn get_buffer_slice(env: &Env) -> Result<BufferSlice> {
+fn get_buffer_slice(env: &Env) -> Result<BufferSlice<'_>> {
   BufferSlice::from_data(env, String::from("Hello world").as_bytes().to_vec())
 }
 
@@ -24,7 +25,7 @@ fn get_empty_buffer() -> Buffer {
 }
 
 #[napi]
-pub fn create_external_buffer_slice(env: &Env) -> Result<BufferSlice> {
+pub fn create_external_buffer_slice(env: &Env) -> Result<BufferSlice<'_>> {
   let mut data = String::from("Hello world").as_bytes().to_vec();
   let data_ptr = data.as_mut_ptr();
   let len = data.len();
@@ -38,7 +39,7 @@ pub fn create_external_buffer_slice(env: &Env) -> Result<BufferSlice> {
 }
 
 #[napi]
-pub fn create_buffer_slice_from_copied_data(env: &Env) -> Result<BufferSlice> {
+pub fn create_buffer_slice_from_copied_data(env: &Env) -> Result<BufferSlice<'_>> {
   BufferSlice::copy_from(env, String::from("Hello world").as_bytes())
 }
 
@@ -59,7 +60,7 @@ fn create_external_typed_array() -> Uint32Array {
 
 #[napi]
 fn mutate_typed_array(mut input: Float32Array) {
-  for item in input.as_mut() {
+  for item in unsafe { input.as_mut() } {
     *item *= 2.0;
   }
 }
@@ -96,14 +97,14 @@ fn accept_slice(fixture: &[u8]) -> usize {
 }
 
 #[napi]
-fn accept_arraybuffer(fixture: JsArrayBuffer) -> Result<usize> {
-  Ok(fixture.into_value()?.as_ref().len())
+fn accept_arraybuffer(fixture: ArrayBuffer) -> Result<usize> {
+  Ok(fixture.len())
 }
 
 #[napi]
-fn create_arraybuffer(env: Env) -> Result<JsArrayBuffer> {
-  let buf = env.create_arraybuffer_with_data(vec![1, 2, 3, 4])?;
-  Ok(buf.value)
+fn create_arraybuffer(env: &Env) -> Result<ArrayBuffer<'_>> {
+  let buf = ArrayBuffer::from_data(env, vec![1, 2, 3, 4])?;
+  Ok(buf)
 }
 
 #[napi]
@@ -190,8 +191,8 @@ fn async_reduce_buffer(buf: Buffer) -> Result<AsyncTask<AsyncBuffer>> {
 }
 
 #[napi]
-fn async_buffer_to_array(buf: JsArrayBuffer) -> Result<Vec<u8>> {
-  Ok(buf.into_value()?.as_ref().to_vec())
+fn async_buffer_to_array(buf: ArrayBuffer) -> Result<Vec<u8>> {
+  Ok(buf.to_vec())
 }
 
 #[napi]
@@ -204,7 +205,7 @@ struct AsyncReader {}
 struct OutputBuffer {}
 
 impl OutputBuffer {
-  fn into_buffer_slice(self, env: &Env) -> Result<BufferSlice> {
+  fn into_buffer_slice(self, env: &Env) -> Result<BufferSlice<'_>> {
     BufferSlice::from_data(env, String::from("Hello world"))
   }
 }
@@ -235,4 +236,50 @@ impl Reader {
     let output = AsyncReader {}.compute()?;
     output.into_buffer_slice(env)
   }
+}
+
+#[napi]
+pub fn create_uint8_clamped_array_from_data(env: &Env) -> Result<Uint8ClampedSlice<'_>> {
+  Uint8ClampedSlice::from_data(env, b"Hello world")
+}
+
+#[napi]
+pub fn create_uint8_clamped_array_from_external(env: &Env) -> Result<Uint8ClampedSlice<'_>> {
+  let mut data = b"Hello world".to_vec();
+  let data_ptr = data.as_mut_ptr();
+  let len = data.len();
+  std::mem::forget(data);
+  unsafe {
+    Uint8ClampedSlice::from_external(env, data_ptr, len, data_ptr, move |_, ptr| {
+      std::mem::drop(Vec::from_raw_parts(ptr, len, len));
+    })
+  }
+}
+
+#[napi]
+pub fn array_buffer_from_data(env: &Env) -> Result<ArrayBuffer<'_>> {
+  ArrayBuffer::from_data(env, b"Hello world")
+}
+
+#[napi]
+pub fn uint8_array_from_data(env: &Env) -> Result<Uint8ArraySlice<'_>> {
+  Uint8ArraySlice::from_data(env, b"Hello world")
+}
+
+#[napi]
+pub fn uint8_array_from_external(env: &Env) -> Result<Uint8ArraySlice<'_>> {
+  let mut data = b"Hello world".to_vec();
+  let data_ptr = data.as_mut_ptr();
+  let len = data.len();
+  std::mem::forget(data);
+  unsafe {
+    Uint8ArraySlice::from_external(env, data_ptr, len, data_ptr, move |_, ptr| {
+      std::mem::drop(Vec::from_raw_parts(ptr, len, len));
+    })
+  }
+}
+
+#[napi]
+pub fn accept_untyped_typed_array(input: TypedArray) -> usize {
+  input.arraybuffer.len()
 }

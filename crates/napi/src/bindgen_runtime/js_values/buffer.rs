@@ -10,8 +10,9 @@ use std::sync::Mutex;
 
 #[cfg(all(feature = "napi4", not(feature = "noop")))]
 use crate::bindgen_prelude::{CUSTOM_GC_TSFN, CUSTOM_GC_TSFN_DESTROYED, THREADS_CAN_ACCESS_ENV};
-use crate::NapiRaw;
-use crate::{bindgen_prelude::*, check_status, env::EMPTY_VEC, sys, Result, ValueType};
+use crate::{
+  bindgen_prelude::*, check_status, env::EMPTY_VEC, sys, JsValue, Result, Value, ValueType,
+};
 
 #[cfg(all(debug_assertions, not(windows)))]
 thread_local! {
@@ -23,14 +24,14 @@ thread_local! {
 /// It can only be used in non-async context and the lifetime is bound to the fn closure.
 ///
 /// If you want to use Node.js Buffer in async context or want to extend the lifetime, use `Buffer` instead.
-pub struct BufferSlice<'scope> {
-  pub(crate) inner: &'scope mut [u8],
+pub struct BufferSlice<'env> {
+  pub(crate) inner: &'env mut [u8],
   pub(crate) raw_value: sys::napi_value,
   #[allow(dead_code)]
   pub(crate) env: sys::napi_env,
 }
 
-impl<'scope> BufferSlice<'scope> {
+impl<'env> BufferSlice<'env> {
   /// Create a new `BufferSlice` from a `Vec<u8>`.
   ///
   /// While this is still a fully-supported data structure, in most cases using a `Uint8Array` will suffice.
@@ -102,7 +103,7 @@ impl<'scope> BufferSlice<'scope> {
   ///
   /// If you need to support these runtimes, you should create a buffer by other means and then
   /// later copy the data back out.
-  pub unsafe fn from_external<T: 'scope, F: FnOnce(Env, T)>(
+  pub unsafe fn from_external<T: 'env, F: FnOnce(Env, T)>(
     env: &Env,
     data: *mut u8,
     len: usize,
@@ -110,7 +111,7 @@ impl<'scope> BufferSlice<'scope> {
     finalize_callback: F,
   ) -> Result<Self> {
     let mut buf = ptr::null_mut();
-    if data.is_null() || data as *const u8 == EMPTY_VEC.as_ptr() {
+    if data.is_null() || std::ptr::eq(data, EMPTY_VEC.as_ptr()) {
       return Err(Error::new(
         Status::InvalidArg,
         "Borrowed data should not be null".to_owned(),
@@ -191,11 +192,17 @@ impl<'scope> BufferSlice<'scope> {
   }
 }
 
-impl NapiRaw for BufferSlice<'_> {
-  unsafe fn raw(&self) -> napi_sys_ohos::napi_value {
-    self.raw_value
+impl<'env> JsValue<'env> for BufferSlice<'env> {
+  fn value(&self) -> Value {
+    Value {
+      env: self.env,
+      value: self.raw_value,
+      value_type: ValueType::Object,
+    }
   }
 }
+
+impl<'env> JsObjectValue<'env> for BufferSlice<'env> {}
 
 impl FromNapiValue for BufferSlice<'_> {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
@@ -308,7 +315,7 @@ impl Drop for Buffer {
           return;
         }
         // Check if the current thread is the JavaScript thread
-        if !THREADS_CAN_ACCESS_ENV.borrow_mut(|m| m.get(&std::thread::current().id()).is_some()) {
+        if !THREADS_CAN_ACCESS_ENV.with(|cell| cell.get()) {
           let status = unsafe {
             sys::napi_call_threadsafe_function(
               CUSTOM_GC_TSFN.load(std::sync::atomic::Ordering::SeqCst),
@@ -502,9 +509,7 @@ impl ToNapiValue for Buffer {
         // Rust uses 0x1 as the data pointer for empty buffers,
         // but NAPI/V8 only allows multiple buffers to have
         // the same data pointer if it's 0x0.
-        // TODO: should revert to create_buffer
-        let mut empty_data = ptr::null_mut();
-        unsafe { sys::napi_create_arraybuffer(env, len, &mut empty_data, &mut ret) }
+        unsafe { sys::napi_create_buffer(env, len, ptr::null_mut(), &mut ret) }
       } else {
         let value_ptr = val.inner.as_ptr();
         let val_box_ptr = Box::into_raw(Box::new(val));

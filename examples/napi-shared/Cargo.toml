@@ -5,6 +5,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib", "lib"]
+
 [dependencies]
 napi-ohos        = { path = '../../crates/napi', features = ["napi8", "serde-json", "async", "latin1", "chrono_date"] }
 napi-derive-ohos = { path = '../../crates/macro' }

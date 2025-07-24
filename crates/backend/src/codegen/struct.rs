@@ -26,7 +26,7 @@ fn gen_napi_value_map_impl(
   } else {
     quote! { #name }
   };
-  let js_name_str = format!("{}\0", name_str);
+  let js_name_str = format!("{name_str}\0");
   let validate = quote! {
     unsafe fn validate(env: napi_ohos::sys::napi_env, napi_val: napi_ohos::sys::napi_value) -> napi_ohos::Result<napi_ohos::sys::napi_value> {
       if let Some(ctor_ref) = napi_ohos::bindgen_prelude::get_class_constructor(#js_name_str) {
@@ -122,34 +122,6 @@ fn gen_napi_value_map_impl(
 
         napi_ohos::bindgen_prelude::check_status!(
           napi_ohos::bindgen_prelude::sys::napi_unwrap(env, napi_val, &mut wrapped_val),
-          "Failed to recover `{}` type from napi value",
-          #name_str,
-        )?;
-
-        Ok(&mut *(wrapped_val as *mut #name))
-      }
-    }
-
-    #[automatically_derived]
-    impl napi_ohos::bindgen_prelude::FromNapiValue for &#name {
-      unsafe fn from_napi_value(
-        env: napi_ohos::bindgen_prelude::sys::napi_env,
-        napi_val: napi_ohos::bindgen_prelude::sys::napi_value
-      ) -> napi_ohos::bindgen_prelude::Result<Self> {
-        napi_ohos::bindgen_prelude::FromNapiRef::from_napi_ref(env, napi_val)
-      }
-    }
-
-    #[automatically_derived]
-    impl napi_ohos::bindgen_prelude::FromNapiValue for &mut #name {
-      unsafe fn from_napi_value(
-        env: napi_ohos::bindgen_prelude::sys::napi_env,
-        napi_val: napi_ohos::bindgen_prelude::sys::napi_value
-      ) -> napi_ohos::bindgen_prelude::Result<Self> {
-        let mut wrapped_val: *mut std::ffi::c_void = std::ptr::null_mut();
-
-        napi_ohos::bindgen_prelude::check_status!(
-        napi_ohos::bindgen_prelude::sys::napi_unwrap(env, napi_val, &mut wrapped_val),
           "Failed to recover `{}` type from napi value",
           #name_str,
         )?;
@@ -292,7 +264,7 @@ impl NapiStruct {
   ) -> TokenStream {
     let name = &self.name;
     let js_name_raw = &self.js_name;
-    let js_name_str = format!("{}\0", js_name_raw);
+    let js_name_str = format!("{js_name_raw}\0");
     let iterator_implementation = self.gen_iterator_property(class, name);
     let (object_finalize_impl, to_napi_value_impl, javascript_class_ext_impl) = if self.has_lifetime
     {
@@ -380,7 +352,7 @@ impl NapiStruct {
           }
         }
 
-        fn instance_of<V: napi_ohos::NapiRaw>(env: napi_ohos::bindgen_prelude::Env, value: V) -> napi_ohos::bindgen_prelude::Result<bool> {
+        fn instance_of<'env, V: napi_ohos::JsValue<'env>>(env: &napi_ohos::bindgen_prelude::Env, value: &V) -> napi_ohos::bindgen_prelude::Result<bool> {
           if let Some(ctor_ref) = napi_ohos::bindgen_prelude::get_class_constructor(#js_name_str) {
             let mut ctor = std::ptr::null_mut();
             napi_ohos::check_status!(
@@ -390,7 +362,7 @@ impl NapiStruct {
             )?;
             let mut is_instance_of = false;
             napi_ohos::check_status!(
-              unsafe { napi_ohos::sys::napi_instanceof(env.raw(), value.raw(), ctor, &mut is_instance_of) },
+              unsafe { napi_ohos::sys::napi_instanceof(env.raw(), value.value().value, ctor, &mut is_instance_of) },
               "Failed to run instanceof for class `{}`",
               #js_name_str
             )?;
@@ -645,7 +617,7 @@ impl NapiStruct {
             #[allow(unused_variables)]
             let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
             #[allow(unused_mut)]
-            let mut obj = env_wrapper.create_object()?;
+            let mut obj = napi_ohos::bindgen_prelude::Object::new(&env_wrapper)?;
 
             let #destructed_fields = val;
             #(#obj_field_setters)*
@@ -815,7 +787,7 @@ impl NapiStruct {
     let mut props = vec![];
 
     if class.ctor {
-      props.push(quote! { napi_ohos::bindgen_prelude::Property::new("constructor").unwrap().with_ctor(constructor) });
+      props.push(quote! { napi_ohos::bindgen_prelude::Property::new().with_utf8_name("constructor").unwrap().with_ctor(constructor) });
     }
 
     for field in class.fields.iter() {
@@ -841,7 +813,7 @@ impl NapiStruct {
       }
 
       let mut prop = quote! {
-        napi_ohos::bindgen_prelude::Property::new(#js_name)
+        napi_ohos::bindgen_prelude::Property::new().with_utf8_name(#js_name)
           .unwrap()
           .with_property_attributes(napi_ohos::bindgen_prelude::PropertyAttributes::from_bits(#attribute).unwrap())
       };
@@ -1027,7 +999,7 @@ impl NapiStruct {
             #[allow(unused_variables)]
             let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
             #[allow(unused_mut)]
-            let mut obj = env_wrapper.create_object()?;
+            let mut obj = napi_ohos::bindgen_prelude::Object::new(&env_wrapper)?;
             match val {
               #(#variant_arm_setters)*
             };
@@ -1369,7 +1341,7 @@ impl NapiImpl {
 
       let prop = props.entry(&item.js_name).or_insert_with(|| {
         quote! {
-          napi_ohos::bindgen_prelude::Property::new(#js_name).unwrap().with_property_attributes(napi_ohos::bindgen_prelude::PropertyAttributes::from_bits(#attribute).unwrap())
+          napi_ohos::bindgen_prelude::Property::new().with_utf8_name(#js_name).unwrap().with_property_attributes(napi_ohos::bindgen_prelude::PropertyAttributes::from_bits(#attribute).unwrap())
         }
       });
 

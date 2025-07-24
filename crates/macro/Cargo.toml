@@ -19,14 +19,15 @@ independent = true
 
 [features]
 compat-mode = []
-default     = ["compat-mode", "full"]
-full        = ["type-def", "strict"]
+default     = ["type-def", "strict"]
+full        = ["type-def", "strict", "compat-mode"]
 noop        = ["napi-derive-backend-ohos/noop"]
 strict      = ["napi-derive-backend-ohos/strict"]
-type-def    = ["napi-derive-backend-ohos/type-def"]
+type-def    = ["napi-derive-backend-ohos/type-def", "ctor"]
 
 [dependencies]
 convert_case             = "0.8"
+ctor                     = { version = "0.4", optional = true }
 napi-derive-backend-ohos = { version = "1.0.4", path = "../backend" }
 proc-macro2              = "1"
 quote                    = "1"

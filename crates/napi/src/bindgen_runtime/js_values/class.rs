@@ -4,22 +4,21 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 
-use super::Object;
 use crate::{
   bindgen_runtime::{
-    raw_finalize_unchecked, FromNapiValue, ObjectFinalize, Reference, Result, TypeName,
-    ValidateNapiValue,
+    raw_finalize_unchecked, FromNapiValue, JsObjectValue, Object, ObjectFinalize, Reference,
+    Result, TypeName, ValidateNapiValue,
   },
-  check_status, sys, Env, NapiRaw, NapiValue, ValueType,
+  check_status, sys, Env, JsValue, Property, PropertyAttributes, Value, ValueType,
 };
-use crate::{Property, PropertyAttributes};
 
-pub struct This<'scope, T: FromNapiValue = Object> {
+#[derive(Clone, Copy)]
+pub struct This<'env, T = Object<'env>> {
   pub object: T,
-  _phantom: &'scope PhantomData<()>,
+  _phantom: &'env PhantomData<()>,
 }
 
-impl<T: FromNapiValue> From<T> for This<'_, T> {
+impl<T> From<T> for This<'_, T> {
   fn from(value: T) -> Self {
     Self {
       object: value,
@@ -28,7 +27,7 @@ impl<T: FromNapiValue> From<T> for This<'_, T> {
   }
 }
 
-impl<T: NapiValue> Deref for This<'_, T> {
+impl<T> Deref for This<'_, T> {
   type Target = T;
 
   fn deref(&self) -> &Self::Target {
@@ -36,46 +35,46 @@ impl<T: NapiValue> Deref for This<'_, T> {
   }
 }
 
-impl<T: NapiValue> DerefMut for This<'_, T> {
+impl<T> DerefMut for This<'_, T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.object
   }
 }
 
-impl<T: NapiValue> NapiRaw for This<'_, T> {
-  unsafe fn raw(&self) -> napi_sys_ohos::napi_value {
-    self.object.raw()
+impl<'env, T: JsValue<'env>> JsValue<'env> for This<'_, T> {
+  fn value(&self) -> Value {
+    self.object.value()
   }
 }
 
-impl<T: NapiValue> NapiValue for This<'_, T> {
-  unsafe fn from_raw(
-    env: napi_sys_ohos::napi_env,
-    value: napi_sys_ohos::napi_value,
-  ) -> Result<Self> {
+impl<T: FromNapiValue> FromNapiValue for This<'_, T> {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     Ok(Self {
-      object: T::from_raw(env, value)?,
+      object: T::from_napi_value(env, napi_val)?,
       _phantom: &PhantomData,
     })
   }
-
-  unsafe fn from_raw_unchecked(
-    env: napi_sys_ohos::napi_env,
-    value: napi_sys_ohos::napi_value,
-  ) -> Self {
-    Self {
-      object: T::from_raw_unchecked(env, value),
-      _phantom: &PhantomData,
-    }
-  }
 }
 
+#[derive(Clone, Copy)]
 pub struct ClassInstance<'env, T: 'env> {
   pub value: sys::napi_value,
   env: sys::napi_env,
   inner: *mut T,
   _phantom: &'env PhantomData<()>,
 }
+
+impl<'env, T: 'env> JsValue<'env> for ClassInstance<'env, T> {
+  fn value(&self) -> Value {
+    Value {
+      env: self.env,
+      value: self.value,
+      value_type: ValueType::Object,
+    }
+  }
+}
+
+impl<'env, T: 'env> JsObjectValue<'env> for ClassInstance<'env, T> {}
 
 impl<'env, T: 'env> ClassInstance<'env, T> {
   #[doc(hidden)]
@@ -88,8 +87,15 @@ impl<'env, T: 'env> ClassInstance<'env, T> {
     }
   }
 
-  pub fn as_object(&self, env: &Env) -> Object {
-    unsafe { Object::from_raw_unchecked(env.raw(), self.value) }
+  pub fn as_object<'a>(&self, env: &'a Env) -> Object<'a> {
+    Object(
+      Value {
+        env: env.raw(),
+        value: self.value,
+        value_type: ValueType::Object,
+      },
+      PhantomData,
+    )
   }
 
   /// Assign this `ClassInstance` to another `This` object
@@ -102,7 +108,7 @@ impl<'env, T: 'env> ClassInstance<'env, T> {
   ) -> Result<ClassInstance<'this, T>>
   where
     'this: 'env,
-    U: FromNapiValue + NapiRaw,
+    U: FromNapiValue + JsValue<'this>,
   {
     let name = CString::new(name)?;
     check_status!(
@@ -132,15 +138,21 @@ impl<'env, T: 'env> ClassInstance<'env, T> {
   ) -> Result<ClassInstance<'this, T>>
   where
     'this: 'env,
-    U: FromNapiValue + NapiRaw,
+    U: FromNapiValue + JsValue<'this>,
   {
-    let property = Property::new(name)?
-      .with_value(&self)
+    let property = Property::new()
+      .with_utf8_name(name)?
+      .with_value(self)
       .with_property_attributes(attributes);
 
     check_status!(
       unsafe {
-        sys::napi_define_properties(self.env, this.object.raw(), 1, [property.raw()].as_ptr())
+        sys::napi_define_properties(
+          self.env,
+          this.object.value().value,
+          1,
+          [property.raw()].as_ptr(),
+        )
       },
       "Failed to define properties on This in `assign_to_this_with_attributes`"
     )?;
@@ -152,18 +164,6 @@ impl<'env, T: 'env> ClassInstance<'env, T> {
       _phantom: &PhantomData,
     };
     Ok(val)
-  }
-}
-
-impl<'env, T: 'env> NapiRaw for ClassInstance<'env, T> {
-  unsafe fn raw(&self) -> sys::napi_value {
-    self.value
-  }
-}
-
-impl<'env, T: 'env> NapiRaw for &ClassInstance<'env, T> {
-  unsafe fn raw(&self) -> sys::napi_value {
-    self.value
   }
 }
 
@@ -231,9 +231,9 @@ impl<'env, T: 'env> AsRef<T> for ClassInstance<'env, T> {
 }
 
 pub trait JavaScriptClassExt: Sized {
-  fn into_instance(self, env: &Env) -> Result<ClassInstance<Self>>;
+  fn into_instance(self, env: &Env) -> Result<ClassInstance<'_, Self>>;
   fn into_reference(self, env: Env) -> Result<Reference<Self>>;
-  fn instance_of<V: NapiRaw>(env: Env, value: V) -> Result<bool>;
+  fn instance_of<'env, V: JsValue<'env>>(env: &Env, value: &V) -> Result<bool>;
 }
 
 /// # Safety
@@ -253,15 +253,13 @@ pub unsafe fn new_instance<T: 'static + ObjectFinalize>(
   )?;
 
   let mut result = std::ptr::null_mut();
-  crate::__private::___CALL_FROM_FACTORY
-    .with(|inner| inner.store(true, std::sync::atomic::Ordering::Relaxed));
+  crate::__private::___CALL_FROM_FACTORY.with(|inner| inner.set(true));
   check_status!(
     sys::napi_new_instance(env, ctor, 0, std::ptr::null_mut(), &mut result),
     "Failed to construct class `{}`",
     type_name::<T>(),
   )?;
-  crate::__private::___CALL_FROM_FACTORY
-    .with(|inner| inner.store(false, std::sync::atomic::Ordering::Relaxed));
+  crate::__private::___CALL_FROM_FACTORY.with(|inner| inner.set(false));
   let mut object_ref = std::ptr::null_mut();
   let initial_finalize: Box<dyn FnOnce()> = Box::new(|| {});
   let finalize_callbacks_ptr = std::rc::Rc::into_raw(std::rc::Rc::new(std::cell::Cell::new(
@@ -279,13 +277,6 @@ pub unsafe fn new_instance<T: 'static + ObjectFinalize>(
     "Failed to wrap native object of class `{}`",
     type_name::<T>(),
   )?;
-
-  check_status!(
-    sys::napi_reference_unref(env, object_ref, std::ptr::null_mut()),
-    "Failed to ref class `{}`",
-    type_name::<T>(),
-  )?;
-
   Reference::<T>::add_ref(
     env,
     wrapped_value,

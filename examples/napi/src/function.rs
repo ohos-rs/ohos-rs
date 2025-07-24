@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use napi_ohos::{
   bindgen_prelude::{ClassInstance, FnArgs, Function, FunctionRef, PromiseRaw},
   threadsafe_function::ThreadsafeFunctionCallMode,
@@ -63,7 +61,7 @@ pub fn create_reference_on_function<'env>(
       Ok(())
     },
     move |env, _| {
-      let cb = reference.borrow_back(&env)?;
+      let cb = reference.borrow_back(env)?;
       cb.call(())?;
       Ok(())
     },
@@ -94,7 +92,7 @@ pub fn build_threadsafe_function_from_function(
   callback: Function<FnArgs<(u32, u32)>, u32>,
 ) -> Result<()> {
   let tsfn = callback.build_threadsafe_function().build()?;
-  std::thread::spawn(move || {
+  let jh1 = std::thread::spawn(move || {
     tsfn.call((1, 2).into(), ThreadsafeFunctionCallMode::NonBlocking);
   });
   let tsfn_max_queue_size_1 = callback
@@ -102,7 +100,7 @@ pub fn build_threadsafe_function_from_function(
     .max_queue_size::<1>()
     .build()?;
 
-  std::thread::spawn(move || {
+  let jh2 = std::thread::spawn(move || {
     tsfn_max_queue_size_1.call((1, 2).into(), ThreadsafeFunctionCallMode::NonBlocking);
   });
 
@@ -111,9 +109,13 @@ pub fn build_threadsafe_function_from_function(
     .weak::<true>()
     .build()?;
 
-  std::thread::spawn(move || {
+  let jh3 = std::thread::spawn(move || {
     tsfn_weak.call((1, 2).into(), ThreadsafeFunctionCallMode::NonBlocking);
   });
+
+  jh1.join().unwrap();
+  jh2.join().unwrap();
+  jh3.join().unwrap();
 
   Ok(())
 }
@@ -135,4 +137,14 @@ pub fn build_threadsafe_function_from_function_callee_handle(
   });
 
   Ok(())
+}
+
+#[napi]
+pub fn create_function(env: &Env) -> Result<Function<u32, u32>> {
+  env.create_function("customFunction", no_export_function_c_callback)
+}
+
+#[napi(no_export)]
+pub fn no_export_function(input: u32) -> u32 {
+  input + 200
 }

@@ -25,10 +25,11 @@ rustdoc-args = ["--cfg", "docsrs"]
 independent = true
 
 [features]
-async              = ["tokio_rt"]
-chrono_date        = ["chrono", "napi5"]
+async       = ["tokio_rt"]
+chrono_date = ["chrono", "napi5"]
+# Enable deprecated types and traits for compatibility
 compat-mode        = []
-default            = ["napi4", "compat-mode"]                                  # for most Node.js users
+default            = ["napi4"]                                                 # for most Node.js users
 deferred_trace     = ["napi4"]
 error_anyhow       = ["anyhow"]
 experimental       = ["napi-sys-ohos/experimental"]
@@ -44,6 +45,7 @@ napi6              = ["napi5", "napi-sys-ohos/napi6"]
 napi7              = ["napi6", "napi-sys-ohos/napi7"]
 napi8              = ["napi7", "napi-sys-ohos/napi8"]
 napi9              = ["napi8", "napi-sys-ohos/napi9"]
+napi10             = ["napi9", "napi-sys-ohos/napi10"]
 web_stream         = ["futures-core", "tokio-stream", "napi4", "tokio_rt"]
 noop               = []
 serde-json         = ["serde", "serde_json"]
@@ -66,8 +68,10 @@ dyn-symbols        = ["napi-sys-ohos/dyn-symbols"]
 node_version_detect = []
 
 [dependencies]
-bitflags = "2"
-ctor     = "0.4.1"
+bitflags      = "2"
+ctor          = "0.4.1"
+nohash-hasher = "0.2.0"
+rustc-hash    = "2.1.1"
 
 [dependencies.anyhow]
 optional = true

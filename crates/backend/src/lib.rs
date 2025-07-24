@@ -106,6 +106,7 @@ pub(crate) static PRIMITIVE_TYPES: &[(&str, (&str, bool, bool))] = &[
   ("null", ("null", false, false)),
   ("Symbol", ("symbol", false, false)),
   ("JsSymbol", ("symbol", false, false)),
+  ("SymbolRef", ("symbol", false, false)),
   ("JsFunction", ("(...args: any[]) => any", true, false)),
 ];
 

@@ -1,9 +1,12 @@
 #[macro_use]
 pub mod attrs;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::str::Chars;
-use std::sync::{atomic::AtomicUsize, Mutex, OnceLock};
+use std::sync::{
+  atomic::{AtomicBool, AtomicUsize, Ordering},
+  LazyLock, Mutex, OnceLock,
+};
 
 use attrs::BindgenAttrs;
 
@@ -29,6 +32,29 @@ use crate::parser::attrs::{check_recorded_struct_for_impl, record_struct};
 static GENERATOR_STRUCT: OnceLock<Mutex<HashMap<String, bool>>> = OnceLock::new();
 
 static REGISTER_INDEX: AtomicUsize = AtomicUsize::new(0);
+
+static HAS_MODULE_EXPORTS: AtomicBool = AtomicBool::new(false);
+
+static KNOWN_JS_VALUE_TYPES_WITH_LIFETIME: LazyLock<HashSet<&str>> = LazyLock::new(|| {
+  [
+    "Array",
+    "Function",
+    "JsDate",
+    "JsGlobal",
+    "JsNumber",
+    "JsString",
+    "JsSymbol",
+    "JsTimeout",
+    "JSON",
+    "Object",
+    "PromiseRaw",
+    "ReadableStream",
+    "This",
+    "Unknown",
+    "WriteableStream",
+  ]
+  .into()
+});
 
 fn get_register_ident(name: &str) -> Ident {
   let new_name = format!(
@@ -669,6 +695,149 @@ fn napi_fn_from_decl(
       )
     } else if opts.constructor().is_some() {
       "constructor".to_owned()
+    } else if opts.module_exports().is_some() {
+      if HAS_MODULE_EXPORTS.load(Ordering::Relaxed) {
+        bail_span!(sig.ident, "module_exports can only be used once");
+      }
+      HAS_MODULE_EXPORTS.store(true, Ordering::Relaxed);
+
+      if opts.js_name().is_some() {
+        bail_span!(sig.ident, "module_exports fn can't have js_name");
+      }
+      if opts.getter().is_some() || opts.setter().is_some() {
+        bail_span!(sig.ident, "module_exports fn can't have getter or setter");
+      }
+      if opts.factory().is_some() || opts.constructor().is_some() {
+        bail_span!(
+          sig.ident,
+          "module_exports fn can't have factory or constructor"
+        );
+      }
+      if opts.strict().is_some() {
+        bail_span!(sig.ident, "module_exports fn can't have strict");
+      }
+      if opts.return_if_invalid().is_some() {
+        bail_span!(sig.ident, "module_exports fn can't have return_if_invalid");
+      }
+
+      if parent.is_some() {
+        bail_span!(sig.ident, "module_exports fn can't inside impl block");
+      }
+
+      if !generics.params.is_empty() {
+        bail_span!(sig.ident, "module_exports fn can't have generic parameters");
+      }
+
+      if opts.no_export().is_some() {
+        bail_span!(
+          sig.ident,
+          "#[napi(no_export)] can not be used with module_exports attribute"
+        );
+      }
+
+      for arg in args.iter() {
+        match &arg.kind {
+          NapiFnArgKind::Callback(_) => {
+            bail_span!(sig.ident, "module_exports fn can't have callback arguments");
+          }
+          NapiFnArgKind::PatType(pat) => {
+            if arg.ts_arg_type.is_some() {
+              bail_span!(sig.ident, "module_exports fn can't have ts_arg_type");
+            }
+            if let syn::Type::Path(syn::TypePath {
+              path: syn::Path { segments, .. },
+              ..
+            }) = &*pat.ty
+            {
+              if let Some(segment) = segments.last() {
+                if segment.ident != "Env" && segment.ident != "Object" {
+                  bail_span!(
+                    sig.ident,
+                    "module_exports fn can only accept Env or Object as argument"
+                  );
+                }
+                continue;
+              }
+            }
+            if let syn::Type::Reference(syn::TypeReference { elem, .. }) = &*pat.ty {
+              if let syn::Type::Path(syn::TypePath {
+                path: syn::Path { segments, .. },
+                ..
+              }) = &**elem
+              {
+                if let Some(segment) = segments.last() {
+                  if segment.ident != "Env" && segment.ident != "Object" {
+                    bail_span!(
+                      sig.ident,
+                      "module_exports fn can only accept Env or Object as argument"
+                    );
+                  }
+                  continue;
+                }
+              }
+            }
+          }
+        }
+        bail_span!(
+          sig.ident,
+          "module_exports fn can only accept Env or Object as argument"
+        );
+      }
+
+      if let syn::ReturnType::Type(_, ty) = &sig.output {
+        if let syn::Type::Path(syn::TypePath {
+          path: syn::Path { segments, .. },
+          ..
+        }) = &**ty
+        {
+          if let Some(segment) = segments.last() {
+            if segment.ident != "Result" && segment.ident != "()" {
+              bail_span!(
+                sig.ident,
+                "module_exports fn can only return Result<()> or (), got {}",
+                segment.ident
+              );
+            }
+            if segment.ident == "Result" {
+              if let syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
+                args,
+                ..
+              }) = &segment.arguments
+              {
+                if args.len() != 1 {
+                  bail_span!(
+                    segment.ident,
+                    "module_exports fn can only return Result<()> or ()"
+                  );
+                }
+                if let syn::GenericArgument::Type(syn::Type::Tuple(syn::TypeTuple {
+                  elems, ..
+                })) = &args[0]
+                {
+                  if !elems.empty_or_trailing() {
+                    bail_span!(
+                      segment.ident,
+                      "module_exports fn can only return Result<()> or ()"
+                    );
+                  }
+                } else {
+                  bail_span!(
+                    segment.ident,
+                    "module_exports fn can only return Result<()> or ()"
+                  );
+                }
+              } else {
+                bail_span!(
+                  segment.ident,
+                  "module_exports fn can only return Result<()> or ()"
+                );
+              }
+            }
+          }
+        }
+      }
+
+      ident.to_string().to_case(Case::Camel)
     } else {
       opts.js_name().map_or_else(
         || ident.to_string().to_case(Case::Camel),
@@ -685,7 +854,7 @@ fn napi_fn_from_decl(
 
       let key = namespace
         .as_ref()
-        .map(|n| format!("{}::{}", n, p))
+        .map(|n| format!("{n}::{p}"))
         .unwrap_or_else(|| p.to_string());
       *generator_struct.get(&key).unwrap_or(&false)
     } else {
@@ -708,6 +877,7 @@ fn napi_fn_from_decl(
     Ok(NapiFn {
       name: ident.clone(),
       js_name,
+      module_exports: opts.module_exports().is_some(),
       args,
       ret,
       is_ret_result,
@@ -734,6 +904,7 @@ fn napi_fn_from_decl(
       catch_unwind: opts.catch_unwind().is_some(),
       unsafe_: sig.unsafety.is_some(),
       register_name: get_register_ident(ident.to_string().as_str()),
+      no_export: opts.no_export().is_some(),
     })
   })
 }
@@ -801,6 +972,12 @@ impl ParseNapi for syn::ItemStruct {
         "#[napi(catch_unwind)] can only be applied to a function or method."
       );
     }
+    if opts.no_export().is_some() {
+      bail_span!(
+        self,
+        "#[napi(no_export)] can only be applied to a function."
+      );
+    }
     if opts.object().is_some() && opts.custom_finalize().is_some() {
       bail_span!(self, "Custom finalize is not supported for #[napi(object)]");
     }
@@ -836,6 +1013,12 @@ impl ParseNapi for syn::ItemImpl {
         "#[napi(catch_unwind)] can only be applied to a function or method."
       );
     }
+    if opts.no_export().is_some() {
+      bail_span!(
+        self,
+        "#[napi(no_export)] can only be applied to a function."
+      );
+    }
     // #[napi] macro will be remove from impl items after converted to ast
     let napi = self.convert_to_ast(opts);
     self.to_tokens(tokens);
@@ -868,6 +1051,12 @@ impl ParseNapi for syn::ItemEnum {
         "#[napi(catch_unwind)] can only be applied to a function or method."
       );
     }
+    if opts.no_export().is_some() {
+      bail_span!(
+        self,
+        "#[napi(no_export)] can only be applied to a function."
+      );
+    }
     let napi = self.convert_to_ast(opts);
     self.to_tokens(tokens);
 
@@ -898,6 +1087,12 @@ impl ParseNapi for syn::ItemConst {
         "#[napi(catch_unwind)] can only be applied to a function or method."
       );
     }
+    if opts.no_export().is_some() {
+      bail_span!(
+        self,
+        "#[napi(no_export)] can only be applied to a function."
+      );
+    }
     let napi = self.convert_to_ast(opts);
     self.to_tokens(tokens);
     napi
@@ -925,6 +1120,12 @@ impl ParseNapi for syn::ItemType {
       bail_span!(
         self,
         "#[napi(catch_unwind)] can only be applied to a function or method."
+      );
+    }
+    if opts.no_export().is_some() {
+      bail_span!(
+        self,
+        "#[napi(no_export)] can only be applied to a function."
       );
     }
     let napi = self.convert_to_ast(opts);
@@ -995,7 +1196,7 @@ fn convert_fields(
       None => (
         field_opts
           .js_name()
-          .map_or_else(|| format!("field{}", i), |(js_name, _)| js_name.to_owned()),
+          .map_or_else(|| format!("field{i}"), |(js_name, _)| js_name.to_owned()),
         syn::Member::Unnamed(i.into()),
       ),
     };
@@ -1057,16 +1258,16 @@ impl ConvertToAST for syn::ItemStruct {
   fn convert_to_ast(&mut self, opts: &BindgenAttrs) -> BindgenResult<Napi> {
     let mut errors = vec![];
 
-    let struct_name = self.ident.clone();
-    let js_name = opts.js_name().map_or_else(
+    let rust_struct_ident: Ident = self.ident.clone();
+    let final_js_name_for_struct = opts.js_name().map_or_else(
       || self.ident.to_string().to_case(Case::Pascal),
-      |(js_name, _)| js_name.to_owned(),
+      |(attr_js_name, _span)| attr_js_name.to_owned(),
     );
 
     let use_nullable = opts.use_nullable();
     let (fields, is_tuple) = convert_fields(&mut self.fields, true)?;
 
-    record_struct(&struct_name, js_name.clone(), opts);
+    record_struct(&rust_struct_ident, final_js_name_for_struct.clone(), opts);
     let namespace = opts.namespace().map(|(m, _)| m.to_owned());
     let implement_iterator = opts.iterator().is_some();
     let generator_struct = GENERATOR_STRUCT.get_or_init(|| Mutex::new(HashMap::new()));
@@ -1075,8 +1276,8 @@ impl ConvertToAST for syn::ItemStruct {
       .expect("Lock generator struct failed");
     let key = namespace
       .as_ref()
-      .map(|n| format!("{}::{}", n, struct_name))
-      .unwrap_or_else(|| struct_name.to_string());
+      .map(|n| format!("{n}::{rust_struct_ident}"))
+      .unwrap_or_else(|| rust_struct_ident.to_string());
     generator_struct.insert(key, implement_iterator);
     drop(generator_struct);
 
@@ -1118,6 +1319,30 @@ impl ConvertToAST for syn::ItemStruct {
         is_tuple,
       })
     } else {
+      // field lifetime check, JsValue types with lifetime can't be assigned to a field of napi class struct
+      for syn::Field { ty, .. } in self.fields.iter() {
+        if let syn::Type::Path(syn::TypePath { path, .. }) = ty {
+          if let Some(PathSegment {
+            ident,
+            arguments:
+              syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments { args, .. }),
+            ..
+          }) = path.segments.last()
+          {
+            if let Some(GenericArgument::Lifetime(syn::Lifetime { ident: _, .. })) = args.first() {
+              // has lifetime and type name matched with known js value types
+              if KNOWN_JS_VALUE_TYPES_WITH_LIFETIME.contains(ident.to_string().as_str()) {
+                // TODO: add link for more information
+                errors.push(err_span!(
+                  ty,
+                  "Can't assign {} to a field of napi class struct",
+                  ident
+                ));
+              }
+            }
+          }
+        }
+      }
       NapiStructKind::Class(NapiClass {
         fields,
         ctor: opts.constructor().is_some(),
@@ -1160,12 +1385,12 @@ impl ConvertToAST for syn::ItemStruct {
 
     Diagnostic::from_vec(errors).map(|()| Napi {
       item: NapiItem::Struct(NapiStruct {
-        js_name,
-        name: struct_name.clone(),
+        js_name: final_js_name_for_struct,
+        name: rust_struct_ident.clone(),
         kind: struct_kind,
         js_mod: namespace,
         use_nullable,
-        register_name: get_register_ident(format!("{struct_name}_struct").as_str()),
+        register_name: get_register_ident(format!("{rust_struct_ident}_struct").as_str()),
         comments: extract_doc_comments(&self.attrs),
         has_lifetime: lifetime.is_some(),
       }),
@@ -1187,7 +1412,12 @@ impl ConvertToAST for syn::ItemImpl {
 
     let (struct_name, has_lifetime) = extract_path_ident(struct_name)?;
 
-    let mut struct_js_name = struct_name.to_string().to_case(Case::UpperCamel);
+    // Check if this struct was recorded with a custom js_name, fallback to default if not found
+    let mut struct_js_name =
+      match check_recorded_struct_for_impl(&struct_name, &BindgenAttrs::default()) {
+        Ok(recorded_js_name) => recorded_js_name,
+        Err(_) => struct_name.to_string().to_case(Case::UpperCamel),
+      };
     let mut items = vec![];
     let mut task_output_type = None;
     let mut iterator_yield_type = None;
@@ -1310,15 +1540,15 @@ impl ConvertToAST for syn::ItemEnum {
           is_tuple,
         });
       }
-      let struct_name = self.ident.clone();
+      let rust_struct_ident = self.ident.clone();
       return Diagnostic::from_vec(errors).map(|()| Napi {
         item: NapiItem::Struct(NapiStruct {
-          name: struct_name.clone(),
+          name: rust_struct_ident.clone(),
           js_name,
           comments: extract_doc_comments(&self.attrs),
           js_mod: opts.namespace().map(|(m, _)| m.to_owned()),
           use_nullable: opts.use_nullable(),
-          register_name: get_register_ident(format!("{struct_name}_struct").as_str()),
+          register_name: get_register_ident(format!("{rust_struct_ident}_struct").as_str()),
           kind: NapiStructKind::StructuredEnum(NapiStructuredEnum {
             variants,
             discriminant: discriminant.to_owned(),

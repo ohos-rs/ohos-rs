@@ -1,10 +1,12 @@
 #![allow(deprecated)]
 
+#[cfg(any(feature = "compat-mode", feature = "napi6"))]
 use std::any::{type_name, TypeId};
 use std::convert::TryInto;
 use std::ffi::CString;
 #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
 use std::future::Future;
+#[cfg(feature = "compat-mode")]
 use std::mem;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
@@ -16,27 +18,30 @@ use serde::Serialize;
 
 #[cfg(feature = "napi8")]
 use crate::async_cleanup_hook::AsyncCleanupHook;
-#[cfg(feature = "napi6")]
+#[cfg(all(feature = "napi6", feature = "compat-mode"))]
 use crate::bindgen_runtime::u128_with_sign_to_napi_value;
+#[cfg(feature = "napi6")]
+use crate::bindgen_runtime::FinalizeContext;
 #[cfg(feature = "napi5")]
 use crate::bindgen_runtime::FunctionCallContext;
 #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
 use crate::bindgen_runtime::PromiseRaw;
-#[cfg(feature = "napi4")]
-use crate::bindgen_runtime::ToNapiValue;
-use crate::bindgen_runtime::{FromNapiValue, Function, JsValuesTupleIntoVec, Unknown};
-#[cfg(target_env = "ohos")]
-use crate::check_pending_exception;
+use crate::bindgen_runtime::{
+  FromNapiValue, Function, JsValuesTupleIntoVec, Object, ToNapiValue, Unknown,
+};
 #[cfg(feature = "napi3")]
 use crate::cleanup_env::{CleanupEnvHook, CleanupEnvHookData};
 #[cfg(feature = "serde-json")]
 use crate::js_values::{De, Ser};
 #[cfg(target_env = "ohos")]
 use crate::module::Module;
+#[cfg(all(feature = "napi4", feature = "compat-mode"))]
+use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
 #[cfg(feature = "napi3")]
 use crate::JsError;
 use crate::{
   async_work::{self, AsyncWorkPromise},
+  bindgen_runtime::JsObjectValue,
   check_status,
   js_values::*,
   sys,
@@ -75,58 +80,71 @@ impl Env {
     Env(env)
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `bool` instead")]
   pub fn get_boolean(&self, value: bool) -> Result<JsBoolean> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_get_boolean(self.0, value, &mut raw_value) })?;
     Ok(unsafe { JsBoolean::from_raw_unchecked(self.0, raw_value) })
   }
 
-  pub fn create_int32(&self, int: i32) -> Result<JsNumber> {
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `i32` instead")]
+  pub fn create_int32(&self, int: i32) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
       sys::napi_create_int32(self.0, int, (&mut raw_value) as *mut sys::napi_value)
     })?;
-    Ok(unsafe { JsNumber::from_raw_unchecked(self.0, raw_value) })
+    unsafe { JsNumber::from_napi_value(self.0, raw_value) }
   }
 
-  pub fn create_int64(&self, int: i64) -> Result<JsNumber> {
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `i64` instead")]
+  pub fn create_int64(&self, int: i64) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
       sys::napi_create_int64(self.0, int, (&mut raw_value) as *mut sys::napi_value)
     })?;
-    Ok(unsafe { JsNumber::from_raw_unchecked(self.0, raw_value) })
+    unsafe { JsNumber::from_napi_value(self.0, raw_value) }
   }
 
-  pub fn create_uint32(&self, number: u32) -> Result<JsNumber> {
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `u32` instead")]
+  pub fn create_uint32(&self, number: u32) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_uint32(self.0, number, &mut raw_value) })?;
-    Ok(unsafe { JsNumber::from_raw_unchecked(self.0, raw_value) })
+    unsafe { JsNumber::from_napi_value(self.0, raw_value) }
   }
 
-  pub fn create_double(&self, double: f64) -> Result<JsNumber> {
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `f64` instead")]
+  pub fn create_double(&self, double: f64) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
       sys::napi_create_double(self.0, double, (&mut raw_value) as *mut sys::napi_value)
     })?;
-    Ok(unsafe { JsNumber::from_raw_unchecked(self.0, raw_value) })
+    unsafe { JsNumber::from_napi_value(self.0, raw_value) }
   }
 
   /// [n_api_napi_create_bigint_int64](https://nodejs.org/api/n-api.html#n_api_napi_create_bigint_int64)
-  #[cfg(feature = "napi6")]
+  #[cfg(all(feature = "napi6", feature = "compat-mode"))]
+  #[deprecated(since = "1.1.0", note = "Use `BigInt` instead")]
   pub fn create_bigint_from_i64(&self, value: i64) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_bigint_int64(self.0, value, &mut raw_value) })?;
     Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
   }
 
-  #[cfg(feature = "napi6")]
+  #[cfg(all(feature = "napi6", feature = "compat-mode"))]
+  #[deprecated(since = "1.1.0", note = "Use `BigInt` instead")]
   pub fn create_bigint_from_u64(&self, value: u64) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_bigint_uint64(self.0, value, &mut raw_value) })?;
     Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, 1))
   }
 
-  #[cfg(feature = "napi6")]
+  #[cfg(all(feature = "napi6", feature = "compat-mode"))]
+  #[deprecated(since = "1.1.0", note = "Use `BigInt` instead")]
   pub fn create_bigint_from_i128(&self, value: i128) -> Result<JsBigInt> {
     unsafe {
       let raw_value =
@@ -135,7 +153,8 @@ impl Env {
     }
   }
 
-  #[cfg(feature = "napi6")]
+  #[cfg(all(feature = "napi6", feature = "compat-mode"))]
+  #[deprecated(since = "1.1.0", note = "Use `BigInt` instead")]
   pub fn create_bigint_from_u128(&self, value: u128) -> Result<JsBigInt> {
     unsafe {
       let raw_value = u128_with_sign_to_napi_value(self.0, value, 0)?;
@@ -146,7 +165,8 @@ impl Env {
   /// [n_api_napi_create_bigint_words](https://nodejs.org/api/n-api.html#n_api_napi_create_bigint_words)
   ///
   /// The resulting BigInt will be negative when sign_bit is true.
-  #[cfg(feature = "napi6")]
+  #[cfg(all(feature = "napi6", feature = "compat-mode"))]
+  #[deprecated(since = "1.1.0", note = "Use `BigInt` instead")]
   pub fn create_bigint_from_words(&self, sign_bit: bool, words: Vec<u64>) -> Result<JsBigInt> {
     let mut raw_value = ptr::null_mut();
     let len = words.len();
@@ -165,11 +185,14 @@ impl Env {
     Ok(JsBigInt::from_raw_unchecked(self.0, raw_value, len))
   }
 
-  pub fn create_string(&self, s: &str) -> Result<JsString> {
+  /// This API creates a new JavaScript string from a Rust type that can be converted to a `&str`
+  pub fn create_string<S: AsRef<str>>(&self, s: S) -> Result<JsString<'_>> {
+    let s = s.as_ref();
     unsafe { self.create_string_from_c_char(s.as_ptr().cast(), s.len() as isize) }
   }
 
-  pub fn create_string_from_std(&self, s: String) -> Result<JsString> {
+  /// This API creates a new JavaScript string from a Rust `String`
+  pub fn create_string_from_std<'env>(&self, s: String) -> Result<JsString<'env>> {
     unsafe { self.create_string_from_c_char(s.as_ptr().cast(), s.len() as isize) }
   }
 
@@ -179,26 +202,30 @@ impl Env {
   /// # Safety
   ///
   /// Create JsString from known valid utf-8 string
-  pub unsafe fn create_string_from_c_char(
+  pub unsafe fn create_string_from_c_char<'env>(
     &self,
     data_ptr: *const c_char,
     len: isize,
-  ) -> Result<JsString> {
+  ) -> Result<JsString<'env>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_string_utf8(self.0, data_ptr, len, &mut raw_value) })?;
-    Ok(unsafe { JsString::from_raw_unchecked(self.0, raw_value) })
+    unsafe { JsString::from_napi_value(self.0, raw_value) }
   }
 
-  pub fn create_string_utf16(&self, chars: &[u16]) -> Result<JsString> {
+  /// This API creates a new JavaScript string from a Rust type that can be converted to a `&[u16]`
+  pub fn create_string_utf16<C: AsRef<[u16]>>(&self, chars: C) -> Result<JsString<'_>> {
     let mut raw_value = ptr::null_mut();
+    let chars = chars.as_ref();
     check_status!(unsafe {
       sys::napi_create_string_utf16(self.0, chars.as_ptr(), chars.len() as isize, &mut raw_value)
     })?;
-    Ok(unsafe { JsString::from_raw_unchecked(self.0, raw_value) })
+    unsafe { JsString::from_napi_value(self.0, raw_value) }
   }
 
-  pub fn create_string_latin1(&self, chars: &[u8]) -> Result<JsString> {
+  /// This API creates a new JavaScript string from a Rust type that can be converted to a `&[u8]`
+  pub fn create_string_latin1<C: AsRef<[u8]>>(&self, chars: C) -> Result<JsString<'_>> {
     let mut raw_value = ptr::null_mut();
+    let chars = chars.as_ref();
     check_status!(unsafe {
       sys::napi_create_string_latin1(
         self.0,
@@ -207,19 +234,12 @@ impl Env {
         &mut raw_value,
       )
     })?;
-    Ok(unsafe { JsString::from_raw_unchecked(self.0, raw_value) })
-  }
-
-  // harmony not support symbol
-  #[cfg(not(target_env = "ohos"))]
-  pub fn create_symbol_from_js_string(&self, description: JsString) -> Result<JsSymbol> {
-    let mut result = ptr::null_mut();
-    check_status!(unsafe { sys::napi_create_symbol(self.0, description.0.value, &mut result) })?;
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+    unsafe { JsString::from_napi_value(self.0, raw_value) }
   }
 
   #[cfg(not(target_env = "ohos"))]
-  pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol> {
+  /// This API creates a new JavaScript symbol from a optional description
+  pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol<'_>> {
     let mut result = ptr::null_mut();
     check_status!(unsafe {
       sys::napi_create_symbol(
@@ -231,52 +251,236 @@ impl Env {
         &mut result,
       )
     })?;
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+    Ok(JsSymbol(
+      Value {
+        env: self.0,
+        value: result,
+        value_type: ValueType::Symbol,
+      },
+      std::marker::PhantomData,
+    ))
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `Object::new` instead")]
   pub fn create_object(&self) -> Result<JsObject> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_object(self.0, &mut raw_value) })?;
     Ok(unsafe { JsObject::from_raw_unchecked(self.0, raw_value) })
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `Array` instead")]
   pub fn create_empty_array(&self) -> Result<JsObject> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_array(self.0, &mut raw_value) })?;
     Ok(unsafe { JsObject::from_raw_unchecked(self.0, raw_value) })
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `Array` instead")]
   pub fn create_array_with_length(&self, length: usize) -> Result<JsObject> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_array_with_length(self.0, length, &mut raw_value) })?;
     Ok(unsafe { JsObject::from_raw_unchecked(self.0, raw_value) })
   }
 
-  #[cfg(not(target_env = "ohos"))]
-  // harmony don't need to call it
-  #[cfg(not(target_family = "wasm"))]
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `Buffer` instead")]
+  /// This API allocates a node::Buffer object. While this is still a fully-supported data structure, in most cases using a TypedArray will suffice.
+  pub fn create_buffer(&self, length: usize) -> Result<JsBufferValue> {
+    let mut raw_value = ptr::null_mut();
+    let mut data_ptr = ptr::null_mut();
+    check_status!(unsafe {
+      sys::napi_create_buffer(self.0, length, &mut data_ptr, &mut raw_value)
+    })?;
+
+    Ok(JsBufferValue::new(
+      JsBuffer(Value {
+        env: self.0,
+        value: raw_value,
+        value_type: ValueType::Object,
+      }),
+      mem::ManuallyDrop::new(unsafe { Vec::from_raw_parts(data_ptr as *mut _, length, length) }),
+    ))
+  }
+
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `BufferSlice::from_data` instead")]
+  /// This API allocates a node::Buffer object and initializes it with data backed by the passed in buffer.
+  ///
+  /// While this is still a fully-supported data structure, in most cases using a TypedArray will suffice.
+  pub fn create_buffer_with_data(&self, mut data: Vec<u8>) -> Result<JsBufferValue> {
+    let length = data.len();
+    let mut raw_value = ptr::null_mut();
+    let data_ptr = data.as_mut_ptr();
+    let hint_ptr = Box::into_raw(Box::new((length, data.capacity())));
+    check_status!(unsafe {
+      if length == 0 {
+        // Rust uses 0x1 as the data pointer for empty buffers,
+        // but NAPI/V8 only allows multiple buffers to have
+        // the same data pointer if it's 0x0.
+        sys::napi_create_buffer(self.0, length, ptr::null_mut(), &mut raw_value)
+      } else {
+        let status = sys::napi_create_external_buffer(
+          self.0,
+          length,
+          data_ptr.cast(),
+          Some(drop_buffer),
+          hint_ptr.cast(),
+          &mut raw_value,
+        );
+        // electron doesn't support external buffers
+        if status == sys::Status::napi_no_external_buffers_allowed {
+          drop(Box::from_raw(hint_ptr));
+          let mut dest_data_ptr = ptr::null_mut();
+          let status = sys::napi_create_buffer_copy(
+            self.0,
+            length,
+            data.as_ptr().cast(),
+            &mut dest_data_ptr,
+            &mut raw_value,
+          );
+          data = Vec::from_raw_parts(dest_data_ptr.cast(), length, length);
+          status
+        } else {
+          status
+        }
+      }
+    })?;
+    Ok(JsBufferValue::new(
+      JsBuffer(Value {
+        env: self.0,
+        value: raw_value,
+        value_type: ValueType::Object,
+      }),
+      mem::ManuallyDrop::new(data),
+    ))
+  }
+
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `BufferSlice::from_external` instead")]
+  /// # Safety
+  /// Mostly the same with `create_buffer_with_data`
+  ///
+  /// Provided `finalize_callback` will be called when `Buffer` got dropped.
+  ///
+  /// You can pass in `noop_finalize` if you have nothing to do in finalize phase.
+  ///
+  /// # Notes
+  ///
+  /// JavaScript may mutate the data passed in to this buffer when writing the buffer.
+  /// However, some JavaScript runtimes do not support external buffers (notably electron!)
+  /// in which case modifications may be lost.
+  ///
+  /// If you need to support these runtimes, you should create a buffer by other means and then
+  /// later copy the data back out.
+  pub unsafe fn create_buffer_with_borrowed_data<Hint, Finalize>(
+    &self,
+    mut data: *mut u8,
+    length: usize,
+    hint: Hint,
+    finalize_callback: Finalize,
+  ) -> Result<JsBufferValue>
+  where
+    Finalize: FnOnce(Env, Hint),
+  {
+    let mut raw_value = ptr::null_mut();
+    if data.is_null() || std::ptr::eq(data, EMPTY_VEC.as_ptr()) {
+      return Err(Error::new(
+        Status::InvalidArg,
+        "Borrowed data should not be null".to_owned(),
+      ));
+    }
+    let hint_ptr = Box::into_raw(Box::new((hint, finalize_callback)));
+    unsafe {
+      let status = sys::napi_create_external_buffer(
+        self.0,
+        length,
+        data.cast(),
+        Some(raw_finalize_with_custom_callback::<Hint, Finalize>),
+        hint_ptr.cast(),
+        &mut raw_value,
+      );
+      if status == sys::Status::napi_no_external_buffers_allowed {
+        let (hint, finalize) = *Box::from_raw(hint_ptr);
+        let mut result_data = ptr::null_mut();
+        let status = sys::napi_create_buffer_copy(
+          self.0,
+          length,
+          data.cast(),
+          &mut result_data,
+          &mut raw_value,
+        );
+        data = result_data.cast();
+        finalize(*self, hint);
+        check_status!(status)?;
+      } else {
+        check_status!(status)?;
+      }
+    };
+    Ok(JsBufferValue::new(
+      JsBuffer(Value {
+        env: self.0,
+        value: raw_value,
+        value_type: ValueType::Object,
+      }),
+      mem::ManuallyDrop::new(unsafe { Vec::from_raw_parts(data, length, length) }),
+    ))
+  }
+
+  #[cfg(not(any(target_family = "wasm", target_env = "ohos")))]
   /// This function gives V8 an indication of the amount of externally allocated memory that is kept alive by JavaScript objects (i.e. a JavaScript object that points to its own memory allocated by a native module).
   ///
   /// Registering externally allocated memory will trigger global garbage collections more often than it would otherwise.
   ///
   /// ***ATTENTION ⚠️***, do not use this with `create_buffer_with_data/create_arraybuffer_with_data`, since these two functions already called the `adjust_external_memory` internal.
-  // pub fn adjust_external_memory(&mut self, size: i64) -> Result<i64> {
-  //   let mut changed = 0i64;
-  //   check_status!(unsafe { sys::napi_adjust_external_memory(self.0, size, &mut changed) })?;
-  //   Ok(changed)
-  // }
   pub fn adjust_external_memory(&self, size: i64) -> Result<i64> {
     let mut changed = 0i64;
     check_status!(unsafe { sys::napi_adjust_external_memory(self.0, size, &mut changed) })?;
     Ok(changed)
   }
 
-  #[cfg(target_family = "wasm")]
+  #[cfg(any(target_family = "wasm", target_env = "ohos"))]
   #[allow(unused_variables)]
   pub fn adjust_external_memory(&self, size: i64) -> Result<i64> {
     Ok(0)
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `BufferSlice::copy_from` instead")]
+  /// This API allocates a node::Buffer object and initializes it with data copied from the passed-in buffer.
+  ///
+  /// While this is still a fully-supported data structure, in most cases using a TypedArray will suffice.
+  pub fn create_buffer_copy<D>(&self, data_to_copy: D) -> Result<JsBufferValue>
+  where
+    D: AsRef<[u8]>,
+  {
+    let length = data_to_copy.as_ref().len();
+    let data_ptr = data_to_copy.as_ref().as_ptr();
+    let mut copy_data = ptr::null_mut();
+    let mut raw_value = ptr::null_mut();
+    check_status!(unsafe {
+      sys::napi_create_buffer_copy(
+        self.0,
+        length,
+        data_ptr as *mut c_void,
+        &mut copy_data,
+        &mut raw_value,
+      )
+    })?;
+    Ok(JsBufferValue::new(
+      JsBuffer(Value {
+        env: self.0,
+        value: raw_value,
+        value_type: ValueType::Object,
+      }),
+      mem::ManuallyDrop::new(unsafe { Vec::from_raw_parts(copy_data as *mut u8, length, length) }),
+    ))
+  }
+
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `ArrayBuffer::from_data` instead")]
   pub fn create_arraybuffer(&self, length: usize) -> Result<JsArrayBufferValue> {
     let mut raw_value = ptr::null_mut();
     let mut data_ptr = ptr::null_mut();
@@ -291,6 +495,8 @@ impl Env {
     ))
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `ArrayBuffer::from_data` instead")]
   pub fn create_arraybuffer_with_data(&self, mut data: Vec<u8>) -> Result<JsArrayBufferValue> {
     let length = data.len();
     let mut raw_value = ptr::null_mut();
@@ -317,7 +523,6 @@ impl Env {
           let mut underlying_data = ptr::null_mut();
           let status =
             sys::napi_create_arraybuffer(self.0, length, &mut underlying_data, &mut raw_value);
-          ptr::copy_nonoverlapping(underlying_data.cast(), data_ptr, length);
           ptr::copy_nonoverlapping(data_ptr, underlying_data.cast(), length);
           status
         } else {
@@ -338,6 +543,8 @@ impl Env {
     ))
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Use `ArrayBuffer::from_external` instead")]
   /// # Safety
   /// Mostly the same with `create_arraybuffer_with_data`
   ///
@@ -422,7 +629,7 @@ impl Env {
     &self,
     name: &str,
     callback: Callback,
-  ) -> Result<Function<Args, Return>> {
+  ) -> Result<Function<'_, Args, Return>> {
     let mut raw_result = ptr::null_mut();
     let len = name.len();
     check_status!(unsafe {
@@ -444,7 +651,7 @@ impl Env {
     &self,
     name: &str,
     callback: F,
-  ) -> Result<Function<Args, Return>>
+  ) -> Result<Function<'_, Args, Return>>
   where
     Return: ToNapiValue,
     F: 'static + Fn(FunctionCallContext) -> Result<Return>,
@@ -500,8 +707,8 @@ impl Env {
   }
 
   /// Throw any JavaScript value
-  pub fn throw<T: NapiRaw>(&self, value: T) -> Result<()> {
-    check_status!(unsafe { sys::napi_throw(self.0, value.raw()) })
+  pub fn throw<T: ToNapiValue>(&self, value: T) -> Result<()> {
+    check_status!(unsafe { sys::napi_throw(self.0, ToNapiValue::to_napi_value(self.0, value)?,) })
   }
 
   /// This API throws a JavaScript Error with the text provided.
@@ -595,7 +802,7 @@ impl Env {
     name: &str,
     constructor_cb: Callback,
     properties: &[Property],
-  ) -> Result<Function<Args, Unknown>> {
+  ) -> Result<Function<'_, Args, Unknown<'_>>> {
     let mut raw_result = ptr::null_mut();
     let raw_properties = properties
       .iter()
@@ -617,6 +824,8 @@ impl Env {
     unsafe { Function::from_napi_value(self.0, raw_result) }
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Please use `JsObjectValue::wrap` instead")]
   #[allow(clippy::needless_pass_by_ref_mut)]
   pub fn wrap<T: 'static>(
     &self,
@@ -636,6 +845,9 @@ impl Env {
     })
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Please use `JsObjectValue::unwrap` instead")]
+  #[allow(clippy::mut_from_ref)]
   pub fn unwrap<T: 'static>(&self, js_object: &JsObject) -> Result<&mut T> {
     unsafe {
       let mut unknown_tagged_object: *mut c_void = ptr::null_mut();
@@ -666,6 +878,11 @@ impl Env {
     }
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(
+    since = "1.1.0",
+    note = "Please use `JsObjectValue::drop_wrapped` instead"
+  )]
   pub fn drop_wrapped<T: 'static>(&self, js_object: &JsObject) -> Result<()> {
     unsafe {
       let mut unknown_tagged_object = ptr::null_mut();
@@ -690,18 +907,32 @@ impl Env {
     }
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Please use `Ref::new` instead")]
+  /// This API create a new reference with the initial 1 ref count to the Object passed in.
+  pub fn create_reference<'env, T>(&self, value: &T) -> Result<Ref<T>>
+  where
+    T: JsValue<'env>,
+  {
+    Ref::new(self, value)
+  }
+
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Please use `Ref::get_value` instead")]
   /// Get reference value from `Ref` with type check
   pub fn get_reference_value<T>(&self, reference: &Ref<T>) -> Result<T>
   where
-    T: NapiValue,
+    T: FromNapiValue,
   {
     let mut js_value = ptr::null_mut();
     check_status!(unsafe {
       sys::napi_get_reference_value(self.0, reference.raw_ref, &mut js_value)
     })?;
-    Ok(unsafe { T::from_raw_unchecked(self.0, js_value) })
+    unsafe { T::from_napi_value(self.0, js_value) }
   }
 
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Please use `ObjectRef::get_value` instead")]
   /// Get reference value from `Ref` without type check
   ///
   /// Using this API if you are sure the type of `T` is matched with provided `Ref<()>`.
@@ -709,23 +940,97 @@ impl Env {
   /// If type mismatched, calling `T::method` would return `Err`.
   pub fn get_reference_value_unchecked<T>(&self, reference: &Ref<T>) -> Result<T>
   where
-    T: NapiValue,
+    T: FromNapiValue,
   {
     let mut js_value = ptr::null_mut();
     check_status!(unsafe {
       sys::napi_get_reference_value(self.0, reference.raw_ref, &mut js_value)
     })?;
-    Ok(unsafe { T::from_raw_unchecked(self.0, js_value) })
+    unsafe { T::from_napi_value(self.0, js_value) }
   }
 
-  pub fn create_error(&self, e: Error) -> Result<JsObject> {
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Please use `External::new` instead")]
+  /// If `size_hint` provided, `Env::adjust_external_memory` will be called under the hood.
+  ///
+  /// If no `size_hint` provided, global garbage collections will be triggered less times than expected.
+  ///
+  /// If getting the exact `native_object` size is difficult, you can provide an approximate value, it's only effect to the GC.
+  pub fn create_external<T: 'static>(
+    &self,
+    native_object: T,
+    size_hint: Option<i64>,
+  ) -> Result<JsExternal> {
+    let mut object_value = ptr::null_mut();
+    check_status!(unsafe {
+      sys::napi_create_external(
+        self.0,
+        Box::into_raw(Box::new(TaggedObject::new(native_object))).cast(),
+        Some(raw_finalize::<TaggedObject<T>>),
+        Box::into_raw(Box::new(size_hint.unwrap_or(0))).cast(),
+        &mut object_value,
+      )
+    })?;
+    #[cfg(not(target_env = "ohos"))]
+    if let Some(changed) = size_hint {
+      if changed != 0 {
+        let mut adjusted_value = 0i64;
+        check_status!(unsafe {
+          sys::napi_adjust_external_memory(self.0, changed, &mut adjusted_value)
+        })?;
+      }
+    };
+    unsafe { JsExternal::from_napi_value(self.0, object_value) }
+  }
+
+  #[cfg(feature = "compat-mode")]
+  #[deprecated(since = "1.1.0", note = "Please use `&External` instead")]
+  #[allow(clippy::mut_from_ref)]
+  pub fn get_value_external<T: 'static>(&self, js_external: &JsExternal) -> Result<&mut T> {
+    unsafe {
+      let mut unknown_tagged_object = ptr::null_mut();
+      check_status!(sys::napi_get_value_external(
+        self.0,
+        js_external.0.value,
+        &mut unknown_tagged_object,
+      ))?;
+
+      let type_id = unknown_tagged_object as *const TypeId;
+      if *type_id == TypeId::of::<T>() {
+        let tagged_object = unknown_tagged_object as *mut TaggedObject<T>;
+        (*tagged_object).object.as_mut().ok_or_else(|| {
+          Error::new(
+            Status::InvalidArg,
+            "nothing attach to js_external".to_owned(),
+          )
+        })
+      } else {
+        Err(Error::new(
+          Status::InvalidArg,
+          "T on get_value_external is not the type of wrapped object".to_owned(),
+        ))
+      }
+    }
+  }
+
+  /// Create a JavaScript error object from `Error`
+  pub fn create_error(&self, e: Error) -> Result<Object<'_>> {
+    if !e.maybe_raw.is_null() {
+      let mut result = ptr::null_mut();
+      check_status!(
+        unsafe { sys::napi_get_reference_value(self.0, e.maybe_raw, &mut result) },
+        "Get reference value in create_error failed"
+      )?;
+      return Ok(Object::from_raw(self.0, result));
+    }
     let reason = &e.reason;
     let reason_string = self.create_string(reason.as_str())?;
+    let status = self.create_string(e.status.as_ref())?;
     let mut result = ptr::null_mut();
     check_status!(unsafe {
-      sys::napi_create_error(self.0, ptr::null_mut(), reason_string.0.value, &mut result)
+      sys::napi_create_error(self.0, status.0.value, reason_string.0.value, &mut result)
     })?;
-    Ok(unsafe { JsObject::from_raw_unchecked(self.0, result) })
+    Ok(Object::from_raw(self.0, result))
   }
 
   /// Run [Task](./trait.Task.html) in libuv thread pool, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
@@ -765,7 +1070,6 @@ impl Env {
   /// - Unlike `eval`, this function does not allow the script to access the current lexical scope, and therefore also does not allow to access the [module scope](https://nodejs.org/api/modules.html#the-module-scope), meaning that pseudo-globals such as require will not be available.
   /// - The script can access the [global scope](https://nodejs.org/api/globals.html). Function and `var` declarations in the script will be added to the [global](https://nodejs.org/api/globals.html#global) object. Variable declarations made using `let` and `const` will be visible globally, but will not be added to the global object.
   /// - The value of this is [global](https://nodejs.org/api/globals.html) within the script.
-  /// - file should be `abc` file in HarmonyOS
   pub fn run_script<S: AsRef<str>, V: FromNapiValue>(&self, script: S) -> Result<V> {
     let s = self.create_string(script.as_ref())?;
     let mut raw_value = ptr::null_mut();
@@ -776,17 +1080,62 @@ impl Env {
     unsafe { V::from_napi_value(self.0, raw_value) }
   }
 
+    /// load builtin module or user's module
+  /// Note: This method only can call in main thread.
+  /// ```rust
+  /// #[napi]
+  /// pub fn load_log(env: Env) -> Result<()> {
+  ///   let log = env.load("@ohos.hilog")?;
+  ///   Ok(())
+  /// }
+  /// ```
+  #[cfg(target_env = "ohos")]
+  pub fn load<T: AsRef<str>>(&self, path: T) -> Result<Module> {
+    use crate::check_pending_exception;
+
+    let c_path = CString::new(path.as_ref())?;
+    let mut module = ptr::null_mut();
+    check_pending_exception!(self.0, unsafe {
+      napi_sys_ohos::napi_load_module(self.0, c_path.as_ptr(), &mut module)
+    })?;
+    Ok(Module::new(self.0, module))
+  }
+
+  /// load builtin module or user's module with module info
+  /// ```rust
+  /// #[napi]
+  /// pub fn load_test(env: Env) -> Result<()> {
+  ///   let log = env.load_with_info("@ohos-rs/crc32", "com.example.myapplication/entry")?;
+  ///   Ok(())
+  /// }
+  /// ```
+  #[cfg(target_env = "ohos")]
+  pub fn load_with_info<T: AsRef<str>>(&self, path: T, info: T) -> Result<Module> {
+    use crate::check_pending_exception;
+
+    let c_path = CString::new(path.as_ref())?;
+    let c_info = CString::new(info.as_ref())?;
+    let mut module = ptr::null_mut();
+    check_pending_exception!(self.0, unsafe {
+      napi_sys_ohos::napi_load_module_with_info(
+        self.0,
+        c_path.as_ptr(),
+        c_info.as_ptr().cast(),
+        &mut module,
+      )
+    })?;
+    Ok(Module::new(self.0, module))
+  }
+
   /// `process.versions.napi`
   pub fn get_napi_version(&self) -> Result<u32> {
     let global = self.get_global()?;
-    let process: JsObject = global.get_named_property("process")?;
-    let versions: JsObject = process.get_named_property("versions")?;
-    let napi_version: JsString = versions.get_named_property("napi")?;
+    let process: Object = global.get_named_property("process")?;
+    let versions: Object = process.get_named_property("versions")?;
+    let napi_version: String = versions.get_named_property("napi")?;
     napi_version
-      .into_utf8()?
-      .as_str()?
       .parse()
-      .map_err(|e| Error::new(Status::InvalidArg, format!("{}", e)))
+      .map_err(|e| Error::new(Status::InvalidArg, format!("{e}")))
   }
 
   #[cfg(all(feature = "napi2", not(target_family = "wasm")))]
@@ -845,6 +1194,46 @@ impl Env {
     })
   }
 
+  #[cfg(all(feature = "napi4", feature = "compat-mode"))]
+  #[deprecated(
+    since = "1.0.0",
+    note = "Please use `Function::build_threadsafe_function` instead"
+  )]
+  #[allow(deprecated)]
+  pub fn create_threadsafe_function<
+    T: 'static + Send,
+    V: 'static + JsValuesTupleIntoVec,
+    R: 'static + Send + FnMut(ThreadsafeCallContext<T>) -> Result<V>,
+  >(
+    &self,
+    func: &JsFunction,
+    _max_queue_size: usize,
+    callback: R,
+  ) -> Result<ThreadsafeFunction<T, Unknown<'_>, V>> {
+    ThreadsafeFunction::<T, Unknown, V>::create(self.0, func.0.value, callback)
+  }
+
+  #[cfg(all(feature = "tokio_rt", feature = "napi4", feature = "compat-mode"))]
+  #[deprecated(since = "1.1.0", note = "Please use `Env::spawn_future` instead")]
+  pub fn execute_tokio_future<
+    T: 'static + Send,
+    V: 'static + ToNapiValue,
+    F: 'static + Send + Future<Output = Result<T>>,
+    R: 'static + FnOnce(&mut Env, T) -> Result<V>,
+  >(
+    &self,
+    fut: F,
+    resolver: R,
+  ) -> Result<JsObject> {
+    use crate::tokio_runtime;
+
+    let promise = tokio_runtime::execute_tokio_future(self.0, fut, |env, val| unsafe {
+      resolver(&mut Env::from_raw(env), val).and_then(|v| ToNapiValue::to_napi_value(env, v))
+    })?;
+
+    Ok(unsafe { JsObject::from_raw_unchecked(self.0, promise) })
+  }
+
   #[cfg(all(feature = "tokio_rt", feature = "napi4"))]
   /// Spawn a future, return a JavaScript Promise which takes the result of the future
   pub fn spawn_future<
@@ -853,7 +1242,7 @@ impl Env {
   >(
     &self,
     fut: F,
-  ) -> Result<PromiseRaw<T>> {
+  ) -> Result<PromiseRaw<'_, T>> {
     use crate::tokio_runtime;
 
     let promise = tokio_runtime::execute_tokio_future(self.0, fut, |env, val| unsafe {
@@ -867,20 +1256,23 @@ impl Env {
   /// Spawn a future with a callback
   /// So you can access the `Env` and resolved value after the future completed
   pub fn spawn_future_with_callback<
-    T: 'static + Send + ToNapiValue,
+    'env,
+    T: 'static + Send,
     V: ToNapiValue,
     F: 'static + Send + Future<Output = Result<T>>,
-    R: 'static + FnOnce(Env, T) -> Result<V>,
+    R: 'static + FnOnce(&'env Env, T) -> Result<V>,
   >(
-    &self,
+    &'env self,
     fut: F,
     callback: R,
-  ) -> Result<PromiseRaw<T>> {
+  ) -> Result<PromiseRaw<'env, V>> {
     use crate::tokio_runtime;
 
     let promise = tokio_runtime::execute_tokio_future(self.0, fut, move |env, val| unsafe {
-      let val = callback(Env::from_raw(env), val)?;
-      ToNapiValue::to_napi_value(env, val)
+      let env = Env::from_raw(env);
+      let static_env = core::mem::transmute::<&Env, &'env Env>(&env);
+      let val = callback(static_env, val)?;
+      ToNapiValue::to_napi_value(env.0, val)
     })?;
 
     Ok(PromiseRaw::new(self.0, promise))
@@ -890,8 +1282,8 @@ impl Env {
   #[cfg(feature = "napi4")]
   pub fn create_deferred<Data: ToNapiValue, Resolver: FnOnce(Env) -> Result<Data>>(
     &self,
-  ) -> Result<(JsDeferred<Data, Resolver>, JsObject)> {
-    JsDeferred::new(self.raw())
+  ) -> Result<(JsDeferred<Data, Resolver>, Object<'_>)> {
+    JsDeferred::new(self)
   }
 
   /// This API does not observe leap seconds; they are ignored, as ECMAScript aligns with POSIX time specification.
@@ -900,10 +1292,10 @@ impl Env {
   ///
   /// JavaScript Date objects are described in [Section 20.3](https://tc39.github.io/ecma262/#sec-date-objects) of the ECMAScript Language Specification.
   #[cfg(feature = "napi5")]
-  pub fn create_date(&self, time: f64) -> Result<JsDate> {
+  pub fn create_date(&self, time: f64) -> Result<JsDate<'_>> {
     let mut js_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_date(self.0, time, &mut js_value) })?;
-    Ok(unsafe { JsDate::from_raw_unchecked(self.0, js_value) })
+    Ok(JsDate::from_raw(self.0, js_value))
   }
 
   #[cfg(feature = "napi6")]
@@ -1026,7 +1418,7 @@ impl Env {
   }
 
   #[cfg(feature = "napi9")]
-  pub fn symbol_for(&self, description: &str) -> Result<JsSymbol> {
+  pub fn symbol_for(&self, description: &str) -> Result<JsSymbol<'_>> {
     let mut result = ptr::null_mut();
     check_status!(unsafe {
       sys::node_api_symbol_for(
@@ -1037,7 +1429,14 @@ impl Env {
       )
     })?;
 
-    Ok(unsafe { JsSymbol::from_raw_unchecked(self.0, result) })
+    Ok(JsSymbol(
+      Value {
+        env: self.0,
+        value: result,
+        value_type: ValueType::Symbol,
+      },
+      std::marker::PhantomData,
+    ))
   }
 
   #[cfg(any(feature = "napi9", target_env = "ohos"))]
@@ -1061,49 +1460,6 @@ impl Env {
     Ok(module_filename.to_string_lossy().into_owned())
   }
 
-  /// load builtin module or user's module
-  /// Note: This method only can call in main thread.
-  /// ```rust
-  /// #[napi]
-  /// pub fn load_log(env: Env) -> Result<()> {
-  ///   let log = env.load("@ohos.hilog")?;
-  ///   Ok(())
-  /// }
-  /// ```
-  #[cfg(target_env = "ohos")]
-  pub fn load<T: AsRef<str>>(&self, path: T) -> Result<Module> {
-    let c_path = CString::new(path.as_ref())?;
-    let mut module = ptr::null_mut();
-    check_pending_exception!(self.0, unsafe {
-      napi_sys_ohos::napi_load_module(self.0, c_path.as_ptr(), &mut module)
-    })?;
-    Ok(Module::new(self.0, module))
-  }
-
-  /// load builtin module or user's module with module info
-  /// ```rust
-  /// #[napi]
-  /// pub fn load_test(env: Env) -> Result<()> {
-  ///   let log = env.load_with_info("@ohos-rs/crc32", "com.example.myapplication/entry")?;
-  ///   Ok(())
-  /// }
-  /// ```
-  #[cfg(target_env = "ohos")]
-  pub fn load_with_info<T: AsRef<str>>(&self, path: T, info: T) -> Result<Module> {
-    let c_path = CString::new(path.as_ref())?;
-    let c_info = CString::new(info.as_ref())?;
-    let mut module = ptr::null_mut();
-    check_pending_exception!(self.0, unsafe {
-      napi_sys_ohos::napi_load_module_with_info(
-        self.0,
-        c_path.as_ptr(),
-        c_info.as_ptr().cast(),
-        &mut module,
-      )
-    })?;
-    Ok(Module::new(self.0, module))
-  }
-
   /// ### Serialize `Rust Struct` into `JavaScript Value`
   ///
   /// ```
@@ -1122,12 +1478,14 @@ impl Env {
   /// ```
   #[cfg(feature = "serde-json")]
   #[allow(clippy::wrong_self_convention)]
-  pub fn to_js_value<T>(&self, node: &T) -> Result<JsUnknown>
+  pub fn to_js_value<'env, T>(&self, node: &T) -> Result<Unknown<'env>>
   where
     T: Serialize,
   {
     let s = Ser(self);
-    node.serialize(s).map(JsUnknown)
+    node
+      .serialize(s)
+      .map(|v| Unknown(v, std::marker::PhantomData))
   }
 
   /// ### Deserialize data from `JsValue`
@@ -1147,14 +1505,14 @@ impl Env {
   /// }
   ///
   #[cfg(feature = "serde-json")]
-  pub fn from_js_value<T, V>(&self, value: V) -> Result<T>
+  pub fn from_js_value<'v, T, V>(&self, value: V) -> Result<T>
   where
     T: DeserializeOwned,
-    V: NapiRaw,
+    V: JsValue<'v>,
   {
     let value = Value {
       env: self.0,
-      value: unsafe { value.raw() },
+      value: value.raw(),
       value_type: ValueType::Unknown,
     };
     let mut de = De(&value);
@@ -1162,7 +1520,11 @@ impl Env {
   }
 
   /// This API represents the invocation of the Strict Equality algorithm as defined in [Section 7.2.14](https://tc39.es/ecma262/#sec-strict-equality-comparison) of the ECMAScript Language Specification.
-  pub fn strict_equals<A: NapiRaw, B: NapiRaw>(&self, a: A, b: B) -> Result<bool> {
+  pub fn strict_equals<'env, A: JsValue<'env>, B: JsValue<'env>>(
+    &self,
+    a: A,
+    b: B,
+  ) -> Result<bool> {
     let mut result = false;
     check_status!(unsafe { sys::napi_strict_equals(self.0, a.raw(), b.raw(), &mut result) })?;
     Ok(result)
@@ -1184,6 +1546,7 @@ impl Env {
 /// This function could be used for `BufferSlice::from_external` and want do noting when Buffer finalized.
 pub fn noop_finalize<Hint>(_env: Env, _hint: Hint) {}
 
+#[cfg(feature = "compat-mode")]
 unsafe extern "C" fn drop_buffer(
   _env: sys::napi_env,
   finalize_data: *mut c_void,
@@ -1194,8 +1557,7 @@ unsafe extern "C" fn drop_buffer(
   mem::drop(unsafe { Vec::from_raw_parts(finalize_data as *mut u8, length, cap) });
 }
 
-#[allow(unused_variables)]
-#[cfg_attr(target_family = "wasm", allow(unused_variables))]
+#[cfg_attr(any(target_family = "wasm", target_env = "ohos"), allow(unused_variables))]
 pub(crate) unsafe extern "C" fn raw_finalize<T>(
   env: sys::napi_env,
   finalize_data: *mut c_void,
@@ -1383,7 +1745,7 @@ pub(crate) unsafe extern "C" fn trampoline_setter<
     .and_then(|value| {
       closure(
         env,
-        unsafe { This::from_raw_unchecked(raw_env, raw_this) },
+        unsafe { This::from_napi_value(raw_env, raw_this)? },
         value,
       )
     })
@@ -1427,14 +1789,13 @@ pub(crate) unsafe extern "C" fn trampoline_getter<
 
   let closure: &F = Box::leak(unsafe { Box::from_raw(closure_data_ptr.cast()) });
   let env = Env::from_raw(raw_env);
-  closure(env, unsafe {
-    crate::bindgen_runtime::This::from_raw_unchecked(raw_env, raw_this)
-  })
-  .and_then(|ret: R| unsafe { <R as ToNapiValue>::to_napi_value(env.0, ret) })
-  .unwrap_or_else(|e| {
-    unsafe { JsError::from(e).throw_into(raw_env) };
-    ptr::null_mut()
-  })
+  unsafe { crate::bindgen_runtime::This::from_napi_value(raw_env, raw_this) }
+    .and_then(|this| closure(env, this))
+    .and_then(|ret: R| unsafe { <R as ToNapiValue>::to_napi_value(env.0, ret) })
+    .unwrap_or_else(|e| {
+      unsafe { JsError::from(e).throw_into(raw_env) };
+      ptr::null_mut()
+    })
 }
 
 #[cfg(feature = "napi5")]

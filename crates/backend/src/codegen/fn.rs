@@ -21,6 +21,38 @@ impl TryToTokens for NapiFn {
       mut_ref_spans,
       unsafe_,
     } = self.gen_arg_conversions()?;
+    let attrs = &self.attrs;
+    let arg_ref_count = refs.len();
+    let receiver = self.gen_fn_receiver();
+    let receiver_ret_name = Ident::new("_ret", Span::call_site());
+    let ret = self.gen_fn_return(&receiver_ret_name)?;
+    let register = self.gen_fn_register();
+
+    if self.module_exports {
+      (quote! {
+        #(#attrs)*
+        #[doc(hidden)]
+        #[allow(non_snake_case)]
+        #[allow(clippy::all)]
+        unsafe extern "C" fn #intermediate_ident(
+          env: napi_ohos::bindgen_prelude::sys::napi_env,
+          _napi_module_exports_: napi_ohos::bindgen_prelude::sys::napi_value,
+        ) -> napi_ohos::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
+          let __wrapped_env = napi_ohos::bindgen_prelude::Env::from(env);
+          #(#arg_conversions)*
+          let #receiver_ret_name = {
+            #receiver(#(#arg_names),*)
+          };
+          #ret
+        }
+
+        #register
+      })
+      .to_tokens(tokens);
+
+      return Ok(());
+    }
+
     // The JS engine can't properly track mutability in an async context, so refuse to compile
     // code that tries to use async and mutability together without `unsafe` mark.
     if self.is_async && !mut_ref_spans.is_empty() && !unsafe_ {
@@ -37,12 +69,6 @@ impl TryToTokens for NapiFn {
         "&mut self in async napi methods should be marked as unsafe",
       ));
     }
-    let arg_ref_count = refs.len();
-    let receiver = self.gen_fn_receiver();
-    let receiver_ret_name = Ident::new("_ret", Span::call_site());
-    let ret = self.gen_fn_return(&receiver_ret_name)?;
-    let register = self.gen_fn_register();
-    let attrs = &self.attrs;
 
     let build_ref_container = if self.is_async {
       quote! {
@@ -81,9 +107,9 @@ impl TryToTokens for NapiFn {
 
           #[cfg(debug_assertions)]
           {
-              for a in &_args_array {
-                assert!(!a.is_null(), "failed to initialize napi ref");
-              }
+            for a in &_args_array {
+              assert!(!a.is_null(), "failed to initialize napi ref");
+            }
           }
           let _args_ref = NapiRefContainer(_args_array);
       }
@@ -159,7 +185,7 @@ impl TryToTokens for NapiFn {
       quote! {
         // constructor function is called from class `factory`
         // so we should skip the original `constructor` logic
-        if napi_ohos::__private::___CALL_FROM_FACTORY.with(|inner| inner.load(std::sync::atomic::Ordering::Relaxed)) {
+        if napi_ohos::__private::___CALL_FROM_FACTORY.with(|inner| inner.get()) {
             #return_from_factory
         }
         #function_call_inner
@@ -224,15 +250,6 @@ impl NapiFn {
     let mut args = vec![];
     let mut refs = vec![];
     let mut mut_ref_spans = vec![];
-    let make_ref = |input| {
-      quote! {
-        _args_array[_arg_write_index] = _make_ref(
-          ::std::ptr::NonNull::new(#input)
-            .ok_or_else(|| napi_ohos::Error::new(napi_ohos::Status::InvalidArg, "referenced ptr is null".to_owned()))?
-        )?;
-        _arg_write_index += 1;
-      }
-    };
 
     // fetch this
     if let Some(parent) = &self.parent {
@@ -258,7 +275,7 @@ impl NapiFn {
     let mut skipped_arg_count = 0;
     for (i, arg) in self.args.iter().enumerate() {
       let i = i - skipped_arg_count;
-      let ident = Ident::new(&format!("arg{}", i), Span::call_site());
+      let ident = Ident::new(&format!("arg{i}"), Span::call_site());
 
       match &arg.kind {
         NapiFnArgKind::PatType(path) => {
@@ -267,12 +284,15 @@ impl NapiFn {
             skipped_arg_count += 1;
           } else {
             let is_in_class = self.parent.is_some();
+            // get `f64` in `foo: f64`
             if let syn::Type::Path(path) = path.ty.as_ref() {
+              // get `Reference` in `napi_ohos::bindgen_prelude::Reference`
               if let Some(p) = path.path.segments.last() {
                 if p.ident == "Reference" {
                   if !is_in_class {
                     bail_span!(p, "`Reference` is only allowed in class methods");
                   }
+                  // get `FooStruct` in `Reference<FooStruct>`
                   if let syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
                     args: angle_bracketed_args,
                     ..
@@ -293,6 +313,7 @@ impl NapiFn {
                     }
                   }
                 } else if p.ident == "This" {
+                  // get `FooStruct` in `This<FooStruct>`
                   if let syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
                     args: angle_bracketed_args,
                     ..
@@ -354,7 +375,7 @@ impl NapiFn {
                     }
                   }
                   refs.push(make_ref(quote! { cb.this }));
-                  args.push(quote! { <napi_ohos::bindgen_prelude::This as napi_ohos::NapiValue>::from_raw_unchecked(env, cb.this) });
+                  args.push(quote! { <napi_ohos::bindgen_prelude::This as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, cb.this)? });
                   skipped_arg_count += 1;
                   continue;
                 }
@@ -420,6 +441,12 @@ impl NapiFn {
       }
     } else {
       quote! {}
+    };
+
+    let arg_conversion = if self.module_exports {
+      quote! { _napi_module_exports_ }
+    } else {
+      quote! { cb.get_arg(#index) }
     };
 
     match ty {
@@ -492,13 +519,37 @@ impl NapiFn {
       }
       _ => {
         hidden_ty_lifetime(&mut ty)?;
+        let mut arg_type = NapiArgType::Value;
+        if let syn::Type::Path(path) = &ty {
+          // Detect cases where the type is `Vec<&S>`.
+          // For example, in `async fn foo(v: Vec<&S>) {}`, we need to handle `v` as a reference.
+          if let Some(syn::PathSegment { ident, arguments }) = path.path.segments.first() {
+            // Check if the type is a `Vec`.
+            if ident == "Vec" {
+              if let syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
+                args: angle_bracketed_args,
+                ..
+              }) = &arguments
+              {
+                // Check if the generic argument of `Vec` is a reference type (e.g., `&S`).
+                if let Some(syn::GenericArgument::Type(syn::Type::Reference(
+                  syn::TypeReference { .. },
+                ))) = angle_bracketed_args.first()
+                {
+                  // If the type is `Vec<&S>`, set the argument type to `Ref`.
+                  arg_type = NapiArgType::Ref;
+                }
+              }
+            }
+          }
+        }
         let q = quote! {
           let #arg_name = {
             #type_check
-            <#ty as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, cb.get_arg(#index))?
+            <#ty as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, #arg_conversion)?
           };
         };
-        Ok((q, NapiArgType::Value))
+        Ok((q, arg_type))
       }
     }
   }
@@ -513,7 +564,7 @@ impl NapiFn {
     let mut arg_conversions = vec![];
 
     for (i, ty) in cb.args.iter().enumerate() {
-      let cb_arg_ident = Ident::new(&format!("callback_arg_{}", i), Span::call_site());
+      let cb_arg_ident = Ident::new(&format!("callback_arg_{i}"), Span::call_site());
       inputs.push(quote! { #cb_arg_ident: #ty });
       let mut maybe_has_lifetime_ty = ty.clone();
       hidden_ty_lifetime(&mut maybe_has_lifetime_ty)?;
@@ -675,9 +726,66 @@ impl NapiFn {
       let module_register_name = &self.register_name;
       let intermediate_ident = get_intermediate_ident(&name_str);
       let js_mod_ident = js_mod_to_token_stream(self.js_mod.as_ref());
-      let cb_name = Ident::new(&format!("{}_js_function", name_str), Span::call_site());
+      let cb_name = Ident::new(
+        &format!("_napi_rs_internal_register_{name_str}"),
+        Span::call_site(),
+      );
+
+      if self.module_exports {
+        return quote! {
+          #[doc(hidden)]
+          #[allow(non_snake_case)]
+          #[allow(clippy::all)]
+          unsafe fn #cb_name(env: napi_ohos::bindgen_prelude::sys::napi_env, exports: napi_ohos::bindgen_prelude::sys::napi_value) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
+            #intermediate_ident(env, exports)?;
+            Ok(exports)
+          }
+
+          #[doc(hidden)]
+          #[allow(clippy::all)]
+          #[allow(non_snake_case)]
+          #[cfg(all(not(test), not(target_family = "wasm")))]
+          #[napi_ohos::ctor::ctor(crate_path=::napi_ohos::ctor)]
+          fn #module_register_name() {
+            napi_ohos::bindgen_prelude::register_module_export_hook(#cb_name);
+          }
+
+          #[allow(clippy::all)]
+          #[allow(non_snake_case)]
+          #[cfg(all(not(test), target_family = "wasm"))]
+          #[no_mangle]
+          extern "C" fn #module_register_name() {
+            napi_ohos::bindgen_prelude::register_module_export_hook(#cb_name);
+          }
+        };
+      }
+
+      let register_module_export_tokens = if self.no_export {
+        quote! {}
+      } else {
+        quote! {
+          #[doc(hidden)]
+          #[allow(clippy::all)]
+          #[allow(non_snake_case)]
+          #[cfg(all(not(test), not(target_family = "wasm")))]
+          #[napi_ohos::ctor::ctor(crate_path=::napi_ohos::ctor)]
+          fn #module_register_name() {
+            napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
+          }
+
+          #[doc(hidden)]
+          #[allow(clippy::all)]
+          #[allow(non_snake_case)]
+          #[cfg(all(not(test), target_family = "wasm"))]
+          #[no_mangle]
+          extern "C" fn #module_register_name() {
+            napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
+          }
+        }
+      };
 
       quote! {
+        #[doc(hidden)]
         #[allow(non_snake_case)]
         #[allow(clippy::all)]
         unsafe fn #cb_name(env: napi_ohos::bindgen_prelude::sys::napi_env) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
@@ -695,25 +803,10 @@ impl NapiFn {
             "Failed to register function `{}`",
             #name_str,
           )?;
-          napi_ohos::bindgen_prelude::register_js_function(#js_name, #cb_name, Some(#intermediate_ident));
           Ok(fn_ptr)
         }
 
-        #[allow(clippy::all)]
-        #[allow(non_snake_case)]
-        #[cfg(all(not(test), not(target_family = "wasm")))]
-        #[napi_ohos::ctor::ctor(crate_path=::napi_ohos::ctor)]
-        fn #module_register_name() {
-          napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
-        }
-
-        #[allow(clippy::all)]
-        #[allow(non_snake_case)]
-        #[cfg(all(not(test), target_family = "wasm"))]
-        #[no_mangle]
-        extern "C" fn #module_register_name() {
-          napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name, #cb_name);
-        }
+        #register_module_export_tokens
       }
     }
   }
@@ -742,6 +835,16 @@ fn hidden_ty_lifetime(ty: &mut syn::Type) -> BindgenResult<()> {
     }
   }
   Ok(())
+}
+
+fn make_ref(input: TokenStream) -> TokenStream {
+  quote! {
+    _args_array[_arg_write_index] = _make_ref(
+      ::std::ptr::NonNull::new(#input)
+        .ok_or_else(|| napi_ohos::Error::new(napi_ohos::Status::InvalidArg, "referenced ptr is null".to_owned()))?
+    )?;
+    _arg_write_index += 1;
+  }
 }
 
 struct ArgConversions {

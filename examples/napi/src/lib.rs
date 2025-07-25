@@ -7,7 +7,7 @@
 
 #[cfg(not(target_family = "wasm"))]
 use napi_ohos::bindgen_prelude::create_custom_tokio_runtime;
-pub use napi_shared::*;
+// pub use napi_shared::*;
 
 #[macro_use]
 extern crate napi_derive_ohos;
@@ -67,6 +67,7 @@ mod fn_ts_override;
 mod function;
 mod generator;
 mod js_mod;
+mod lifetime;
 mod map;
 mod nullable;
 mod number;

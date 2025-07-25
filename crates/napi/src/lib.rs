@@ -117,7 +117,7 @@ pub use env::*;
 pub use error::*;
 pub use js_values::*;
 pub use status::Status;
-pub use task::Task;
+pub use task::{ScopedTask, Task};
 pub use value_type::*;
 pub use version::NodeVersion;
 #[cfg(feature = "serde-json")]

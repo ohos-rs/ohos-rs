@@ -4,6 +4,9 @@ use super::{Either, FromNapiValue, ToNapiValue, TypeName, Unknown, ValidateNapiV
 
 #[cfg(feature = "napi4")]
 use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
+#[cfg(feature = "compat-mode")]
+#[allow(deprecated)]
+pub use crate::JsFunction;
 use crate::{
   bindgen_runtime::JsObjectValue, check_pending_exception, check_status, sys, Env, JsValue, Result,
   Status, ValueType,
@@ -651,4 +654,58 @@ macro_rules! impl_call_apply {
       unsafe { Return::from_napi_value(self.0.env, return_value) }
     }
   };
+}
+
+#[cfg(feature = "compat-mode")]
+#[allow(deprecated)]
+impl JsFunction {
+  pub fn apply0<Return: FromNapiValue, Context: ToNapiValue>(
+    &self,
+    this: Context,
+  ) -> Result<Return> {
+    let raw_this = unsafe { Context::to_napi_value(self.0.env, this) }?;
+
+    let mut return_value = ptr::null_mut();
+    check_pending_exception!(self.0.env, unsafe {
+      sys::napi_call_function(
+        self.0.env,
+        raw_this,
+        self.0.value,
+        0,
+        ptr::null_mut(),
+        &mut return_value,
+      )
+    })?;
+
+    unsafe { Return::from_napi_value(self.0.env, return_value) }
+  }
+
+  pub fn call0<Return: FromNapiValue>(&self) -> Result<Return> {
+    let raw_this = unsafe { ToNapiValue::to_napi_value(self.0.env, ()) }?;
+
+    let mut return_value = ptr::null_mut();
+    check_pending_exception!(self.0.env, unsafe {
+      sys::napi_call_function(
+        self.0.env,
+        raw_this,
+        self.0.value,
+        0,
+        ptr::null_mut(),
+        &mut return_value,
+      )
+    })?;
+
+    unsafe { Return::from_napi_value(self.0.env, return_value) }
+  }
+
+  impl_call_apply!(call1, apply1, Arg1);
+  impl_call_apply!(call2, apply2, Arg1, Arg2);
+  impl_call_apply!(call3, apply3, Arg1, Arg2, Arg3);
+  impl_call_apply!(call4, apply4, Arg1, Arg2, Arg3, Arg4);
+  impl_call_apply!(call5, apply5, Arg1, Arg2, Arg3, Arg4, Arg5);
+  impl_call_apply!(call6, apply6, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
+  impl_call_apply!(call7, apply7, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7);
+  impl_call_apply!(call8, apply8, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8);
+  impl_call_apply!(call9, apply9, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9);
+  impl_call_apply!(call10, apply10, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9, Arg10);
 }

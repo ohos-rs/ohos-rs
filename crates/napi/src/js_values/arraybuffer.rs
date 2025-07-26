@@ -3,11 +3,17 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
 
-use crate::bindgen_runtime::{TypeName, ValidateNapiValue};
 use crate::{
-  check_status, sys, Env, Error, JsUnknown, NapiValue, Ref, Result, Status, Value, ValueType,
+  bindgen_runtime::{FromNapiValue, TypeName, TypedArrayType, ValidateNapiValue},
+  check_status, sys, Env, Error, NapiValue, Ref, Result, Status, Unknown, Value, ValueType,
 };
 
+use super::JsValue;
+
+#[deprecated(
+  since = "1.1.0",
+  note = "Use `napi::bindgen_prelude::ArrayBuffer` instead"
+)]
 pub struct JsArrayBuffer(pub(crate) Value);
 
 impl TypeName for JsArrayBuffer {
@@ -34,12 +40,36 @@ impl ValidateNapiValue for JsArrayBuffer {
   }
 }
 
+impl FromNapiValue for JsArrayBuffer {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    Ok(Self(Value {
+      env,
+      value: napi_val,
+      value_type: ValueType::Object,
+    }))
+  }
+}
+
+impl JsValue<'_> for JsArrayBuffer {
+  fn value(&self) -> Value {
+    self.0
+  }
+}
+
+#[deprecated(
+  since = "1.1.0",
+  note = "Use `napi::bindgen_prelude::ArrayBuffer` instead"
+)]
 pub struct JsArrayBufferValue {
   pub value: JsArrayBuffer,
   pub(crate) len: usize,
   pub(crate) data: *mut c_void,
 }
 
+#[deprecated(
+  since = "1.1.0",
+  note = "Use `napi::bindgen_prelude::Uint8Array/Int8Array...` instead"
+)]
 pub struct JsTypedArray(pub(crate) Value);
 
 impl TypeName for JsTypedArray {
@@ -52,9 +82,29 @@ impl TypeName for JsTypedArray {
   }
 }
 
+impl FromNapiValue for JsTypedArray {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    Ok(Self(Value {
+      env,
+      value: napi_val,
+      value_type: ValueType::Object,
+    }))
+  }
+}
+
+impl JsValue<'_> for JsTypedArray {
+  fn value(&self) -> Value {
+    self.0
+  }
+}
+
+#[deprecated(
+  since = "1.1.0",
+  note = "Use `napi::bindgen_prelude::Uint8Array/Int8Array...` instead"
+)]
 pub struct JsTypedArrayValue {
   pub arraybuffer: JsArrayBuffer,
-  pub(crate) data: *mut c_void,
+  data: *mut c_void,
   pub byte_offset: usize,
   pub length: usize,
   pub typedarray_type: TypedArrayType,
@@ -77,97 +127,6 @@ pub struct JsDataViewValue {
   _data: *mut c_void,
   pub byte_offset: u64,
   pub length: u64,
-}
-
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TypedArrayType {
-  Int8 = 0,
-  Uint8,
-  Uint8Clamped,
-  Int16,
-  Uint16,
-  Int32,
-  Uint32,
-  Float32,
-  Float64,
-  #[cfg(feature = "napi6")]
-  BigInt64,
-  #[cfg(feature = "napi6")]
-  BigUint64,
-
-  /// compatible with higher versions
-  Unknown = 1024,
-}
-
-impl TypedArrayType {
-  pub fn byte_len(&self) -> usize {
-    match self {
-      TypedArrayType::Int8 => 1,
-      TypedArrayType::Uint8 => 1,
-      TypedArrayType::Uint8Clamped => 1,
-      TypedArrayType::Int16 => 2,
-      TypedArrayType::Uint16 => 2,
-      TypedArrayType::Int32 => 4,
-      TypedArrayType::Uint32 => 4,
-      TypedArrayType::Float32 => 4,
-      TypedArrayType::Float64 => 8,
-      #[cfg(feature = "napi6")]
-      TypedArrayType::BigInt64 => 8,
-      #[cfg(feature = "napi6")]
-      TypedArrayType::BigUint64 => 8,
-      TypedArrayType::Unknown => 1,
-    }
-  }
-}
-
-impl AsRef<str> for TypedArrayType {
-  fn as_ref(&self) -> &str {
-    match self {
-      TypedArrayType::Int8 => "Int8",
-      TypedArrayType::Uint8 => "Uint8",
-      TypedArrayType::Uint8Clamped => "Uint8Clamped",
-      TypedArrayType::Int16 => "Int16",
-      TypedArrayType::Uint16 => "Uint16",
-      TypedArrayType::Int32 => "Int32",
-      TypedArrayType::Uint32 => "Uint32",
-      TypedArrayType::Float32 => "Float32",
-      TypedArrayType::Float64 => "Float64",
-      #[cfg(feature = "napi6")]
-      TypedArrayType::BigInt64 => "BigInt64",
-      #[cfg(feature = "napi6")]
-      TypedArrayType::BigUint64 => "BigUint64",
-      TypedArrayType::Unknown => "Unknown",
-    }
-  }
-}
-
-impl From<sys::napi_typedarray_type> for TypedArrayType {
-  fn from(value: sys::napi_typedarray_type) -> Self {
-    match value {
-      sys::TypedarrayType::int8_array => Self::Int8,
-      sys::TypedarrayType::uint8_array => Self::Uint8,
-      sys::TypedarrayType::uint8_clamped_array => Self::Uint8Clamped,
-      sys::TypedarrayType::int16_array => Self::Int16,
-      sys::TypedarrayType::uint16_array => Self::Uint16,
-      sys::TypedarrayType::int32_array => Self::Int32,
-      sys::TypedarrayType::uint32_array => Self::Uint32,
-      sys::TypedarrayType::float32_array => Self::Float32,
-      sys::TypedarrayType::float64_array => Self::Float64,
-      #[cfg(feature = "napi6")]
-      sys::TypedarrayType::bigint64_array => Self::BigInt64,
-      #[cfg(feature = "napi6")]
-      sys::TypedarrayType::biguint64_array => Self::BigUint64,
-      _ => Self::Unknown,
-    }
-  }
-}
-
-impl From<TypedArrayType> for sys::napi_typedarray_type {
-  fn from(value: TypedArrayType) -> sys::napi_typedarray_type {
-    value as i32
-  }
 }
 
 impl JsArrayBuffer {
@@ -254,8 +213,8 @@ impl JsArrayBufferValue {
     self.value
   }
 
-  pub fn into_unknown(self) -> JsUnknown {
-    unsafe { JsUnknown::from_raw_unchecked(self.value.0.env, self.value.0.value) }
+  pub fn into_unknown<'env>(self) -> Unknown<'env> {
+    unsafe { Unknown::from_raw_unchecked(self.value.0.env, self.value.0.value) }
   }
 }
 
@@ -314,14 +273,11 @@ impl JsTypedArray {
       )
     })?;
 
-    let ty = TypedArrayType::from(typedarray_type);
-    len /= ty.byte_len();
-
     Ok(JsTypedArrayValue {
       data,
       length: len,
       byte_offset,
-      typedarray_type: ty,
+      typedarray_type: typedarray_type.into(),
       arraybuffer: unsafe { JsArrayBuffer::from_raw_unchecked(self.0.env, arraybuffer_value) },
     })
   }

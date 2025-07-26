@@ -118,6 +118,7 @@ dist/
 # Temporary folders
 tmp/
 temp/
+cli/src/api/__tests__/tmp/
 
 # End of https://www.gitignore.io/api/node
 
@@ -164,3 +165,5 @@ bench.txt
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+.claude/

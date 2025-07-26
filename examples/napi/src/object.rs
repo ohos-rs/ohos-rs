@@ -1,7 +1,4 @@
-use napi_ohos::{
-  bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, JsGlobal, JsNull, JsObject,
-  JsUndefined, Result,
-};
+use napi_ohos::{bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, JsGlobal, Result};
 
 #[napi]
 fn list_obj_keys(obj: Object) -> Vec<String> {
@@ -9,26 +6,26 @@ fn list_obj_keys(obj: Object) -> Vec<String> {
 }
 
 #[napi]
-fn create_obj(env: Env) -> Object {
-  let mut obj = env.create_object().unwrap();
+fn create_obj(env: &Env) -> Object<'_> {
+  let mut obj = Object::new(env).unwrap();
   obj.set("test", 1).unwrap();
 
   obj
 }
 
 #[napi]
-fn get_global(env: Env) -> Result<JsGlobal> {
+fn get_global(env: &Env) -> Result<JsGlobal<'_>> {
   env.get_global()
 }
 
 #[napi]
-fn get_undefined(env: Env) -> Result<JsUndefined> {
-  env.get_undefined()
+fn get_undefined() -> Result<()> {
+  Ok(())
 }
 
 #[napi]
-fn get_null(env: Env) -> Result<JsNull> {
-  env.get_null()
+fn get_null() -> Null {
+  Null
 }
 
 #[napi(object)]
@@ -74,8 +71,8 @@ pub fn receive_strict_object(strict_object: StrictObject) {
 }
 
 #[napi]
-pub fn get_str_from_object(env: Env) {
-  let mut obj = env.create_object().unwrap();
+pub fn get_str_from_object(env: &Env) {
+  let mut obj = Object::new(env).unwrap();
   obj.set("name", "value").unwrap();
   assert_eq!(obj.get("name").unwrap(), Some("value".to_string()));
 }
@@ -90,12 +87,16 @@ pub struct TsTypeChanged {
 }
 
 #[napi(ts_return_type = "{ value: ArrayBuffer, get getter(): number }")]
-pub fn create_obj_with_property(env: Env) -> Result<JsObject> {
-  let mut obj = env.create_object()?;
-  let arraybuffer = env.create_arraybuffer(10)?.into_raw();
+pub fn create_obj_with_property(env: &Env) -> Result<Object<'_>> {
+  let mut obj = Object::new(env)?;
+  let arraybuffer = ArrayBuffer::from_data(env, vec![0; 10])?;
   obj.define_properties(&[
-    Property::new("value")?.with_value(&arraybuffer),
-    Property::new("getter")?.with_getter(get_c_callback(getter_from_obj_js_function)?),
+    Property::new()
+      .with_utf8_name("value")?
+      .with_value(&arraybuffer),
+    Property::new()
+      .with_utf8_name("getter")?
+      .with_getter(getter_from_obj_c_callback),
   ])?;
   Ok(obj)
 }
@@ -168,17 +169,57 @@ pub struct FunctionData<'a> {
 }
 
 #[napi]
-pub fn generate_function_and_call_it(env: &Env) -> Result<FunctionData> {
+pub fn generate_function_and_call_it(env: &Env) -> Result<FunctionData<'_>> {
   let handle = env.create_function_from_closure("handle_function", |_ctx| Ok(1))?;
   Ok(FunctionData { handle })
 }
 
 #[napi]
-pub fn get_null_byte_property(obj: JsObject) -> Result<Option<String>> {
+pub fn get_null_byte_property(obj: Object) -> Result<Option<String>> {
   obj.get::<String>("\0virtual")
 }
 
 #[napi]
-pub fn set_null_byte_property(mut obj: JsObject) -> Result<()> {
+pub fn set_null_byte_property(mut obj: Object) -> Result<()> {
   obj.set("\0virtual", "test")
+}
+
+#[napi(object, object_to_js = false)]
+pub struct ViteImportGlobMeta {
+  pub is_sub_imports_pattern: Option<bool>,
+}
+
+#[napi(object, object_to_js = false)]
+pub struct BindingVitePluginMeta {
+  #[napi(js_name = "vite:import-glob")]
+  pub vite_import_glob: ViteImportGlobMeta,
+}
+
+#[napi]
+pub fn receive_binding_vite_plugin_meta(meta: BindingVitePluginMeta) {
+  assert_eq!(meta.vite_import_glob.is_sub_imports_pattern, Some(true));
+}
+
+#[napi]
+pub fn create_object_ref(env: &Env) -> Result<ObjectRef> {
+  let mut obj = Object::new(env)?;
+  obj.set("test", 1)?;
+  obj.create_ref()
+}
+
+#[napi]
+pub fn object_with_c_apis(env: &Env) -> Result<Object<'_>> {
+  let mut obj = Object::new(env)?;
+  obj.set_c_named_property(c"test", 1)?;
+  assert_eq!(obj.get_c_named_property::<u32>(c"test")?, 1);
+  assert!(obj.has_c_named_property(c"test")?);
+  assert!(obj.delete_c_named_property(c"test")?);
+  assert!(!obj.has_c_own_property(c"test")?);
+  obj.create_c_named_method(c"test", test_method_c_callback)?;
+  Ok(obj)
+}
+
+#[napi(no_export)]
+fn test_method() -> u32 {
+  42
 }

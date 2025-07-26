@@ -26,7 +26,7 @@ where
   unsafe fn to_napi_value(raw_env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env = Env::from(raw_env);
     #[cfg_attr(feature = "experimental", allow(unused_mut))]
-    let mut obj = env.create_object()?;
+    let mut obj = Object::new(&env)?;
     for (k, v) in val.into_iter() {
       #[cfg(all(
         feature = "experimental",
@@ -60,8 +60,9 @@ where
 {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     let obj = unsafe { Object::from_napi_value(env, napi_val)? };
-    let mut map = HashMap::default();
-    for key in Object::keys(&obj)?.into_iter() {
+    let keys = Object::keys(&obj)?;
+    let mut map: HashMap<K, V, S> = HashMap::with_capacity_and_hasher(keys.len(), S::default());
+    for key in keys.into_iter() {
       if let Some(val) = obj.get(&key)? {
         map.insert(K::from(key), val);
       }
@@ -91,7 +92,7 @@ where
   unsafe fn to_napi_value(raw_env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env = Env::from(raw_env);
     #[cfg_attr(feature = "experimental", allow(unused_mut))]
-    let mut obj = env.create_object()?;
+    let mut obj = Object::new(&env)?;
     for (k, v) in val.into_iter() {
       #[cfg(all(
         feature = "experimental",
@@ -159,7 +160,7 @@ where
   unsafe fn to_napi_value(raw_env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env = Env::from(raw_env);
     #[cfg_attr(feature = "experimental", allow(unused_mut))]
-    let mut obj = env.create_object()?;
+    let mut obj = Object::new(&env)?;
     for (k, v) in val.into_iter() {
       #[cfg(all(
         feature = "experimental",

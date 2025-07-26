@@ -3,9 +3,9 @@ use crate::create_dist_dir;
 use anyhow::Error;
 use cargo_metadata::MetadataCommand;
 use sha2::{Digest, Sha256};
-use std::env;
 use std::path::PathBuf;
 use std::time::SystemTime;
+use std::{env, fs};
 
 /// 构建前初始化工作，包括获取当前运行环境等。  
 pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result<()> {
@@ -47,7 +47,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.template = toml_content;
 
   ctx.package = Some((*pkg).clone());
-  ctx.cargo_build_target_dir = Some(metadata.target_directory);
+  ctx.cargo_build_target_dir = Some(metadata.target_directory.clone());
 
   ctx.init_args = vec!["build"];
 
@@ -62,41 +62,62 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.dist = ctx.pwd.join(&args.dist);
   create_dist_dir!(ctx.dist.clone());
 
-  // 设置生成.d.ts tmp file路径的环境变量
-  let tmp_dir = env::temp_dir();
+  let target_dir = args
+    .target_dir
+    .to_owned()
+    .unwrap_or(metadata.target_directory.clone().to_string());
 
   let mut hasher = Sha256::new();
   hasher.update(&pkg.manifest_path.as_str());
   let hash_result = hasher.finalize();
   let hash_hex = format!("{:x}", hash_result);
   let short_hash = &hash_hex[..8];
-  let file_name = format!("{}-{}.napi_type_def", &pkg.name, short_hash);
-  let final_file_name;
+
+  let mut tmp_full_path = PathBuf::from(target_dir)
+    .join("ohos-rs")
+    .join(format!("{}-{}", &pkg.name, short_hash));
+
+  env::set_var(
+    "NAPI_TYPE_DEF_TMP_FOLDER",
+    tmp_full_path.to_str().unwrap_or_default(),
+  );
 
   if !ctx.dts_cache {
-    let _ = fs_extra::file::remove(&file_name).is_err();
-    final_file_name = format!(
-      "{}_{}.tmp",
-      &file_name,
+    let _ = fs_extra::file::remove(&tmp_full_path).is_err();
+    tmp_full_path = PathBuf::from(format!(
+      "{}_{}",
+      tmp_full_path.to_str().unwrap_or_default(),
       SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_millis()
         .to_string()
-    );
-  } else {
-    final_file_name = format!("{}.tmp", &file_name);
+    ));
   }
 
-  // 拼接完整的文件路径
-  let file_path = PathBuf::from(tmp_dir).join(final_file_name);
-  env::set_var(
-    "TYPE_DEF_TMP_PATH",
-    file_path
-      .to_str()
-      .ok_or(Error::msg("Try to set TYPE_DEF_TMP_PATH failed."))?,
-  );
-  ctx.tmp_ts_file_path = file_path;
+  fs_extra::dir::create_all(&tmp_full_path, false)?;
+
+  metadata.packages.iter().for_each(|p| {
+    if p
+      .dependencies
+      .iter()
+      .find(|name| name.name == "napi-derive-ohos")
+      .is_some()
+      && !fs::exists(&tmp_full_path).is_ok()
+    {
+      env::set_var(
+        format!(
+          "NAPI_FORCE_BUILD_{}",
+          p.name.replace("-", "_").to_uppercase()
+        ),
+        SystemTime::now()
+          .duration_since(SystemTime::UNIX_EPOCH)
+          .unwrap()
+          .as_millis()
+          .to_string(),
+      );
+    }
+  });
 
   // 获取 ndk 环境变量配置
   let ndk = env::var("OHOS_NDK_HOME").map_err(|_| {

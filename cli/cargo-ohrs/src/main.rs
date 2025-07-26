@@ -27,6 +27,7 @@ pub(crate) struct BuildArgs {
   cargo_args: Option<Vec<String>>,
   skip_libs: bool,
   dts_cache: bool,
+  target_dir: Option<String>,
 }
 
 #[derive(Debug, Clone)]

@@ -52,6 +52,7 @@ macro_rules! attrgen {
     $mac! {
       (catch_unwind, CatchUnwind(Span)),
       (async_runtime, AsyncRuntime(Span)),
+      (module_exports, ModuleExports(Span)),
       (js_name, JsName(Span, String, Span)),
       (constructor, Constructor(Span)),
       (factory, Factory(Span)),
@@ -79,6 +80,7 @@ macro_rules! attrgen {
       (discriminant, Discriminant(Span, String, Span)),
       (transparent, Transparent(Span)),
       (array, Array(Span)),
+      (no_export, NoExport(Span)),
 
       // impl later
       // (inspectable, Inspectable(Span)),
@@ -252,7 +254,17 @@ impl TryFrom<&Attribute> for BindgenAttrs {
       span: Span::call_site(),
     };
 
-    if attr.path().is_ident("napi") {
+    let is_napi =
+      attr.path().segments.last().map(|s| s.ident.to_string()) == Some("napi".to_string());
+    let is_cfg_attr = attr
+      .meta
+      .path()
+      .segments
+      .first()
+      .map(|s| s.ident.to_string())
+      == Some("cfg_attr".to_string());
+
+    if is_napi {
       ret.exists = true;
       ret.span = attr.span();
 
@@ -273,6 +285,38 @@ impl TryFrom<&Attribute> for BindgenAttrs {
 
       let mut attrs: BindgenAttrs = syn::parse2(group.stream())?;
       ret.attrs.append(&mut attrs.attrs);
+    }
+
+    if is_cfg_attr {
+      let cfg_attr_list = attr.meta.require_list()?;
+      // #[cfg_attr(condition, attr_to_apply)]
+      // We parse the arguments of cfg_attr.
+      let mut args_iter = cfg_attr_list
+        .parse_args_with(syn::punctuated::Punctuated::<syn::Meta, Token![,]>::parse_terminated)?
+        .into_iter();
+      if let Some(arg) = args_iter.next_back() {
+        if arg.path().segments.last().map(|s| s.ident.to_string()) == Some("napi".to_string()) {
+          ret.exists = true;
+          ret.span = arg.span();
+          let tts = arg.to_token_stream().into_iter();
+          let group = match tts.last() {
+            // #[napi(xxx)]
+            //   ^^^^^^^^^
+            Some(TokenTree::Group(d)) => d,
+            // #[napi]
+            //   ^^^^
+            Some(TokenTree::Ident(_)) => parse_quote!(()),
+            _ => bail_span!(attr, "invalid #[napi] attribute"),
+          };
+
+          if group.delimiter() != Delimiter::Parenthesis {
+            bail_span!(attr, "malformed #[napi] attribute");
+          }
+
+          let mut attrs: BindgenAttrs = syn::parse2(group.stream())?;
+          ret.attrs.append(&mut attrs.attrs);
+        }
+      }
     }
 
     Ok(ret)
@@ -368,7 +412,7 @@ impl Parse for BindgenAttr {
     let attr = attr.0;
     let attr_span = attr.span();
     let attr_string = attr.to_string();
-    let raw_attr_string = format!("r#{}", attr_string);
+    let raw_attr_string = format!("r#{attr_string}");
 
     macro_rules! parsers {
       ($(($name:ident, $($contents:tt)*),)*) => {

@@ -16,7 +16,7 @@ pub fn sum(left: i32, right: i32) -> i32 {
 #[napi]
 pub fn threadsafe_function_fatal_mode(
   v: bool,
-  cb: ThreadsafeFunction<bool, UnknownReturnValue, bool, false>,
+  cb: ThreadsafeFunction<bool, UnknownReturnValue, bool, Status, false>,
 ) -> Result<()> {
   match v {
     true => {

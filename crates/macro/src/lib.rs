@@ -68,8 +68,8 @@ fn auto_add_register_code() -> proc_macro2::TokenStream {
 pub fn napi(attr: TokenStream, input: TokenStream) -> TokenStream {
   match expand::expand(attr.into(), input.into()) {
     Ok(tokens) => {
-      if env::var("DEBUG_GENERATED_CODE").is_ok() {
-        println!("{}", tokens);
+      if env::var("NAPI_DEBUG_GENERATED_CODE").is_ok() {
+        println!("{tokens}");
       }
       let prepare = auto_add_register_code();
       let final_token = quote!(

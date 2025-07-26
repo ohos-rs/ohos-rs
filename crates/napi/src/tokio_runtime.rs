@@ -6,7 +6,7 @@ use tokio::runtime::Runtime;
 
 use crate::{bindgen_runtime::ToNapiValue, sys, Env, Error, Result};
 #[cfg(not(feature = "noop"))]
-use crate::{JsDeferred, JsUnknown, NapiValue};
+use crate::{JsDeferred, Unknown};
 
 #[cfg(not(feature = "noop"))]
 fn create_runtime() -> Runtime {
@@ -114,6 +114,14 @@ pub fn block_on<F: Future>(fut: F) -> F::Output {
     .expect("Access tokio runtime failed in block_on")
 }
 
+#[cfg(feature = "noop")]
+/// Runs a future to completion
+/// This is blocking, meaning that it pauses other execution until the future is complete,
+/// only use it when it is absolutely necessary, in other places use async functions instead.
+pub fn block_on<F: Future>(_: F) -> F::Output {
+  unreachable!("noop feature is enabled, block_on is not available")
+}
+
 #[cfg(not(feature = "noop"))]
 /// spawn_blocking on the current Tokio runtime.
 pub fn spawn_blocking<F, R>(func: F) -> tokio::task::JoinHandle<R>
@@ -212,7 +220,8 @@ pub fn execute_tokio_future<
   fut: Fut,
   resolver: Resolver,
 ) -> Result<sys::napi_value> {
-  let (deferred, promise) = JsDeferred::new(env)?;
+  let env = Env::from_raw(env);
+  let (deferred, promise) = JsDeferred::new(&env)?;
   #[cfg(any(
     all(target_family = "wasm", tokio_unstable),
     not(target_family = "wasm")
@@ -225,7 +234,7 @@ pub fn execute_tokio_future<
       Ok(v) => deferred.resolve(move |env| {
         sendable_resolver
           .resolve(env.raw(), v)
-          .map(|v| unsafe { JsUnknown::from_raw_unchecked(env.raw(), v) })
+          .map(|v| unsafe { Unknown::from_raw_unchecked(env.raw(), v) })
       }),
       Err(e) => deferred.reject(e.into()),
     }

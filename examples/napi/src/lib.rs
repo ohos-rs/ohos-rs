@@ -7,6 +7,7 @@
 
 #[cfg(not(target_family = "wasm"))]
 use napi_ohos::bindgen_prelude::create_custom_tokio_runtime;
+// pub use napi_shared::*;
 
 #[macro_use]
 extern crate napi_derive_ohos;
@@ -44,7 +45,7 @@ pub const TYPE_SKIPPED_CONST: u32 = 12;
 pub fn shutdown_runtime() {
   #[cfg(all(target_family = "wasm", tokio_unstable))]
   {
-    napi::bindgen_prelude::shutdown_async_runtime();
+    napi_ohos::bindgen_prelude::shutdown_async_runtime();
   }
 }
 
@@ -66,12 +67,14 @@ mod fn_ts_override;
 mod function;
 mod generator;
 mod js_mod;
+mod lifetime;
 mod map;
 mod nullable;
 mod number;
 mod object;
 mod promise;
 mod reference;
+mod scope;
 mod serde;
 mod set;
 mod shared;

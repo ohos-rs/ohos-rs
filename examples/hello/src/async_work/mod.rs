@@ -1,5 +1,5 @@
 use napi_derive_ohos::napi;
-use napi_ohos::{bindgen_prelude::*, JsNumber};
+use napi_ohos::bindgen_prelude::*;
 
 fn fib(n: u32) -> u32 {
   match n {
@@ -15,14 +15,14 @@ pub struct AsyncFib {
 
 impl Task for AsyncFib {
   type Output = u32;
-  type JsValue = JsNumber;
+  type JsValue = u32;
 
   fn compute(&mut self) -> Result<Self::Output> {
     Ok(fib(self.input))
   }
 
-  fn resolve(&mut self, env: Env, output: u32) -> Result<Self::JsValue> {
-    env.create_uint32(output)
+  fn resolve(&mut self, _env: napi_ohos::Env, output: Self::Output) -> Result<Self::JsValue> {
+    Ok(output)
   }
 }
 

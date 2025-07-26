@@ -6,7 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{self, BufRead};
 use std::path::Path;
 
@@ -65,7 +65,13 @@ fn read_intermediate_type_file(file_path: &str) -> Vec<TypeDefLine> {
         }
       }
       if !format_line.is_empty() {
-        let json_value: TypeDefLine = serde_json::from_str(&format_line).unwrap();
+        let mut json_value: TypeDefLine = serde_json::from_str(&format_line).unwrap();
+        if let Some(js_doc) = json_value.js_doc {
+          json_value.js_doc = Some(js_doc.replace("\\n", "\n"));
+        }
+        if !json_value.def.is_empty() {
+          json_value.def = json_value.def.replace("\\n", "\n");
+        }
         defs.push(json_value);
       }
     }
@@ -336,21 +342,39 @@ fn correct_string_indent(src: &str, indent: usize) -> String {
 
   result
 }
+
 pub fn generate_d_ts_file(ctx: &Context) -> anyhow::Result<()> {
-  let tmp_file = env::var("TYPE_DEF_TMP_PATH")
-    .map_err(|_e| Error::msg("Failed to get the TYPE_DEF_TMP_PATH environment variable"))?;
-  if !Path::new(tmp_file.as_str()).is_file() {
+  let tmp_file = env::var("NAPI_TYPE_DEF_TMP_FOLDER")
+    .map_err(|_e| Error::msg("Failed to get the NAPI_TYPE_DEF_TMP_FOLDER environment variable"))?;
+  if !Path::new(tmp_file.as_str()).is_dir() {
     return Ok(());
   }
-  let (dts, _exports) = process_type_def(&tmp_file, true, "");
+
+  let files = fs::read_dir(&tmp_file)?;
+
+  let mut dts = String::new();
+
+  for file in files {
+    let file = file?;
+    let path = file.path();
+    let file_path = path.to_str().unwrap();
+    let (dts_content, _exports) = process_type_def(file_path, true, "");
+    dts += &dts_content;
+  }
+
   let dest_file_path = ctx.dist.join("index.d.ts");
 
-  let extra_header = ctx
+  let mut extra_header = ctx
     .template
     .as_ref()
     .map(|t| t.header.as_ref())
     .and_then(|h| h.map(|s| s.as_str()))
-    .unwrap_or("");
+    .unwrap_or("")
+    .to_string();
+
+  if dts.contains("TypedArray") {
+    extra_header += "export type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array\n";
+  }
 
   let write_content = format!("{}{}{}", DEFAULT_TYPE_DEF_HEADER, extra_header, dts);
 

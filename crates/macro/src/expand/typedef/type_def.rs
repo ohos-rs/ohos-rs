@@ -44,7 +44,6 @@ fn remove_existed_def_file() {
 pub fn output_type_def(napi: &Napi) {
   if let Some(file) = get_type_def_file() {
     if let Some(type_def) = napi.to_type_def() {
-      eprintln!("{:?}", file.clone().to_str());
       fs::OpenOptions::new()
         .append(true)
         .create(true)

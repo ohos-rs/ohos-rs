@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+#![allow(unused_imports)]
 
 #[cfg(any(feature = "compat-mode", feature = "napi6"))]
 use std::any::{type_name, TypeId};
@@ -46,7 +47,7 @@ use crate::{
   js_values::*,
   sys,
   task::Task,
-  Error, ExtendedErrorInfo, NodeVersion, Result, Status, ValueType,
+  Error, ExtendedErrorInfo, NodeVersion, Result, Status,ValueType
 };
 
 #[cfg(target_env = "ohos")]
@@ -1080,7 +1081,7 @@ impl Env {
     unsafe { V::from_napi_value(self.0, raw_value) }
   }
 
-    /// load builtin module or user's module
+  /// load builtin module or user's module
   /// Note: This method only can call in main thread.
   /// ```rust
   /// #[napi]
@@ -1557,7 +1558,10 @@ unsafe extern "C" fn drop_buffer(
   mem::drop(unsafe { Vec::from_raw_parts(finalize_data as *mut u8, length, cap) });
 }
 
-#[cfg_attr(any(target_family = "wasm", target_env = "ohos"), allow(unused_variables))]
+#[cfg_attr(
+  any(target_family = "wasm", target_env = "ohos"),
+  allow(unused_variables)
+)]
 pub(crate) unsafe extern "C" fn raw_finalize<T>(
   env: sys::napi_env,
   finalize_data: *mut c_void,

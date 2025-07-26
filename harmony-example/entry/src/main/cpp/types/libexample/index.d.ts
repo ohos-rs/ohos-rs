@@ -800,21 +800,53 @@ export declare function withoutAbortController(a: number, b: number): Promise<nu
 
 export declare function xxh64Alias(input: ArrayBuffer): bigint
 
-export declare class Width {
-  value: number
-  constructor(value: number)
+export declare class CustomFinalize {
+  constructor(width: number, height: number)
 }
+
+export declare class Reader {
+
+  constructor()
+  read(): ArrayBuffer
+}
+
+export declare class JSOnlyMethodsClass {
+  data: string
+  processData(): string
+  getLength(): number
+}
+export type RustOnlyMethodsClass = JSOnlyMethodsClass
 
 export declare class CatchOnConstructor2 {
   constructor()
 }
 
-export declare class Bird {
-  name: string
-  constructor(name: string)
-  getCount(): number
-  getNameAsync(): Promise<string>
-  acceptSliceMethod(slice: Uint8Array): number
+export declare class ThingList {
+  constructor()
+  get thing(): Thing
+}
+
+export declare class AnotherCssStyleSheet {
+  get rules(): CssRuleList
+}
+export type AnotherCSSStyleSheet = AnotherCssStyleSheet
+
+export declare class CssStyleSheet {
+  constructor(name: string, rules: Array<string>)
+  get rules(): CssRuleList
+  anotherCssStyleSheet(): AnotherCssStyleSheet
+}
+export type CSSStyleSheet = CssStyleSheet
+
+export declare class Fib3 {
+  current: number
+  next: number
+  constructor(current: number, next: number)
+  [Symbol.iterator](): Iterator<number, void, number>
+}
+
+export declare class Thing {
+
 }
 
 /**
@@ -852,55 +884,23 @@ export declare class Animal {
   overrideIndividualArgOnMethod(normalTy: string, overriddenTy: {n: string}): Bird
 }
 
-export declare class Fib3 {
-  current: number
-  next: number
-  constructor(current: number, next: number)
-  [Symbol.iterator](): Iterator<number, void, number>
-}
-
-export declare class CustomFinalize {
-  constructor(width: number, height: number)
-}
-
-export declare class ClassWithLifetime {
+export declare class JsClassForEither {
   constructor()
-  getName(): string
 }
 
-export declare class CssRuleList {
-  getRules(): Array<string>
-  get parentStyleSheet(): CSSStyleSheet
-  get name(): string | null
-}
-export type CSSRuleList = CssRuleList
-
-export declare class Selector {
-  orderBy: Array<string>
-  select: Array<string>
-  struct: string
-  where?: string
-  constructor(orderBy: Array<string>, select: Array<string>, struct: string, where?: string)
+export declare class JsRepo {
+  constructor(dir: string)
+  remote(): JsRemote
 }
 
-export declare class Thing {
-
+export declare class ClassInArray {
+  constructor(value: number)
 }
 
-export declare class Reader {
-
-  constructor()
-  read(): ArrayBuffer
-}
-
-export declare class NinjaTurtle {
+export declare class AnimalWithDefaultConstructor {
   name: string
-  static isInstanceOf(value: unknown): boolean
-  /** Create your ninja turtle! 🐢 */
-  static newRaph(): NinjaTurtle
-  getMaskColor(): string
-  getName(): string
-  returnThis(): this
+  kind: number
+  constructor(name: string, kind: number)
 }
 
 /** Smoking test for type generation */
@@ -915,20 +915,51 @@ export declare class Fib2 {
   static create(seed: number): Fib2
 }
 
-export declare class JsClassForEither {
+export declare class AnotherClassForEither {
   constructor()
 }
 
-export declare class ClassReturnInPromise {
-
+export declare class Dog {
+  name: string
+  constructor(name: string)
 }
 
-export declare class UseNullableClass {
-  requiredNumberField: number
-  requiredStringField: string
-  nullableNumberField: number | null
-  nullableStringField: string | null
-  constructor(requiredNumberField: number, requiredStringField: string, nullableNumberField: number | null, nullableStringField: string | null)
+export declare class JsRemote {
+  constructor(repo: JsRepo)
+  name(): string
+}
+
+export declare class Width {
+  value: number
+  constructor(value: number)
+}
+
+export declare class Bird {
+  name: string
+  constructor(name: string)
+  getCount(): number
+  getNameAsync(): Promise<string>
+  acceptSliceMethod(slice: Uint8Array): number
+}
+
+export declare class CustomStruct {
+  static customStatusCodeForFactory(): CustomStruct
+  constructor()
+}
+
+export declare class Fib {
+  [Symbol.iterator](): Iterator<number, void, number>
+  constructor()
+}
+
+export declare class PackageJsonReader {
+  constructor()
+  read(): any
+}
+
+export declare class ClassWithLifetime {
+  constructor()
+  getName(): string
 }
 
 export declare class Context {
@@ -940,15 +971,12 @@ export declare class Context {
   method(): string
 }
 
-export declare class Optional {
-  static optionEnd(required: string, optional?: string | undefined | null): string
-  static optionStart(optional: string | undefined | null, required: string): string
-  static optionStartEnd(optional1: string | undefined | null, required: string, optional2?: string | undefined | null): string
-  static optionOnly(optional?: string | undefined | null): string
-}
-
-export declare class CatchOnConstructor {
-  constructor()
+export declare class DefaultUseNullableClass {
+  requiredNumberField: number
+  requiredStringField: string
+  optionalNumberField?: number
+  optionalStringField?: string
+  constructor(requiredNumberField: number, requiredStringField: string, optionalNumberField?: number, optionalStringField?: string)
 }
 
 export declare class ClassWithFactory {
@@ -959,66 +987,8 @@ export declare class ClassWithFactory {
   setName(name: string): this
 }
 
-export declare class JsRepo {
-  constructor(dir: string)
-  remote(): JsRemote
-}
-
-export declare class ThingList {
+export declare class GetterSetterWithClosures {
   constructor()
-  get thing(): Thing
-}
-
-export declare class ClassInArray {
-  constructor(value: number)
-}
-
-export declare class Fib {
-  [Symbol.iterator](): Iterator<number, void, number>
-  constructor()
-}
-
-export declare class Assets {
-  constructor()
-  get(id: number): JsAsset | null
-}
-export type JsAssets = Assets
-
-export declare class JsRemote {
-  constructor(repo: JsRepo)
-  name(): string
-}
-
-export declare class CustomStruct {
-  static customStatusCodeForFactory(): CustomStruct
-  constructor()
-}
-
-export declare class AnotherCssStyleSheet {
-  get rules(): CssRuleList
-}
-export type AnotherCSSStyleSheet = AnotherCssStyleSheet
-
-export declare class AnotherClassForEither {
-  constructor()
-}
-
-export declare class MyJsNamedClass {
-  constructor(value: string)
-  getValue(): string
-  multiplyValue(times: number): string
-}
-export type OriginalRustNameForJsNamedStruct = MyJsNamedClass
-
-export declare class Dog {
-  name: string
-  constructor(name: string)
-}
-
-export declare class NotWritableClass {
-  name: string
-  constructor(name: string)
-  setName(name: string): void
 }
 
 export declare class Blake2BKey {
@@ -1026,10 +996,20 @@ export declare class Blake2BKey {
 }
 export type Blake2bKey = Blake2BKey
 
-export declare class AnimalWithDefaultConstructor {
-  name: string
-  kind: number
-  constructor(name: string, kind: number)
+export declare class Asset {
+  constructor()
+  get filePath(): number
+}
+export type JsAsset = Asset
+
+export declare class Assets {
+  constructor()
+  get(id: number): JsAsset | null
+}
+export type JsAssets = Assets
+
+export declare class CatchOnConstructor {
+  constructor()
 }
 
 export declare class NotUseNullableClass {
@@ -1040,21 +1020,16 @@ export declare class NotUseNullableClass {
   constructor(requiredNumberField: number, requiredStringField: string, optionalNumberField?: number, optionalStringField?: string)
 }
 
-export declare class PackageJsonReader {
-  constructor()
-  read(): any
+export declare class ClassReturnInPromise {
+
 }
 
-export declare class GetterSetterWithClosures {
-  constructor()
+export declare class CssRuleList {
+  getRules(): Array<string>
+  get parentStyleSheet(): CSSStyleSheet
+  get name(): string | null
 }
-
-export declare class CssStyleSheet {
-  constructor(name: string, rules: Array<string>)
-  get rules(): CssRuleList
-  anotherCssStyleSheet(): AnotherCssStyleSheet
-}
-export type CSSStyleSheet = CssStyleSheet
+export type CSSRuleList = CssRuleList
 
 export declare class CreateStringClass {
   static new(): CreateStringClass
@@ -1062,26 +1037,51 @@ export declare class CreateStringClass {
   createStringResult(): string
 }
 
-export declare class Asset {
-  constructor()
-  get filePath(): number
+export declare class NotWritableClass {
+  name: string
+  constructor(name: string)
+  setName(name: string): void
 }
-export type JsAsset = Asset
 
-export declare class DefaultUseNullableClass {
+export declare class Selector {
+  orderBy: Array<string>
+  select: Array<string>
+  struct: string
+  where?: string
+  constructor(orderBy: Array<string>, select: Array<string>, struct: string, where?: string)
+}
+
+export declare class UseNullableClass {
   requiredNumberField: number
   requiredStringField: string
-  optionalNumberField?: number
-  optionalStringField?: string
-  constructor(requiredNumberField: number, requiredStringField: string, optionalNumberField?: number, optionalStringField?: string)
+  nullableNumberField: number | null
+  nullableStringField: string | null
+  constructor(requiredNumberField: number, requiredStringField: string, nullableNumberField: number | null, nullableStringField: string | null)
 }
 
-export declare class JSOnlyMethodsClass {
-  data: string
-  processData(): string
-  getLength(): number
+export declare class MyJsNamedClass {
+  constructor(value: string)
+  getValue(): string
+  multiplyValue(times: number): string
 }
-export type RustOnlyMethodsClass = JSOnlyMethodsClass
+export type OriginalRustNameForJsNamedStruct = MyJsNamedClass
+
+export declare class Optional {
+  static optionEnd(required: string, optional?: string | undefined | null): string
+  static optionStart(optional: string | undefined | null, required: string): string
+  static optionStartEnd(optional1: string | undefined | null, required: string, optional2?: string | undefined | null): string
+  static optionOnly(optional?: string | undefined | null): string
+}
+
+export declare class NinjaTurtle {
+  name: string
+  static isInstanceOf(value: unknown): boolean
+  /** Create your ninja turtle! 🐢 */
+  static newRaph(): NinjaTurtle
+  getMaskColor(): string
+  getName(): string
+  returnThis(): this
+}
 
 export namespace xxh2 {
   export function xxh2Plus(a: number, b: number): number

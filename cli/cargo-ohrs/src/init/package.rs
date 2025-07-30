@@ -22,7 +22,7 @@ SOFTWARE.
 "#;
 
 pub const PKG: &str = r#"{
-  "license: "MIT",
+  "license": "MIT",
   "author": "@author",
   "name": "@pkg",
   "description": "",

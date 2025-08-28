@@ -11,7 +11,7 @@ use std::process::{exit, Command, Stdio};
 
 use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
-pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
+pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
   let ran_path = format!("{}/native/llvm/bin/llvm-ranlib", &ctx.ndk);
   let ar_path = format!("{}/native/llvm/bin/llvm-ar", &ctx.ndk);
@@ -29,13 +29,15 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
   let std_lib_type = String::from("c++");
 
-  let mut base_flags = format!(
-    "-target {} --sysroot={}/native/sysroot -D__MUSL__",
-    &arch.c_target(),
-    &ctx.ndk
-  );
+  // The ctx.ndk path typically has spaces on Windows which `link-args` doesn't support.
+  // Therefore we collect the args in an array and set them via multiple `link-arg` uses.
+  let mut base_flags = vec![
+    format!("--target={}", &arch.c_target()),
+    format!("--sysroot={}/native/sysroot", &ctx.ndk),
+    "-D__MUSL__".into(),
+  ];
 
-  let mut path = env::var("PATH").unwrap_or(String::default());
+  let mut path = env::var("PATH").unwrap_or_default();
   // for windows, path need to use ; as split symbol
   // for unix, should use :
   #[cfg(target_os = "windows")]
@@ -51,10 +53,10 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
     env::var("CARGO_RUSTFLAGS").unwrap_or(env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default());
 
   if arch.to_arch() == "armeabi-v7a" {
-    base_flags = format!(
-      "{} -march=armv7-a -mfloat-abi=softfp -mtune=generic-armv7-a -mthumb",
-      base_flags
-    );
+    base_flags.push("-march=armv7-a".into());
+    base_flags.push("-mfloat-abi=softfp".into());
+    base_flags.push("-mtune=generic-armv7-a".into());
+    base_flags.push("-mthumb".into());
   }
 
   let tmp_path_str = ctx.tmp_ts_file_path.to_str().ok_or(Error::msg(
@@ -65,11 +67,19 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   // for some package deps on atomic
   let builtins = String::from("clang_rt.builtins");
 
-  let mut rust_flags = format!("-Clink-args={}", &base_flags);
+  //let mut rust_flags = base_flags.join("\x1f");
+
+  let mut rust_flags = base_flags
+    .iter()
+    .map(|f| format!("-Clink-arg={f}"))
+    .collect::<Vec<_>>()
+    .join("\x1f");
 
   if !args.is_empty() {
     rust_flags = format!("{}\x1f{}", &rust_flags, &args)
   }
+
+  let base_flags = base_flags.join(" ");
 
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
@@ -97,7 +107,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
   let mut args = ctx.init_args.clone();
   args.extend([
     "--target",
-    &arch.rust_target(),
+    arch.rust_target(),
     "--message-format=json-render-diagnostics",
   ]);
 
@@ -129,7 +139,7 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
               }
             }
             Message::BuildScriptExecuted(script) => {
-              if let Some(lib) = resolve_dependence_library(script, (&ctx.ndk).clone()) {
+              if let Some(lib) = resolve_dependence_library(script, ctx.ndk.clone()) {
                 artifact_files.extend(lib);
               }
             }
@@ -138,23 +148,22 @@ pub fn build(cargo_args: &Vec<String>, ctx: &Context, arch: &Arch) -> anyhow::Re
                 if ctx.skip_libs {
                   return Ok(());
                 }
-                let bin_dir = &ctx.dist.join(&arch.to_arch());
+                let bin_dir = &ctx.dist.join(arch.to_arch());
                 check_and_clean_file_or_dir!(bin_dir);
                 create_dist_dir!(bin_dir);
 
                 artifact_files
                   .iter()
-                  .filter_map(|i| {
+                  .filter(|i| {
                     if ctx.copy_static {
-                      return Some(i);
+                      return true;
                     }
                     if let Some(ext) = i.extension() {
                       if ext == "a" {
-                        return None;
+                        return false;
                       }
-                      return Some(i);
                     }
-                    Some(i)
+                    true
                   })
                   .for_each(|i| {
                     if let Some(f) = i.file_name() {

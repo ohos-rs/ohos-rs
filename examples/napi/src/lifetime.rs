@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use napi_ohos::{Env, JsString, Result};
+use napi_ohos::{bindgen_prelude::*, JsString, ScopedTask};
 
 #[napi]
 pub struct CreateStringClass {
@@ -30,4 +30,43 @@ impl CreateStringClass {
 fn create_string<'env>(env: &'env Env, path: &Path) -> Result<JsString<'env>> {
   let path = path.to_string_lossy();
   env.create_string(path.as_ref())
+}
+
+#[napi]
+pub fn callback_in_spawn(env: &Env, callback: Function<Object, Unknown>) -> Result<()> {
+  let callback_ref = callback.create_ref()?;
+  env
+    .spawn(AsyncTaskInSpawn {})?
+    .promise_object()
+    .then(move |ctx| {
+      let cb = callback_ref.borrow_back(&ctx.env)?;
+      cb.call(ctx.value)?;
+      Ok(())
+    })?;
+  Ok(())
+}
+
+struct AsyncTaskInSpawn {}
+
+impl<'env> ScopedTask<'env> for AsyncTaskInSpawn {
+  type Output = ();
+  type JsValue = Object<'env>;
+
+  fn compute(&mut self) -> Result<Self::Output> {
+    Ok(())
+  }
+
+  fn resolve(&mut self, env: &'env Env, _: Self::Output) -> Result<Self::JsValue> {
+    let mut obj = Object::new(env)?;
+    obj.set("foo", "bar")?;
+    Ok(obj)
+  }
+}
+
+#[napi]
+pub fn compress_sync<'env>(
+  env: &'env Env,
+  _: Either<String, &'env [u8]>,
+) -> Result<BufferSlice<'env>> {
+  BufferSlice::from_data(env, vec![])
 }

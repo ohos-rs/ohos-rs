@@ -20,7 +20,7 @@ pub struct TypeDef {
   pub original_name: Option<String>,
   pub def: String,
   pub js_mod: Option<String>,
-  pub js_doc: String,
+  pub js_doc: JSDoc,
 }
 
 thread_local! {
@@ -31,25 +31,6 @@ fn add_alias(name: String, alias: String) {
   ALIAS.with(|aliases| {
     aliases.borrow_mut().insert(name, alias);
   });
-}
-
-pub fn js_doc_from_comments(comments: &[String]) -> String {
-  if comments.is_empty() {
-    return "".to_owned();
-  }
-
-  if comments.len() == 1 {
-    return format!("/**{} */\n", comments[0]);
-  }
-
-  format!(
-    "/**\n{} */\n",
-    comments
-      .iter()
-      .map(|c| format!(" *{c}\n"))
-      .collect::<Vec<String>>()
-      .join("")
-  )
 }
 
 fn escape_json(src: &str) -> String {
@@ -80,6 +61,99 @@ fn escape_json(src: &str) -> String {
   escaped
 }
 
+#[derive(Default, Debug)]
+pub struct JSDoc {
+  blocks: Vec<Vec<String>>,
+}
+
+impl JSDoc {
+  pub fn new<I, S>(initial_lines: I) -> JSDoc
+  where
+    I: IntoIterator<Item = S>,
+    S: Into<String>,
+  {
+    let block = Self::cleanup_lines(initial_lines);
+    if block.is_empty() {
+      return Self { blocks: vec![] };
+    }
+
+    Self {
+      blocks: vec![block],
+    }
+  }
+
+  pub fn add_block<I, S>(&mut self, lines: I)
+  where
+    I: IntoIterator<Item = S>,
+    S: Into<String>,
+  {
+    let v: Vec<String> = Self::cleanup_lines(lines);
+
+    if !v.is_empty() {
+      self.blocks.push(v);
+    }
+  }
+
+  fn cleanup_lines<I, S>(lines: I) -> Vec<String>
+  where
+    I: IntoIterator<Item = S>,
+    S: Into<String>,
+  {
+    let raw: Vec<String> = lines.into_iter().map(Into::into).collect();
+
+    if let (Some(first_non_blank), Some(last_non_blank)) = (
+      raw.iter().position(|l| !l.trim().is_empty()),
+      raw.iter().rposition(|l| !l.trim().is_empty()),
+    ) {
+      // Find the minimum indentation level (excluding empty lines)
+      let min_indent = raw[first_non_blank..=last_non_blank]
+        .iter()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| l.len() - l.trim_start().len())
+        .min()
+        .unwrap_or(0);
+
+      raw[first_non_blank..=last_non_blank]
+        .iter()
+        .map(|l| {
+          if l.trim().is_empty() {
+            String::new()
+          } else if l.len() >= min_indent {
+            l[min_indent..].to_owned()
+          } else {
+            l.to_owned()
+          }
+        })
+        .collect()
+    } else {
+      Vec::new()
+    }
+  }
+}
+
+impl Display for JSDoc {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    if self.blocks.is_empty() {
+      return Ok(());
+    }
+
+    if self.blocks.len() == 1 && self.blocks[0].len() == 1 {
+      return writeln!(f, "/** {} */", self.blocks[0][0]);
+    }
+
+    writeln!(f, "/**")?;
+    for (i, block) in self.blocks.iter().enumerate() {
+      for line in block {
+        writeln!(f, " * {line}")?;
+      }
+      if i + 1 != self.blocks.len() {
+        writeln!(f, " *")?;
+      }
+    }
+    writeln!(f, " */")
+  }
+}
+
 impl Display for TypeDef {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     let js_mod = if let Some(js_mod) = &self.js_mod {
@@ -98,7 +172,7 @@ impl Display for TypeDef {
       r#"{{"kind": "{}", "name": "{}", "js_doc": "{}", "def": "{}"{}{}}}"#,
       self.kind,
       self.name,
-      escape_json(&self.js_doc),
+      escape_json(&self.js_doc.to_string()),
       escape_json(&self.def),
       original_name,
       js_mod,
@@ -127,6 +201,7 @@ static KNOWN_TYPES: LazyLock<HashMap<&'static str, (&'static str, bool, bool)>> 
     ("IndexMap", ("Record<{}, {}>", false, false)),
     ("HashSet", ("Set<{}>", false, false)),
     ("BTreeSet", ("Set<{}>", false, false)),
+    ("IndexSet", ("Set<{}>", false, false)),
     ("ArrayBuffer", ("ArrayBuffer", false, false)),
     ("JsArrayBuffer", ("ArrayBuffer", false, false)),
     ("Int8Array", ("Int8Array", false, false)),
@@ -212,6 +287,7 @@ static KNOWN_TYPES_IGNORE_ARG: LazyLock<HashMap<&'static str, Vec<usize>>> = Laz
     ("HashMap", vec![2]),  // HashMap<K, V, S> is same with HashMap<K, V>
     ("HashSet", vec![1]),  // HashSet<T, S> is same with HashSet<T>
     ("IndexMap", vec![2]), // IndexMap<K, V, S> is same with IndexMap<K, V>
+    ("IndexSet", vec![1]), // IndexSet<T, S> is same with HashSet<T>
   ]
   .into()
 });
@@ -511,9 +587,9 @@ pub fn ty_to_ts_type(
         {
           Some((t, false))
         } else if rust_ty == TSFN_RUST_TY {
-          let fatal_tsfn = match args.last() {
-            Some((arg, _)) => arg == "false",
-            _ => false,
+          let handled_tsfn = match args.get(4) {
+            Some((arg, _)) => arg == "true",
+            _ => true,
           };
           let fn_args = args
             .get(2)
@@ -534,13 +610,13 @@ pub fn ty_to_ts_type(
             .get(1)
             .map(|(ty, _)| ty.clone())
             .unwrap_or("any".to_owned());
-          if fatal_tsfn {
-            Some((format!("(({fn_args}) => {return_ty})"), false))
-          } else {
+          if handled_tsfn {
             Some((
               format!("((err: Error | null, {fn_args}) => {return_ty})"),
               false,
             ))
+          } else {
+            Some((format!("(({fn_args}) => {return_ty})"), false))
           }
         } else {
           // there should be runtime registered type in else

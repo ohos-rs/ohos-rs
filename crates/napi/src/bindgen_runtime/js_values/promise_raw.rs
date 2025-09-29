@@ -50,7 +50,10 @@ impl<T> ValidateNapiValue for PromiseRaw<'_, T> {
 }
 
 impl<T> FromNapiValue for PromiseRaw<'_, T> {
-  unsafe fn from_napi_value(env: napi_sys_ohos::napi_env, value: napi_sys_ohos::napi_value) -> Result<Self> {
+  unsafe fn from_napi_value(
+    env: napi_sys_ohos::napi_env,
+    value: napi_sys_ohos::napi_value,
+  ) -> Result<Self> {
     Ok(PromiseRaw::new(env, value))
   }
 }
@@ -67,10 +70,10 @@ impl<T> PromiseRaw<'_, T> {
 
 impl<'env, T: FromNapiValue> PromiseRaw<'env, T> {
   /// Promise.then method
-  pub fn then<Callback, U>(&self, cb: Callback) -> Result<PromiseRaw<'env, U>>
+  pub fn then<'then, Callback, U>(&self, cb: Callback) -> Result<PromiseRaw<'env, U>>
   where
     U: ToNapiValue,
-    Callback: 'static + FnOnce(CallbackContext<T>) -> Result<U>,
+    Callback: 'then + FnOnce(CallbackContext<T>) -> Result<U>,
   {
     let mut then_fn = ptr::null_mut();
     const THEN: &[u8; 5] = b"then\0";
@@ -132,11 +135,11 @@ impl<'env, T: FromNapiValue> PromiseRaw<'env, T> {
   }
 
   /// Promise.catch method
-  pub fn catch<E, U, Callback>(&self, cb: Callback) -> Result<PromiseRaw<'env, U>>
+  pub fn catch<'catch, E, U, Callback>(&self, cb: Callback) -> Result<PromiseRaw<'env, U>>
   where
     E: FromNapiValue,
     U: ToNapiValue,
-    Callback: 'static + FnOnce(CallbackContext<E>) -> Result<U>,
+    Callback: 'catch + FnOnce(CallbackContext<E>) -> Result<U>,
   {
     let mut catch_fn = ptr::null_mut();
     const CATCH: &[u8; 6] = b"catch\0";
@@ -198,10 +201,10 @@ impl<'env, T: FromNapiValue> PromiseRaw<'env, T> {
   }
 
   /// Promise.finally method
-  pub fn finally<U, Callback>(&mut self, cb: Callback) -> Result<PromiseRaw<'env, T>>
+  pub fn finally<'finally, U, Callback>(&mut self, cb: Callback) -> Result<PromiseRaw<'env, T>>
   where
     U: ToNapiValue,
-    Callback: 'static + FnOnce(Env) -> Result<U>,
+    Callback: 'finally + FnOnce(Env) -> Result<U>,
   {
     let mut then_fn = ptr::null_mut();
     const FINALLY: &[u8; 8] = b"finally\0";
@@ -460,7 +463,10 @@ pub struct CallbackContext<T> {
 }
 
 impl<T: ToNapiValue> ToNapiValue for CallbackContext<T> {
-  unsafe fn to_napi_value(env: napi_sys_ohos::napi_env, val: Self) -> Result<napi_sys_ohos::napi_value> {
+  unsafe fn to_napi_value(
+    env: napi_sys_ohos::napi_env,
+    val: Self,
+  ) -> Result<napi_sys_ohos::napi_value> {
     T::to_napi_value(env, val.value)
   }
 }

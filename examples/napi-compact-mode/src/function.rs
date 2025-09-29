@@ -1,6 +1,6 @@
 use napi_ohos::{
-  bindgen_prelude::{FnArgs, Function, Null}, CallContext, JsError, JsObject, JsString, JsValue,
-  Result, Unknown,
+  bindgen_prelude::{FnArgs, Function, Null},
+  CallContext, JsError, JsObject, JsString, JsValue, Result, Unknown,
 };
 
 #[js_function(1)]

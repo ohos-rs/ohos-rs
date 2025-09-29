@@ -1,4 +1,4 @@
-use napi_ohos::bindgen_prelude::*;
+use napi_ohos::{bindgen_prelude::*, iterator::ScopedGenerator};
 
 #[napi(iterator)]
 pub struct Fib {
@@ -84,7 +84,7 @@ impl Fib2 {
 #[napi(iterator, constructor)]
 pub struct Fib3 {
   pub current: u32,
-  pub next: u32,
+  pub next_num: u32,
 }
 
 #[napi]
@@ -97,15 +97,48 @@ impl Generator for Fib3 {
     match value {
       Some(n) => {
         self.current = n as u32;
-        self.next = n as u32 + 1;
+        self.next_num = n as u32 + 1;
       }
       None => {
-        let next = self.next;
+        let next = self.next_num;
         let current = self.current;
         self.current = next;
-        self.next = current + next;
+        self.next_num = current + next;
       }
     };
     Some(self.current)
+  }
+}
+
+#[napi(iterator, constructor)]
+pub struct Fib4 {
+  pub current: u32,
+  pub next_item: u32,
+}
+
+#[napi]
+impl<'a> ScopedGenerator<'a> for Fib4 {
+  type Yield = Unknown<'a>;
+  type Next = i32;
+  type Return = ();
+
+  fn next(&mut self, env: &'a Env, value: Option<Self::Next>) -> Option<Self::Yield> {
+    match value {
+      Some(n) => {
+        self.current = n as u32;
+        self.next_item = n as u32 + 1;
+      }
+      None => {
+        let next = self.next_item;
+        let current = self.current;
+        self.current = next;
+        self.next_item = current + next;
+      }
+    };
+    let mut obj = Object::new(env).ok();
+    if let Some(ref mut val) = obj {
+      val.set("number", self.current).ok()?;
+    }
+    obj.into_unknown(env).ok()
   }
 }

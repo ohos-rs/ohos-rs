@@ -1,5 +1,5 @@
-use napi_ohos::{bindgen_prelude::ClassInstance, Either};
 use napi_derive_ohos::napi;
+use napi_ohos::{bindgen_prelude::ClassInstance, Either};
 
 #[napi(object)]
 pub struct Shared {

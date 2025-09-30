@@ -19,6 +19,8 @@ use serde::Serialize;
 
 #[cfg(feature = "napi8")]
 use crate::async_cleanup_hook::AsyncCleanupHook;
+#[cfg(target_env = "ohos")]
+use crate::async_work::AsyncWorkQos;
 #[cfg(all(feature = "napi6", feature = "compat-mode"))]
 use crate::bindgen_runtime::u128_with_sign_to_napi_value;
 #[cfg(feature = "napi6")]
@@ -45,14 +47,8 @@ use crate::{
   bindgen_runtime::JsObjectValue,
   check_status,
   js_values::*,
-  sys,
-  task::Task,
-  Error, ExtendedErrorInfo, NodeVersion, Result, Status,ValueType
+  sys, Error, ExtendedErrorInfo, NodeVersion, Result, ScopedTask, Status, ValueType,
 };
-
-#[cfg(target_env = "ohos")]
-use crate::async_work::AsyncWorkQos;
-
 pub type Callback = unsafe extern "C" fn(sys::napi_env, sys::napi_callback_info) -> sys::napi_value;
 
 pub(crate) static EMPTY_VEC: Vec<u8> = vec![];
@@ -88,9 +84,10 @@ impl Env {
     check_status!(unsafe { sys::napi_get_boolean(self.0, value, &mut raw_value) })?;
     Ok(unsafe { JsBoolean::from_raw_unchecked(self.0, raw_value) })
   }
-
   #[cfg(feature = "compat-mode")]
   #[deprecated(since = "1.1.0", note = "Use `i32` instead")]
+
+  /// Create a new JavaScript number from a Rust `i32`
   pub fn create_int32(&self, int: i32) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
@@ -101,6 +98,7 @@ impl Env {
 
   #[cfg(feature = "compat-mode")]
   #[deprecated(since = "1.1.0", note = "Use `i64` instead")]
+  /// Create a new JavaScript number from a Rust `i64`
   pub fn create_int64(&self, int: i64) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
@@ -111,6 +109,7 @@ impl Env {
 
   #[cfg(feature = "compat-mode")]
   #[deprecated(since = "1.1.0", note = "Use `u32` instead")]
+  /// Create a new JavaScript number from a Rust `u32`
   pub fn create_uint32(&self, number: u32) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_uint32(self.0, number, &mut raw_value) })?;
@@ -119,6 +118,7 @@ impl Env {
 
   #[cfg(feature = "compat-mode")]
   #[deprecated(since = "1.1.0", note = "Use `f64` instead")]
+  /// Create a new JavaScript number from a Rust `f64`
   pub fn create_double(&self, double: f64) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();
     check_status!(unsafe {
@@ -957,11 +957,11 @@ impl Env {
   /// If no `size_hint` provided, global garbage collections will be triggered less times than expected.
   ///
   /// If getting the exact `native_object` size is difficult, you can provide an approximate value, it's only effect to the GC.
-  pub fn create_external<T: 'static>(
-    &self,
+  pub fn create_external<'env, T: 'static>(
+    &'env self,
     native_object: T,
     size_hint: Option<i64>,
-  ) -> Result<JsExternal> {
+  ) -> Result<JsExternal<'env>> {
     let mut object_value = ptr::null_mut();
     check_status!(unsafe {
       sys::napi_create_external(
@@ -1035,7 +1035,10 @@ impl Env {
   }
 
   /// Run [Task](./trait.Task.html) in libuv thread pool, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
-  pub fn spawn<T: 'static + Task>(&self, task: T) -> Result<AsyncWorkPromise<T::JsValue>> {
+  pub fn spawn<'env, T: 'env + ScopedTask<'env>>(
+    &self,
+    task: T,
+  ) -> Result<AsyncWorkPromise<T::JsValue>> {
     #[cfg(target_env = "ohos")]
     return async_work::run(self.0, task, None, None);
 
@@ -1058,27 +1061,12 @@ impl Env {
 
   /// Run [Task](./trait.Task.html) in libuv thread pool with qos, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
   #[cfg(target_env = "ohos")]
-  pub fn spawn_with_qos<T: 'static + Task>(
+  pub fn spawn_with_qos<'env, T: 'env + ScopedTask<'env>>(
     &self,
     task: T,
     qos: AsyncWorkQos,
   ) -> Result<AsyncWorkPromise<T::JsValue>> {
     async_work::run(self.0, task, None, Some(qos))
-  }
-
-  /// Node-API provides an API for executing a string containing JavaScript using the underlying JavaScript engine.
-  /// This function executes a string of JavaScript code and returns its result with the following caveats:
-  /// - Unlike `eval`, this function does not allow the script to access the current lexical scope, and therefore also does not allow to access the [module scope](https://nodejs.org/api/modules.html#the-module-scope), meaning that pseudo-globals such as require will not be available.
-  /// - The script can access the [global scope](https://nodejs.org/api/globals.html). Function and `var` declarations in the script will be added to the [global](https://nodejs.org/api/globals.html#global) object. Variable declarations made using `let` and `const` will be visible globally, but will not be added to the global object.
-  /// - The value of this is [global](https://nodejs.org/api/globals.html) within the script.
-  pub fn run_script<S: AsRef<str>, V: FromNapiValue>(&self, script: S) -> Result<V> {
-    let s = self.create_string(script.as_ref())?;
-    let mut raw_value = ptr::null_mut();
-    #[cfg(target_env = "ohos")]
-    check_status!(unsafe { sys::napi_run_script_path(self.0, s.raw(), &mut raw_value) })?;
-    #[cfg(not(target_env = "ohos"))]
-    check_status!(unsafe { sys::napi_run_script(self.0, s.raw(), &mut raw_value) })?;
-    unsafe { V::from_napi_value(self.0, raw_value) }
   }
 
   /// load builtin module or user's module
@@ -1126,6 +1114,21 @@ impl Env {
       )
     })?;
     Ok(Module::new(self.0, module))
+  }
+
+  /// Node-API provides an API for executing a string containing JavaScript using the underlying JavaScript engine.
+  /// This function executes a string of JavaScript code and returns its result with the following caveats:
+  /// - Unlike `eval`, this function does not allow the script to access the current lexical scope, and therefore also does not allow to access the [module scope](https://nodejs.org/api/modules.html#the-module-scope), meaning that pseudo-globals such as require will not be available.
+  /// - The script can access the [global scope](https://nodejs.org/api/globals.html). Function and `var` declarations in the script will be added to the [global](https://nodejs.org/api/globals.html#global) object. Variable declarations made using `let` and `const` will be visible globally, but will not be added to the global object.
+  /// - The value of this is [global](https://nodejs.org/api/globals.html) within the script.
+  pub fn run_script<S: AsRef<str>, V: FromNapiValue>(&self, script: S) -> Result<V> {
+    let s = self.create_string(script.as_ref())?;
+    let mut raw_value = ptr::null_mut();
+    #[cfg(target_env = "ohos")]
+    check_status!(unsafe { sys::napi_run_script_path(self.0, s.raw(), &mut raw_value) })?;
+    #[cfg(not(target_env = "ohos"))]
+    check_status!(unsafe { sys::napi_run_script(self.0, s.raw(), &mut raw_value) })?;
+    unsafe { V::from_napi_value(self.0, raw_value) }
   }
 
   /// `process.versions.napi`

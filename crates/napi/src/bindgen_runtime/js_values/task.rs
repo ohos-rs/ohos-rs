@@ -221,12 +221,8 @@ impl<T: for<'task> ScopedTask<'task>> ToNapiValue for AsyncTask<T> {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> crate::Result<sys::napi_value> {
     if let Some(abort_signal) = val.abort_signal {
       #[cfg(target_env = "ohos")]
-      let async_promise = async_work::run(
-        env,
-        val.inner,
-        Some(abort_signal.status.clone()),
-        val.qos,
-      )?;
+      let async_promise =
+        async_work::run(env, val.inner, Some(abort_signal.status.clone()), val.qos)?;
       #[cfg(not(target_env = "ohos"))]
       let async_promise = async_work::run(env, val.inner, Some(abort_signal.status.clone()))?;
       abort_signal.raw_work.set(async_promise.napi_async_work);

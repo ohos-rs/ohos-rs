@@ -765,6 +765,7 @@ unsafe extern "C" fn call_js_cb<
             Err(Error {
               maybe_raw: error_reference,
               maybe_env: raw_env,
+              cause: None,
               status: Status::from(raw_status),
               reason,
             })

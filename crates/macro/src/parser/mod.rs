@@ -133,7 +133,7 @@ fn find_ts_arg_type_and_remove_attribute(
                       return Err(syn::Error::new(
                         meta.path().span(),
                         "Expects an assignment (ts_arg_type = \"MyType\")",
-                      ))
+                      ));
                     }
                     Meta::NameValue(name_value) => match name_value.value {
                       syn::Expr::Lit(syn::ExprLit {
@@ -148,7 +148,7 @@ fn find_ts_arg_type_and_remove_attribute(
                         return Err(syn::Error::new(
                           name_value.value.span(),
                           "Expects a string literal",
-                        ))
+                        ));
                       }
                     },
                   }
@@ -202,7 +202,7 @@ fn find_enum_value_and_remove_attribute(v: &mut syn::Variant) -> BindgenResult<O
                       return Err(syn::Error::new(
                         meta.path().span(),
                         "Expects an assignment (value = \"enum-variant-value\")",
-                      ))
+                      ));
                     }
                     Meta::NameValue(name_value) => match name_value.value {
                       syn::Expr::Lit(syn::ExprLit {
@@ -217,7 +217,7 @@ fn find_enum_value_and_remove_attribute(v: &mut syn::Variant) -> BindgenResult<O
                         return Err(syn::Error::new(
                           name_value.value.span(),
                           "Expects a string literal",
-                        ))
+                        ));
                       }
                     },
                   }
@@ -1106,9 +1106,9 @@ impl ParseNapi for syn::ItemType {
       || opts.custom_finalize().is_some()
     {
       bail_span!(
-          self,
-          "#[napi] can't be applied to a type with #[napi(ts_args_type)], #[napi(ts_return_type)] or #[napi(custom_finalize)]"
-        );
+        self,
+        "#[napi] can't be applied to a type with #[napi(ts_args_type)], #[napi(ts_return_type)] or #[napi(custom_finalize)]"
+      );
     }
     if opts.return_if_invalid().is_some() {
       bail_span!(
@@ -1270,6 +1270,22 @@ impl ConvertToAST for syn::ItemStruct {
     record_struct(&rust_struct_ident, final_js_name_for_struct.clone(), opts);
     let namespace = opts.namespace().map(|(m, _)| m.to_owned());
     let implement_iterator = opts.iterator().is_some();
+
+    if implement_iterator
+      && self
+        .fields
+        .iter()
+        .filter(|f| matches!(f.vis, Visibility::Public(_)))
+        .filter_map(|f| f.ident.clone())
+        .map(|ident| ident.to_string())
+        .any(|field_name| field_name == "next" || field_name == "throw" || field_name == "return")
+    {
+      bail_span!(
+        self,
+        "Generator structs cannot have public fields named `next`, `throw`, or `return`."
+      );
+    }
+
     let generator_struct = GENERATOR_STRUCT.get_or_init(|| Mutex::new(HashMap::new()));
     let mut generator_struct = generator_struct
       .lock()
@@ -1393,6 +1409,7 @@ impl ConvertToAST for syn::ItemStruct {
         register_name: get_register_ident(format!("{rust_struct_ident}_struct").as_str()),
         comments: extract_doc_comments(&self.attrs),
         has_lifetime: lifetime.is_some(),
+        is_generator: implement_iterator,
       }),
     })
   }
@@ -1431,7 +1448,7 @@ impl ConvertToAST for syn::ItemImpl {
             if let Some(PathSegment { ident, .. }) = t.segments.last() {
               if (ident == "Task" || ident == "ScopedTask") && m.ident == "JsValue" {
                 task_output_type = Some(m.ty.clone());
-              } else if ident == "Generator" {
+              } else if ident == "Generator" || ident == "ScopedGenerator" {
                 if let Type::Path(_) = &m.ty {
                   if m.ident == "Yield" {
                     iterator_yield_type = Some(m.ty.clone());
@@ -1556,6 +1573,7 @@ impl ConvertToAST for syn::ItemEnum {
             object_to_js: opts.object_to_js(),
           }),
           has_lifetime: false,
+          is_generator: false,
         }),
       });
     }

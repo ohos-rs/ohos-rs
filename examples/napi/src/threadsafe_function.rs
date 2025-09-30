@@ -242,7 +242,9 @@ pub fn call_async_with_unknown_return_value<'env>(
 }
 
 #[napi]
-pub async fn tsfn_throw_from_js(tsfn: ThreadsafeFunction<u32, Promise<u32>>) -> napi_ohos::Result<u32> {
+pub async fn tsfn_throw_from_js(
+  tsfn: ThreadsafeFunction<u32, Promise<u32>>,
+) -> napi_ohos::Result<u32> {
   tsfn.call_async(Ok(42)).await?.await
 }
 
@@ -283,4 +285,11 @@ pub fn tsfn_in_either(pet: Pet) {
       tsfn.call(Ok(42), ThreadsafeFunctionCallMode::NonBlocking);
     });
   }
+}
+
+#[napi]
+pub async fn tsfn_weak(
+  tsfn: ThreadsafeFunction<(), (), (), Status, false, true>,
+) -> napi_ohos::Result<()> {
+  tsfn.call_async(()).await
 }

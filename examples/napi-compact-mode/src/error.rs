@@ -1,4 +1,6 @@
-use napi_ohos::{CallContext, Error, JsBoolean, JsObject, JsString, JsValue, Result, Status, Unknown};
+use napi_ohos::{
+  CallContext, Error, JsBoolean, JsObject, JsString, JsValue, Result, Status, Unknown,
+};
 
 #[js_function]
 fn test_throw(_ctx: CallContext) -> Result<Unknown> {

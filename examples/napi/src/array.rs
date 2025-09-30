@@ -1,4 +1,7 @@
-use napi_ohos::{bindgen_prelude::{Array, Object}, Env};
+use napi_ohos::{
+  bindgen_prelude::{Array, Object},
+  Env,
+};
 
 #[napi]
 pub fn get_words() -> Vec<&'static str> {

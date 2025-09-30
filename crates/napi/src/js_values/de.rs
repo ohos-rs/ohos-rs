@@ -82,7 +82,7 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
         format!("typeof {js_value_type:?} value could not be deserialized"),
       )),
       #[cfg(target_env = "ohos")]
-      ValueType::External | ValueType::Function=> Err(Error::new(
+      ValueType::External | ValueType::Function => Err(Error::new(
         Status::InvalidArg,
         format!("typeof {js_value_type:?} value could not be deserialized"),
       )),

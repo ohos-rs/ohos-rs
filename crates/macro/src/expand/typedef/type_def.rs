@@ -18,7 +18,9 @@ fn get_type_def_file() -> Option<PathBuf> {
   } else {
     // the environment variable set by old `ohrs`
     if env::var("TYPE_DEF_TMP_PATH").is_ok() {
-      panic!("[ohos-rs] missing environment variables. please upgrade `ohrs` to the latest version.");
+      panic!(
+        "[ohos-rs] missing environment variables. please upgrade `ohrs` to the latest version."
+      );
     }
     None
   }

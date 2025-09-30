@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::ToTokens;
-use syn::{spanned::Spanned, Type, TypePath};
+use syn::{spanned::Spanned, Type, TypePath, TypeReference};
 
 use crate::{
   codegen::{get_intermediate_ident, js_mod_to_token_stream},
@@ -520,12 +520,14 @@ impl NapiFn {
       _ => {
         hidden_ty_lifetime(&mut ty)?;
         let mut arg_type = NapiArgType::Value;
+        let mut is_array = false;
         if let syn::Type::Path(path) = &ty {
           // Detect cases where the type is `Vec<&S>`.
           // For example, in `async fn foo(v: Vec<&S>) {}`, we need to handle `v` as a reference.
           if let Some(syn::PathSegment { ident, arguments }) = path.path.segments.first() {
             // Check if the type is a `Vec`.
             if ident == "Vec" {
+              is_array = true;
               if let syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
                 args: angle_bracketed_args,
                 ..
@@ -543,10 +545,31 @@ impl NapiFn {
             }
           }
         }
+        // Array::validate only validates by the `Array.isArray`
+        // For the elements of the Array, we need to return rather than throw if they are invalid when `return_if_invalid` is true
+        let from_napi_value = if is_array && self.return_if_invalid {
+          quote! {
+            match <#ty as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, #arg_conversion) {
+              Ok(value) => value,
+              Err(err) => {
+                // InvalidArg, ObjectExpected, StringExpected ...
+                if err.status < napi_ohos::bindgen_prelude::Status::GenericFailure {
+                  return Ok(std::ptr::null_mut());
+                } else {
+                  return Err(err);
+                }
+              }
+            }
+          }
+        } else {
+          quote! {
+            <#ty as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, #arg_conversion)?
+          }
+        };
         let q = quote! {
           let #arg_name = {
             #type_check
-            <#ty as napi_ohos::bindgen_prelude::FromNapiValue>::from_napi_value(env, #arg_conversion)?
+            #from_napi_value
           };
         };
         Ok((q, arg_type))
@@ -717,7 +740,7 @@ impl NapiFn {
   }
 
   fn gen_fn_register(&self) -> TokenStream {
-    if self.parent.is_some() {
+    if self.parent.is_some() || cfg!(test) {
       quote! {}
     } else {
       let name_str = self.name.to_string();
@@ -813,28 +836,35 @@ impl NapiFn {
 }
 
 fn hidden_ty_lifetime(ty: &mut syn::Type) -> BindgenResult<()> {
-  if let Type::Path(TypePath {
-    path: syn::Path { segments, .. },
-    ..
-  }) = ty
-  {
-    if let Some(syn::PathSegment {
-      arguments:
-        syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments { args, .. }),
+  match ty {
+    Type::Path(TypePath {
+      path: syn::Path { segments, .. },
       ..
-    }) = segments.last_mut()
-    {
-      let mut has_lifetime = false;
-      if let Some(syn::GenericArgument::Lifetime(lt)) = args.first_mut() {
-        *lt = syn::Lifetime::new("'_", Span::call_site());
-        has_lifetime = true;
-      }
-      for arg in args.iter_mut().skip(if has_lifetime { 1 } else { 0 }) {
-        if let syn::GenericArgument::Type(ty) = arg {
-          hidden_ty_lifetime(ty)?;
+    }) => {
+      if let Some(syn::PathSegment {
+        arguments:
+          syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments { args, .. }),
+        ..
+      }) = segments.last_mut()
+      {
+        let mut has_lifetime = false;
+        if let Some(syn::GenericArgument::Lifetime(lt)) = args.first_mut() {
+          *lt = syn::Lifetime::new("'_", Span::call_site());
+          has_lifetime = true;
+        }
+        for arg in args.iter_mut().skip(if has_lifetime { 1 } else { 0 }) {
+          if let syn::GenericArgument::Type(ty) = arg {
+            hidden_ty_lifetime(ty)?;
+          }
         }
       }
     }
+    Type::Reference(TypeReference {
+      lifetime: Some(lt), ..
+    }) => {
+      *lt = syn::Lifetime::new("'_", Span::call_site());
+    }
+    _ => {}
   }
   Ok(())
 }

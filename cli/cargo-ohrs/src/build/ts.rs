@@ -34,6 +34,8 @@ enum TypeDefKind {
   Impl,
   #[serde(rename = "string_enum")]
   StringEnum,
+  #[serde(rename = "extends")]
+  Extends,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -44,6 +46,7 @@ struct TypeDefLine {
   def: String,
   js_doc: Option<String>,
   js_mod: Option<String>,
+  extends: Option<String>,
 }
 
 fn read_intermediate_type_file(file_path: &str) -> Vec<TypeDefLine> {
@@ -212,6 +215,11 @@ fn preprocess_type_def(defs: Vec<TypeDefLine>) -> HashMap<String, Vec<TypeDefLin
       TypeDefKind::Struct => {
         class_defs.insert(def.name.clone(), (namespace, def));
       }
+      TypeDefKind::Extends => {
+        if let Some(class_def) = class_defs.get_mut(&def.name) {
+          class_def.1.extends = Some(def.def);
+        }
+      }
       TypeDefKind::Impl => {
         if let Some(class_def) = class_defs.get_mut(&def.name) {
           if !class_def.1.def.is_empty() {
@@ -281,12 +289,63 @@ fn pretty_print(line: &TypeDefLine, const_enum: bool, indent: usize, ambient: bo
       }
     },
     TypeDefKind::Struct => {
-      s += &format!(
-        "{} class {} {{\n{}\n}}",
-        export_declare(ambient),
-        line.name,
-        line.def
-      );
+      let extends_def = if let Some(extends) = &line.extends {
+        format!(" extends {}", extends)
+      } else {
+        String::new()
+      };
+      
+      // Handle Iterator generic parameters
+      if let Some(extends) = &line.extends {
+        if extends.starts_with("Iterator<") && extends.ends_with('>') {
+          let generic_params = extends
+            .strip_prefix("Iterator<")
+            .unwrap()
+            .strip_suffix('>')
+            .unwrap();
+          let params: Vec<&str> = generic_params.split(',').map(|p| p.trim()).collect();
+          if params.len() >= 3 {
+            let t = params[0];
+            let t_result = params[1];
+            let t_next = params[2];
+            s += &format!(
+              "{} class {}{} {{\n{}\nnext(value?: {}): IteratorResult<{}, {}>\n}}",
+              export_declare(ambient),
+              line.name,
+              extends_def,
+              line.def,
+              t_next,
+              t,
+              t_result
+            );
+          } else {
+            s += &format!(
+              "{} class {}{} {{\n{}\n}}",
+              export_declare(ambient),
+              line.name,
+              extends_def,
+              line.def
+            );
+          }
+        } else {
+          s += &format!(
+            "{} class {}{} {{\n{}\n}}",
+            export_declare(ambient),
+            line.name,
+            extends_def,
+            line.def
+          );
+        }
+      } else {
+        s += &format!(
+          "{} class {}{} {{\n{}\n}}",
+          export_declare(ambient),
+          line.name,
+          extends_def,
+          line.def
+        );
+      }
+      
       if let Some(original_name) = &line.original_name {
         if original_name != &line.name {
           s += &format!("\nexport type {} = {}", original_name, line.name);

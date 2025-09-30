@@ -29,6 +29,7 @@ pub(crate) struct BuildArgs {
   dts_cache: bool,
   target_dir: Option<String>,
   skip_check: bool,
+  zigbuild: bool,
 }
 
 #[derive(Debug, Clone)]

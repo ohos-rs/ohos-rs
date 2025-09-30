@@ -41,13 +41,17 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     .flag(true, true);
 
   let skip_check = long("skip-check")
-    .help("Skip the check of the version of the napi-ohos, will be set to true by default.")
+    .help("Skip the check of the version of the napi-ohos, will be set to false by default.")
     .flag(true, false);
 
   let target_dir = long("target-dir")
     .help("The temp directory of the ohrs build, will be set to the current directory by default.")
     .argument::<String>("TARGET_DIR")
     .optional();
+
+  let zigbuild = long("zigbuild")
+    .help("Use zigbuild to build the project, will be set to false by default.")
+    .flag(true, false);
 
   let init_parser = construct!(crate::BuildArgs {
     dist,
@@ -57,6 +61,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     skip_libs,
     dts_cache,
     skip_check,
+    zigbuild,
     target_dir,
     cargo_args,
   });

@@ -49,6 +49,7 @@ pub struct Context<'a> {
   pub skip_libs: bool,
   pub dts_cache: bool,
   pub skip_check: bool,
+  pub zigbuild: bool,
 }
 
 /// build逻辑

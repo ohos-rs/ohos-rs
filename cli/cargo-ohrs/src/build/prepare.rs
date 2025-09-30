@@ -70,12 +70,14 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
 
     let result = compare_to(&napi_ohos_version, "1.1.0", Cmp::Ge).unwrap_or(false);
     if !result {
-      return Err(Error::msg(format!("The version of the napi-ohos is not >= 1.1.0, please update the napi-ohos to >= 1.1.0, the current version is {}", &napi_ohos_version)));
+      return Err(Error::msg(format!(r#"The version of the napi-ohos is not >= 1.1.0, please update the napi-ohos to >= 1.1.0, the current version is {}.
+If you want to skip the check, you can set the skip_check to true: ohrs build --skip-check"#, &napi_ohos_version)));
     }
 
     let result = compare_to(&napi_backend_ohos_version, "1.1.0", Cmp::Ge).unwrap_or(false);
     if !result {
-      return Err(Error::msg(format!("The version of the napi-derive-ohos is not >= 1.1.0, please update the napi-derive-ohos to >= 1.1.0, the current version is {}", &napi_backend_ohos_version)));
+      return Err(Error::msg(format!(r#"The version of the napi-derive-ohos is not >= 1.1.0, please update the napi-derive-ohos to >= 1.1.0, the current version is {}.
+If you want to skip the check, you can set the skip_check to true: ohrs build --skip-check"#, &napi_backend_ohos_version)));
     }
   }
 

@@ -6,6 +6,8 @@ use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use std::time::SystemTime;
 use std::{env, fs};
+use version_compare::compare_to;
+use version_compare::Cmp;
 
 /// 构建前初始化工作，包括获取当前运行环境等。  
 pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result<()> {
@@ -15,6 +17,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.copy_static = args.copy_static;
   ctx.skip_libs = args.skip_libs;
   ctx.dts_cache = args.dts_cache;
+  ctx.skip_check = args.skip_check;
 
   // 判断当前构建环境以及获取metadata信息
   let cargo_file = ctx.pwd.join("./Cargo.toml");
@@ -43,6 +46,38 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
     .metadata
     .get("template")
     .and_then(|v| serde_json::from_value(v.clone()).unwrap_or(None));
+
+  // check the version of the napi-ohos and napi-backend-ohos
+  if !ctx.skip_check {
+    let full_metadata = MetadataCommand::new().manifest_path(&cargo_file).exec()?;
+
+    let napi_ohos_version = full_metadata
+      .packages
+      .iter()
+      .find(|p| p.name == "napi-ohos")
+      .and_then(|v| Some(v.version.to_string()))
+      .ok_or(Error::msg(
+        "Try to get the version of the napi-ohos failed.",
+      ))?;
+    let napi_backend_ohos_version = full_metadata
+      .packages
+      .iter()
+      .find(|p| p.name == "napi-derive-ohos")
+      .and_then(|v| Some(v.version.to_string()))
+      .ok_or(Error::msg(
+        "Try to get the version of the napi-derive-ohos failed.",
+      ))?;
+
+    let result = compare_to(&napi_ohos_version, "1.1.0", Cmp::Ge).unwrap_or(false);
+    if !result {
+      return Err(Error::msg(format!("The version of the napi-ohos is not >= 1.1.0, please update the napi-ohos to >= 1.1.0, the current version is {}", &napi_ohos_version)));
+    }
+
+    let result = compare_to(&napi_backend_ohos_version, "1.1.0", Cmp::Ge).unwrap_or(false);
+    if !result {
+      return Err(Error::msg(format!("The version of the napi-derive-ohos is not >= 1.1.0, please update the napi-derive-ohos to >= 1.1.0, the current version is {}", &napi_backend_ohos_version)));
+    }
+  }
 
   ctx.template = toml_content;
 

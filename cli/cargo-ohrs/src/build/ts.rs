@@ -294,7 +294,7 @@ fn pretty_print(line: &TypeDefLine, const_enum: bool, indent: usize, ambient: bo
       } else {
         String::new()
       };
-      
+
       // Handle Iterator generic parameters
       if let Some(extends) = &line.extends {
         if extends.starts_with("Iterator<") && extends.ends_with('>') {
@@ -345,7 +345,7 @@ fn pretty_print(line: &TypeDefLine, const_enum: bool, indent: usize, ambient: bo
           line.def
         );
       }
-      
+
       if let Some(original_name) = &line.original_name {
         if original_name != &line.name {
           s += &format!("\nexport type {} = {}", original_name, line.name);

@@ -7,7 +7,7 @@ pub struct SimpleTask {
 }
 
 #[napi]
-impl napi::Task for SimpleTask {
+impl napi_ohos::Task for SimpleTask {
   type Output = i32;
   type JsValue = i32;
 
@@ -20,11 +20,11 @@ impl napi::Task for SimpleTask {
     })
   }
 
-  fn resolve(&mut self, _env: napi::Env, output: Self::Output) -> Result<Self::JsValue> {
+  fn resolve(&mut self, _env: napi_ohos::Env, output: Self::Output) -> Result<Self::JsValue> {
     Ok(output)
   }
 
-  fn finally(self, _env: napi::Env) -> Result<()> {
+  fn finally(self, _env: napi_ohos::Env) -> Result<()> {
     Ok(())
   }
 }

@@ -315,7 +315,7 @@ impl<'env> ArrayBuffer<'env> {
   #[cfg(feature = "napi7")]
   /// The ArrayBuffer is considered `detached` if its internal data is null.
   ///
-  /// This API represents the invocation of the `ArrayBuffer` `IsDetachedBuffer` operation as defined in [Section 24.1.1.2](https://tc39.es/ecma262/#sec-isdetachedbuffer) of the ECMAScript Language Specification.
+  /// This API represents the invocation of the `ArrayBuffer` `IsDetachedBuffer` operation as defined in [Section 24.1.1.3](https://tc39.es/ecma262/#sec-isdetachedbuffer) of the ECMAScript Language Specification.
   pub fn is_detached(&self) -> Result<bool> {
     let mut is_detached = false;
     check_status!(unsafe {

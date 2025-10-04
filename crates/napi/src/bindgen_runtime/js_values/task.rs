@@ -136,7 +136,8 @@ impl FromNapiValue for AbortSignal {
     let mut stack;
     let mut maybe_stack = ptr::null_mut();
     let unwrap_status = unsafe { sys::napi_remove_wrap(env, signal.0.value, &mut maybe_stack) };
-    if unwrap_status == sys::Status::napi_ok {
+    // HarmonyOS napi_remove_wrap return napi_ok if maybe_stack is null
+    if unwrap_status == sys::Status::napi_ok && !maybe_stack.is_null() {
       stack = unsafe { Box::from_raw(maybe_stack as *mut AbortSignalStack) };
       stack.0.push(abort_signal);
     } else {

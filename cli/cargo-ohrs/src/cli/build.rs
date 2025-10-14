@@ -42,7 +42,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
 
   let skip_check = long("skip-check")
     .help("Skip the check of the version of the napi-ohos, will be set to false by default.")
-    .flag(true, false);
+    .flag(true, true);
 
   let target_dir = long("target-dir")
     .help("The temp directory of the ohrs build, will be set to the current directory by default.")

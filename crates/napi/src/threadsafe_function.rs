@@ -7,7 +7,7 @@ use std::os::raw::c_void;
 use std::ptr::{self, null_mut};
 use std::sync::{
   self,
-  atomic::{AtomicPtr, Ordering},
+  atomic::{AtomicBool, AtomicPtr, Ordering},
   Arc, RwLock, RwLockWriteGuard,
 };
 
@@ -61,22 +61,24 @@ impl From<ThreadsafeFunctionPriority> for sys::napi_task_priority {
   }
 }
 
-struct ThreadsafeFunctionHandle {
+pub struct ThreadsafeFunctionHandle {
   raw: AtomicPtr<sys::napi_threadsafe_function__>,
   aborted: RwLock<bool>,
+  referred: AtomicBool,
 }
 
 impl ThreadsafeFunctionHandle {
   /// create a Arc to hold the `ThreadsafeFunctionHandle`
-  fn new(raw: sys::napi_threadsafe_function) -> Arc<Self> {
+  pub fn new(raw: sys::napi_threadsafe_function) -> Arc<Self> {
     Arc::new(Self {
       raw: AtomicPtr::new(raw),
       aborted: RwLock::new(false),
+      referred: AtomicBool::new(true),
     })
   }
 
   /// Lock `aborted` with read access, call `f` with the value of `aborted`, then unlock it
-  fn with_read_aborted<RT, F>(&self, f: F) -> RT
+  pub fn with_read_aborted<RT, F>(&self, f: F) -> RT
   where
     F: FnOnce(bool) -> RT,
   {
@@ -88,7 +90,7 @@ impl ThreadsafeFunctionHandle {
   }
 
   /// Lock `aborted` with write access, call `f` with the `RwLockWriteGuard`, then unlock it
-  fn with_write_aborted<RT, F>(&self, f: F) -> RT
+  pub fn with_write_aborted<RT, F>(&self, f: F) -> RT
   where
     F: FnOnce(RwLockWriteGuard<bool>) -> RT,
   {
@@ -100,15 +102,15 @@ impl ThreadsafeFunctionHandle {
   }
 
   #[allow(clippy::arc_with_non_send_sync)]
-  fn null() -> Arc<Self> {
+  pub fn null() -> Arc<Self> {
     Self::new(null_mut())
   }
 
-  fn get_raw(&self) -> sys::napi_threadsafe_function {
+  pub fn get_raw(&self) -> sys::napi_threadsafe_function {
     self.raw.load(Ordering::SeqCst)
   }
 
-  fn set_raw(&self, raw: sys::napi_threadsafe_function) {
+  pub fn set_raw(&self, raw: sys::napi_threadsafe_function) {
     self.raw.store(raw, Ordering::SeqCst)
   }
 }
@@ -138,15 +140,15 @@ impl Drop for ThreadsafeFunctionHandle {
 }
 
 #[repr(u8)]
-enum ThreadsafeFunctionCallVariant {
+pub enum ThreadsafeFunctionCallVariant {
   Direct,
   WithCallback,
 }
 
-struct ThreadsafeFunctionCallJsBackData<T, Return = Unknown<'static>> {
-  data: T,
-  call_variant: ThreadsafeFunctionCallVariant,
-  callback: Box<dyn FnOnce(Result<Return>, Env) -> Result<()>>,
+pub struct ThreadsafeFunctionCallJsBackData<T, Return = Unknown<'static>> {
+  pub data: T,
+  pub call_variant: ThreadsafeFunctionCallVariant,
+  pub callback: Box<dyn FnOnce(Result<Return>, Env) -> Result<()>>,
 }
 
 /// Communicate with the addon's main thread by invoking a JavaScript function from other threads.
@@ -158,12 +160,12 @@ struct ThreadsafeFunctionCallJsBackData<T, Return = Unknown<'static>> {
 /// use std::thread;
 /// use std::sync::Arc;
 ///
-/// use napi_ohos::{
+/// use napi::{
 ///     threadsafe_function::{
 ///         ThreadSafeCallContext, ThreadsafeFunctionCallMode, ThreadsafeFunctionReleaseMode,
 ///     },
 /// };
-/// use napi_derive_ohos::napi;
+/// use napi_derive::napi;
 ///
 /// #[napi]
 /// pub fn call_threadsafe_function(callback: Arc<ThreadsafeFunction<(u32, bool, String), ()>>) {
@@ -190,7 +192,7 @@ pub struct ThreadsafeFunction<
   const Weak: bool = false,
   const MaxQueueSize: usize = 0,
 > {
-  handle: Arc<ThreadsafeFunctionHandle>,
+  pub handle: Arc<ThreadsafeFunctionHandle>,
   _phantom: PhantomData<(T, CallJsBackArgs, Return, ErrorStatus)>,
 }
 
@@ -399,6 +401,25 @@ impl<
     self.handle.with_read_aborted(|aborted| aborted)
   }
 
+  #[deprecated(
+    since = "2.17.0",
+    note = "Drop all references to the ThreadsafeFunction will automatically release it"
+  )]
+  pub fn abort(self) -> Result<()> {
+    self.handle.with_write_aborted(|mut aborted_guard| {
+      if !*aborted_guard {
+        check_status!(unsafe {
+          sys::napi_release_threadsafe_function(
+            self.handle.get_raw(),
+            sys::ThreadsafeFunctionReleaseMode::abort,
+          )
+        })?;
+        *aborted_guard = true;
+      }
+      Ok(())
+    })
+  }
+
   /// Get the raw `ThreadSafeFunction` pointer
   pub fn raw(&self) -> sys::napi_threadsafe_function {
     self.handle.get_raw()
@@ -549,6 +570,34 @@ impl<
     })
   }
 
+  /// Call the ThreadsafeFunction, and handle the return value with a callback
+  pub fn call_with_return_value<F: 'static + FnOnce(Result<Return>, Env) -> Result<()>>(
+    &self,
+    value: T,
+    mode: ThreadsafeFunctionCallMode,
+    cb: F,
+  ) -> Status {
+    self.handle.with_read_aborted(|aborted| {
+      if aborted {
+        return Status::Closing;
+      }
+
+      unsafe {
+        sys::napi_call_threadsafe_function(
+          self.handle.get_raw(),
+          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
+            data: value,
+            call_variant: ThreadsafeFunctionCallVariant::WithCallback,
+            callback: Box::new(cb),
+          }))
+          .cast(),
+          mode.into(),
+        )
+      }
+      .into()
+    })
+  }
+
   /// Call the ThreadsafeFunction with priority, insert it at the end of queue.
   #[cfg(target_env = "ohos")]
   pub fn call_with_priority(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
@@ -593,34 +642,6 @@ impl<
           .cast(),
           priority.into(),
           false,
-        )
-      }
-      .into()
-    })
-  }
-
-  /// Call the ThreadsafeFunction, and handle the return value with a callback
-  pub fn call_with_return_value<F: 'static + FnOnce(Result<Return>, Env) -> Result<()>>(
-    &self,
-    value: T,
-    mode: ThreadsafeFunctionCallMode,
-    cb: F,
-  ) -> Status {
-    self.handle.with_read_aborted(|aborted| {
-      if aborted {
-        return Status::Closing;
-      }
-
-      unsafe {
-        sys::napi_call_threadsafe_function(
-          self.handle.get_raw(),
-          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
-            data: value,
-            call_variant: ThreadsafeFunctionCallVariant::WithCallback,
-            callback: Box::new(cb),
-          }))
-          .cast(),
-          mode.into(),
         )
       }
       .into()
@@ -743,6 +764,7 @@ unsafe extern "C" fn call_js_cb<
         values
       };
       let mut return_value = ptr::null_mut();
+      #[allow(unused_mut)]
       let mut status = sys::napi_call_function(
         raw_env,
         recv,

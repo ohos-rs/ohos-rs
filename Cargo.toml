@@ -2,6 +2,9 @@
 resolver = "2"
 members  = ["crates/*", "examples/*", "cli/*"]
 
+[workspace.package]
+rust-version = "1.82"
+
 [workspace.lints.clippy]
 dbg_macro        = "warn"
 todo             = "warn"

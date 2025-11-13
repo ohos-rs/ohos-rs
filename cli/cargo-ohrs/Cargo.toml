@@ -1,6 +1,6 @@
 [package]
 name        = "ohrs"
-version     = "1.1.4"
+version     = "1.1.5"
 edition     = "2021"
 license     = "MIT OR Apache-2.0"
 description = "a cli tool for ohos-rs"
@@ -23,4 +23,4 @@ owo-colors      = "4.0.0"
 bpaf            = "0.9.20"
 anyhow          = "1.0.75"
 semver          = "1.0.23"
-version-compare = "0.1"
+version-compare = "0.2.1"

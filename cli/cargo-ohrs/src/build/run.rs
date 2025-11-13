@@ -38,8 +38,9 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   // Therefore we collect the args in an array and set them via multiple `link-arg` uses.
   let mut base_flags = vec![
     format!("--target={}", &arch.c_target()),
-    format!("--sysroot={}/native/sysroot", ndk),
+    format!("--sysroot={}/native/sysroot", &ctx.ohos_ndk),
     "-D__MUSL__".into(),
+    "--verbose".into(),
   ];
 
   let mut path = env::var("PATH").unwrap_or_default();

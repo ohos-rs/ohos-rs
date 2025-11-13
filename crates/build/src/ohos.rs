@@ -21,7 +21,7 @@ pub fn setup() -> Result<(), Error> {
 
     // for libc++_shared.so etc.
     println!(
-      "cargo:rustc-link-search={}/native/llvm/lib/{}",
+      "cargo:rustc-link-search={}/native/BiSheng/lib/{}",
       &hos_ndk, &lib_dir
     );
   } else if let Ok(ohos_ndk) = env::var("OHOS_NDK_HOME") {

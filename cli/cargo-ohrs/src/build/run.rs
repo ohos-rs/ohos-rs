@@ -13,19 +13,24 @@ use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
 pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
-  let ran_path = format!("{}/native/llvm/bin/llvm-ranlib", &ctx.ndk);
-  let ar_path = format!("{}/native/llvm/bin/llvm-ar", &ctx.ndk);
-  let cc_path = format!("{}/native/llvm/bin/clang", &ctx.ndk);
-  let cxx_path = format!("{}/native/llvm/bin/clang++", &ctx.ndk);
-  let as_path = format!("{}/native/llvm/bin/llvm-as", &ctx.ndk);
-  let ld_path = format!("{}/native/llvm/bin/ld.lld", &ctx.ndk);
-  let strip_path = format!("{}/native/llvm/bin/llvm-strip", &ctx.ndk);
-  let obj_dump_path = format!("{}/native/llvm/bin/llvm-objdump", &ctx.ndk);
-  let obj_copy_path = format!("{}/native/llvm/bin/llvm-objcopy", &ctx.ndk);
-  let nm_path = format!("{}/native/llvm/bin/llvm-nm", &ctx.ndk);
-  let bin_path = format!("{}/native/llvm/bin", &ctx.ndk);
+  let ndk = if ctx.ohos_ndk.len() > 0 {
+    format!("{}{}", &ctx.ohos_ndk, "/native/llvm")
+  } else {
+    format!("{}{}", &ctx.hos_ndk, "/native/BiSheng")
+  };
+  let ran_path = format!("{}/bin/llvm-ranlib", ndk);
+  let ar_path = format!("{}/bin/llvm-ar", ndk);
+  let cc_path = format!("{}/bin/clang", ndk);
+  let cxx_path = format!("{}/bin/clang++", ndk);
+  let as_path = format!("{}/bin/llvm-as", ndk);
+  let ld_path = format!("{}/bin/ld.lld", ndk);
+  let strip_path = format!("{}/bin/llvm-strip", ndk);
+  let obj_dump_path = format!("{}/bin/llvm-objdump", ndk);
+  let obj_copy_path = format!("{}/bin/llvm-objcopy", ndk);
+  let nm_path = format!("{}/bin/llvm-nm", ndk);
+  let bin_path = format!("{}/bin", ndk);
   // for bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
-  let lib_path = format!("{}/native/llvm/lib", &ctx.ndk);
+  let lib_path = format!("{}/lib", ndk);
   let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
   let std_lib_type = String::from("c++");
 
@@ -33,7 +38,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   // Therefore we collect the args in an array and set them via multiple `link-arg` uses.
   let mut base_flags = vec![
     format!("--target={}", &arch.c_target()),
-    format!("--sysroot={}/native/sysroot", &ctx.ndk),
+    format!("--sysroot={}/native/sysroot", ndk),
     "-D__MUSL__".into(),
   ];
 
@@ -139,7 +144,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
               }
             }
             Message::BuildScriptExecuted(script) => {
-              if let Some(lib) = resolve_dependence_library(script, ctx.ndk.clone()) {
+              if let Some(lib) = resolve_dependence_library(script, ctx.ohos_ndk.clone()) {
                 artifact_files.extend(lib);
               }
             }

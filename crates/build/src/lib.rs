@@ -41,6 +41,6 @@ pub fn setup() {
   }
 
   if let Ok("ohos") = std::env::var("CARGO_CFG_TARGET_ENV").as_deref() {
-    ohos::setup();
+    if ohos::setup().is_ok() {}
   }
 }

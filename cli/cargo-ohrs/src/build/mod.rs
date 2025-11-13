@@ -36,8 +36,10 @@ pub struct Context<'a> {
   pub package: Option<Package>,
   // 当前构建项目的产物地址 用于支持cargo workspace的构建
   pub cargo_build_target_dir: Option<Utf8PathBuf>,
-  // ndk 路径
-  pub ndk: String,
+  // ohos_ndk 路径
+  pub ohos_ndk: String,
+  // hos_ndk 路径
+  pub hos_ndk: String,
   // 所有产物的文件路径 避免重复获取
   #[allow(dead_code)]
   pub dist_files: Vec<PathBuf>,

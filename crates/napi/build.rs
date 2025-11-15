@@ -11,6 +11,10 @@ fn main() {
   if env::var("CARGO_FEATURE_NAPI10").is_ok() {
     panic!("Please don't set features with napi10")
   }
+  if env::var("CARGO_FEATURE_NODE_VERSION_DETECT").is_ok() {
+    panic!("Please don't set features with node_version_detect")
+  }
+
   println!("cargo::rustc-check-cfg=cfg(tokio_unstable)");
 
   let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();

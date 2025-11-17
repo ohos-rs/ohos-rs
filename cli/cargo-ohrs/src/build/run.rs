@@ -11,9 +11,8 @@ use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
 pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
-  let bisheng_arg = String::from("--bisheng");
   let mut ndk = format!("{}{}", &ctx.ohos_ndk, "/native/llvm");
-  if cargo_args.contains(&bisheng_arg) {
+  if cargo_args.contains(&String::from("--bisheng")) {
     if ctx.hos_ndk.len() > 0 {
       ndk = format!("{}{}", &ctx.hos_ndk, "/native/BiSheng")
     } else {
@@ -120,12 +119,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   ]);
 
   // respect cli extra args
-  args.extend(
-    cargo_args
-      .iter()
-      .filter(|s| !s.eq_ignore_ascii_case(&bisheng_arg))
-      .map(|s| s.as_str()),
-  );
+  args.extend(cargo_args.iter().map(|s| s.as_str()));
   let mut artifact_files: Vec<PathBuf> = Vec::new();
 
   let mut child = Command::new("cargo")

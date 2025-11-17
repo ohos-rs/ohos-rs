@@ -6,10 +6,13 @@ use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
 pub fn run(arch: &Arch, ohos_ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
+  let bisheng_arg = String::from("--bisheng");
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
   let mut ndk = format!("{}{}", &ohos_ndk, "/native/llvm");
-  if let Some(hos_ndk) = get_hos_sdk(&ohos_ndk) {
-    ndk = format!("{}{}", &hos_ndk, "/native/BiSheng");
+  if args.contains(&&bisheng_arg) {
+    if let Some(hos_ndk) = get_hos_sdk(&ohos_ndk) {
+      ndk = format!("{}{}", &hos_ndk, "/native/BiSheng");
+    }
   }
   let ran_path = format!("{}/bin/llvm-ranlib", &ndk);
   let ar_path = format!("{}/bin/llvm-ar", &ndk);
@@ -27,7 +30,7 @@ pub fn run(arch: &Arch, ohos_ndk: String, args: Vec<&String>) -> anyhow::Result<
   let mut rustflags = format!(
     "-Clink-args=-target {} --sysroot={}/native/sysroot -D__MUSL__",
     &arch.c_target(),
-    &ndk
+    &ohos_ndk
   );
 
   let mut path = env::var("PATH").unwrap_or(String::default());
@@ -70,9 +73,13 @@ pub fn run(arch: &Arch, ohos_ndk: String, args: Vec<&String>) -> anyhow::Result<
     ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
     ("PATH", &path),
   ]);
+  let cmd_args: Vec<&&String> = args
+    .iter()
+    .filter(|s| s.eq_ignore_ascii_case(&bisheng_arg))
+    .collect();
 
   let mut child = Command::new("cargo")
-    .args(args)
+    .args(cmd_args)
     .envs(&prepare_env)
     .stdout(Stdio::piped())
     .spawn()?;

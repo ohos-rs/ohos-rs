@@ -169,12 +169,7 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
 
   // 获取 ndk 环境变量配置
   //hos sdk
-  let hos_ndk = env::var("HOS_NDK_HOME").map_err(|_| {
-    Error::msg(
-      "Failed to get the HOS_NDK_HOME environment variable, please make sure you have set it.",
-    )
-  })?;
-  ctx.hos_ndk = hos_ndk;
+  ctx.hos_ndk = env::var("HOS_NDK_HOME").unwrap_or_default();
   //ohos sdk
   let ohos_ndk = env::var("OHOS_NDK_HOME").map_err(|_| {
     Error::msg(

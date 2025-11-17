@@ -30,6 +30,7 @@ pub(crate) struct BuildArgs {
   target_dir: Option<String>,
   skip_check: bool,
   zigbuild: bool,
+  bisheng: bool,
 }
 
 #[derive(Debug, Clone)]

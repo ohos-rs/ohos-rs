@@ -19,6 +19,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.dts_cache = args.dts_cache;
   ctx.skip_check = args.skip_check;
   ctx.zigbuild = args.zigbuild;
+  ctx.bisheng = args.bisheng;
 
   // 判断当前构建环境以及获取metadata信息
   let cargo_file = ctx.pwd.join("./Cargo.toml");
@@ -174,7 +175,7 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
     )
   })?;
   ctx.hos_ndk = get_hos_sdk(&ohos_ndk).unwrap_or_default();
-  ctx.ohos_ndk = ohos_ndk;
+  ctx.ndk = ohos_ndk;
 
   Ok(())
 }

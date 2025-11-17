@@ -1,4 +1,4 @@
-use std::{env, path::Path};
+use std::env;
 
 pub fn setup() {
   let ohos_ndk = env::var("OHOS_NDK_HOME").expect("OHOS_NDK_HOME not set.");
@@ -14,25 +14,11 @@ pub fn setup() {
     "cargo:rustc-link-search={}/native/sysroot/usr/lib/{}",
     &ohos_ndk, &lib_dir
   );
-  let mut hos_ndk = None;
-  if let Some(root) = Path::new(&ohos_ndk).parent() {
-    if let Some(path) = root.join("hms").to_str() {
-      hos_ndk = Some(path.to_string());
-    }
-  }
-  if let Some(ndk) = hos_ndk {
-    // for libc++_shared.so etc.
-    println!(
-      "cargo:rustc-link-search={}/native/llvm/lib/{}",
-      &ndk, &lib_dir
-    );
-  } else {
-    // for libc++_shared.so etc.
-    println!(
-      "cargo:rustc-link-search={}/native/llvm/lib/{}",
-      &ohos_ndk, &lib_dir
-    );
-  };
+  // for libc++_shared.so etc.
+  println!(
+    "cargo:rustc-link-search={}/native/llvm/lib/{}",
+    &ndk, &lib_dir
+  );
   // link libace_napi.z.so
   println!("cargo:rustc-link-lib=dylib=ace_napi.z");
 }

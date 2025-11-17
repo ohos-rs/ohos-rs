@@ -53,6 +53,10 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     .help("Use zigbuild to build the project, will be set to false by default.")
     .flag(true, false);
 
+  let bisheng = long("bisheng")
+    .help("Use bisheng to build the project, will be set to false by default.")
+    .flag(true, false);
+
   let init_parser = construct!(crate::BuildArgs {
     dist,
     arch,
@@ -62,6 +66,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     dts_cache,
     skip_check,
     zigbuild,
+    bisheng,
     target_dir,
     cargo_args,
   });

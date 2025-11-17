@@ -11,14 +11,12 @@ use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
 pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
-  let mut ndk = format!("{}{}", &ctx.ohos_ndk, "/native/llvm");
-  if cargo_args.contains(&String::from("--bisheng")) {
-    if ctx.hos_ndk.len() > 0 {
-      ndk = format!("{}{}", &ctx.hos_ndk, "/native/BiSheng")
-    } else {
-      println!("Currently use OpenHarmony SDK Compiler, Because Failed to get the HarmonyOS NDK.");
-    }
+
+  let mut ndk = format!("{}{}", &ctx.ndk, "/native/llvm");
+  if ctx.bisheng {
+    ndk = format!("{}{}", &ctx.hos_ndk, "/native/BiSheng");
   }
+
   let ran_path = format!("{}/bin/llvm-ranlib", ndk);
   let ar_path = format!("{}/bin/llvm-ar", ndk);
   let cc_path = format!("{}/bin/clang", ndk);
@@ -39,9 +37,8 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   // Therefore we collect the args in an array and set them via multiple `link-arg` uses.
   let mut base_flags = vec![
     format!("--target={}", &arch.c_target()),
-    format!("--sysroot={}/native/sysroot", &ctx.ohos_ndk),
+    format!("--sysroot={}/native/sysroot", &ctx.ndk),
     "-D__MUSL__".into(),
-    "--verbose".into(),
   ];
 
   let mut path = env::var("PATH").unwrap_or_default();
@@ -120,6 +117,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
 
   // respect cli extra args
   args.extend(cargo_args.iter().map(|s| s.as_str()));
+
   let mut artifact_files: Vec<PathBuf> = Vec::new();
 
   let mut child = Command::new("cargo")
@@ -145,7 +143,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
               }
             }
             Message::BuildScriptExecuted(script) => {
-              if let Some(lib) = resolve_dependence_library(script, ctx.ohos_ndk.clone()) {
+              if let Some(lib) = resolve_dependence_library(script, ctx.ndk.clone()) {
                 artifact_files.extend(lib);
               }
             }

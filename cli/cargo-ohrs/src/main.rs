@@ -43,6 +43,7 @@ pub(crate) struct ArtifactArgs {
 #[derive(Debug, Clone)]
 pub(crate) struct CargoArgs {
   arch: Option<Vec<Arch>>,
+  bisheng: bool,
   disable_target: bool,
   args: Vec<String>,
 }

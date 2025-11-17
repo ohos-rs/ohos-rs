@@ -5,15 +5,15 @@ use std::env;
 use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
-pub fn run(arch: &Arch, ohos_ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
-  let bisheng_arg = String::from("--bisheng");
+pub fn run(arch: &Arch, ndk: String, args: Vec<&String>, bisheng: bool) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
-  let mut ndk = format!("{}{}", &ohos_ndk, "/native/llvm");
-  if args.contains(&&bisheng_arg) {
-    if let Some(hos_ndk) = get_hos_sdk(&ohos_ndk) {
-      ndk = format!("{}{}", &hos_ndk, "/native/BiSheng");
-    }
+
+  let mut ndk = format!("{}{}", &ndk, "/native/llvm");
+  if bisheng {
+    let hos_ndk = get_hos_sdk(&ndk).unwrap();
+    ndk = format!("{}{}", &hos_ndk, "/native/BiSheng");
   }
+
   let ran_path = format!("{}/bin/llvm-ranlib", &ndk);
   let ar_path = format!("{}/bin/llvm-ar", &ndk);
   let cc_path = format!("{}/bin/clang", &ndk);
@@ -27,11 +27,11 @@ pub fn run(arch: &Arch, ohos_ndk: String, args: Vec<&String>) -> anyhow::Result<
   let bin_path = format!("{}/bin", &ndk);
   // for bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
   // let lib_path = format!("{}/native/llvm/lib", &ndk);
-  let mut rustflags = format!(
-    "-Clink-args=-target {} --sysroot={}/native/sysroot -D__MUSL__",
-    &arch.c_target(),
-    &ohos_ndk
-  );
+  let mut base_flags = vec![
+    format!("--target={}", &arch.c_target()),
+    format!("--sysroot={}/native/sysroot", &ndk),
+    "-D__MUSL__".into(),
+  ];
 
   let mut path = env::var("PATH").unwrap_or(String::default());
   // for windows, path need to use ; as split symbol
@@ -49,12 +49,26 @@ pub fn run(arch: &Arch, ohos_ndk: String, args: Vec<&String>) -> anyhow::Result<
     env::var("CARGO_RUSTFLAGS").unwrap_or(env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default());
 
   if arch.to_arch() == "armeabi-v7a" {
-    rustflags = format!(
-      "{} -march=armv7-a -mfloat-abi=softfp -mtune=generic-armv7-a -mthumb",
-      rustflags
-    );
+    base_flags.push("-march=armv7-a".into());
+    base_flags.push("-mfloat-abi=softfp".into());
+    base_flags.push("-mtune=generic-armv7-a".into());
+    base_flags.push("-mthumb".into());
   }
-  rustflags = format!("{} {}", rustflags, preset_args);
+
+  let mut rust_flags = base_flags
+    .iter()
+    .map(|f| format!("-Clink-arg={f}"))
+    .collect::<Vec<_>>()
+    .join("\x1f");
+
+  if !args.is_empty() {
+    rust_flags = format!("{}\x1f{}", &rust_flags, &preset_args)
+  }
+
+  // for some package deps on atomic
+  let builtins = String::from("clang_rt.builtins");
+
+  let base_flags = base_flags.join(" ");
 
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
@@ -70,13 +84,14 @@ pub fn run(arch: &Arch, ohos_ndk: String, args: Vec<&String>) -> anyhow::Result<
     ("TARGET_OBJDUMP", &obj_dump_path),
     ("TARGET_OBJCOPY", &obj_copy_path),
     ("TARGET_NM", &nm_path),
-    ("CARGO_ENCODED_RUSTFLAGS", &rustflags),
+    ("CARGO_ENCODED_RUSTFLAGS", &rust_flags),
     ("PATH", &path),
+    // support opencv-rust
+    ("OPENCV_CLANG_ARGS", &base_flags),
+    ("DEP_ATOMIC", &builtins),
   ]);
-  let cmd_args: Vec<&&String> = args
-    .iter()
-    .filter(|s| s.eq_ignore_ascii_case(&bisheng_arg))
-    .collect();
+
+  let cmd_args: Vec<&&String> = args.iter().collect();
 
   let mut child = Command::new("cargo")
     .args(cmd_args)

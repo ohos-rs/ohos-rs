@@ -62,7 +62,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
 
       all_args.extend(rest_args);
 
-      run::run(arch, ohos_ndk.clone(), all_args)?;
+      run::run(arch, ohos_ndk.clone(), all_args, args.bisheng)?;
       Ok(())
     })
     .collect::<anyhow::Result<Vec<_>>>()?;

@@ -1,7 +1,7 @@
 use std::env;
 
 pub fn setup() {
-  let ohos_ndk = env::var("OHOS_NDK_HOME").expect("OHOS_NDK_HOME not set.");
+  let ndk = env::var("OHOS_NDK_HOME").expect("OHOS_NDK_HOME not set.");
   let target = env::var("TARGET").expect("Try to get build target failed.");
   let lib_dir = match target.as_ref() {
     "aarch64-unknown-linux-ohos" => "aarch64-linux-ohos",
@@ -12,7 +12,7 @@ pub fn setup() {
   // for zig-build avoid to use RUSTFLAGS="-L xxxx"
   println!(
     "cargo:rustc-link-search={}/native/sysroot/usr/lib/{}",
-    &ohos_ndk, &lib_dir
+    &ndk, &lib_dir
   );
   // for libc++_shared.so etc.
   println!(

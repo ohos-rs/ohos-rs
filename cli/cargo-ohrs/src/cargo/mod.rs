@@ -1,16 +1,22 @@
-use anyhow::Error;
-use std::{env, str::FromStr};
-
 use crate::util::Arch;
+use anyhow::Error;
+use std::{env, path::Path, str::FromStr};
 
 mod run;
 
 pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
-  let ndk = env::var("OHOS_NDK_HOME").map_err(|_| {
+  let mut hos_ndk = String::default();
+  let ohos_ndk = env::var("OHOS_NDK_HOME").map_err(|_| {
     Error::msg(
       "Failed to get the OHOS_NDK_HOME environment variable, please make sure you have set it.",
     )
   })?;
+  if let Some(root) = Path::new(&ohos_ndk).parent() {
+    if let Some(path) = root.join("hms").to_str() {
+      hos_ndk = path.to_string();
+    }
+  }
+
   let (command, rest_args) = args.args.split_at(1);
   let mut target_arch = args.arch.unwrap_or(vec![Arch::ARM64]);
   let mut target_arg = None;
@@ -63,7 +69,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
 
       all_args.extend(rest_args);
 
-      run::run(arch, ndk.clone(), all_args)?;
+      run::run(arch, ohos_ndk.clone(), hos_ndk.clone(), all_args)?;
       Ok(())
     })
     .collect::<anyhow::Result<Vec<_>>>()?;

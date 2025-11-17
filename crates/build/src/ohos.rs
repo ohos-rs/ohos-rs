@@ -23,7 +23,7 @@ pub fn setup() {
   if let Some(ndk) = hos_ndk {
     // for libc++_shared.so etc.
     println!(
-      "cargo:rustc-link-search={}/native/llvm/lib/{}",
+      "cargo:rustc-link-search={}/native/BiSheng/lib/{}",
       &ndk, &lib_dir
     );
   } else {

@@ -4,19 +4,28 @@ use std::env;
 use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
-pub fn run(arch: &Arch, ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
+pub fn run(
+  arch: &Arch,
+  ohos_ndk: String,
+  hos_ndk: String,
+  args: Vec<&String>,
+) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
-  let ran_path = format!("{}/native/llvm/bin/llvm-ranlib", &ndk);
-  let ar_path = format!("{}/native/llvm/bin/llvm-ar", &ndk);
-  let cc_path = format!("{}/native/llvm/bin/clang", &ndk);
-  let cxx_path = format!("{}/native/llvm/bin/clang++", &ndk);
-  let as_path = format!("{}/native/llvm/bin/llvm-as", &ndk);
-  let ld_path = format!("{}/native/llvm/bin/ld.lld", &ndk);
-  let strip_path = format!("{}/native/llvm/bin/llvm-strip", &ndk);
-  let obj_dump_path = format!("{}/native/llvm/bin/llvm-objdump", &ndk);
-  let obj_copy_path = format!("{}/native/llvm/bin/llvm-objcopy", &ndk);
-  let nm_path = format!("{}/native/llvm/bin/llvm-nm", &ndk);
-  let bin_path = format!("{}/native/llvm/bin", &ndk);
+  let mut ndk = format!("{}{}", &ohos_ndk, "/native/llvm");
+  if hos_ndk.len() > 0 {
+    ndk = format!("{}{}", &hos_ndk, "/native/BiSheng");
+  }
+  let ran_path = format!("{}/bin/llvm-ranlib", &ndk);
+  let ar_path = format!("{}/bin/llvm-ar", &ndk);
+  let cc_path = format!("{}/bin/clang", &ndk);
+  let cxx_path = format!("{}/bin/clang++", &ndk);
+  let as_path = format!("{}/bin/llvm-as", &ndk);
+  let ld_path = format!("{}/bin/ld.lld", &ndk);
+  let strip_path = format!("{}/bin/llvm-strip", &ndk);
+  let obj_dump_path = format!("{}/bin/llvm-objdump", &ndk);
+  let obj_copy_path = format!("{}/bin/llvm-objcopy", &ndk);
+  let nm_path = format!("{}/bin/llvm-nm", &ndk);
+  let bin_path = format!("{}/bin", &ndk);
   // for bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
   // let lib_path = format!("{}/native/llvm/lib", &ndk);
   let mut rustflags = format!(

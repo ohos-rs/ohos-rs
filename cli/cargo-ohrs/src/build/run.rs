@@ -1,6 +1,4 @@
-use crate::build::Context;
-use crate::util::Arch;
-use crate::{check_and_clean_file_or_dir, create_dist_dir, move_file};
+use crate::{build::Context, util::Arch, *};
 use anyhow::Error;
 use cargo_metadata::Message;
 use std::collections::HashMap;
@@ -13,11 +11,15 @@ use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
 pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
-  let ndk = if ctx.ohos_ndk.len() > 0 {
-    format!("{}{}", &ctx.ohos_ndk, "/native/llvm")
-  } else {
-    format!("{}{}", &ctx.hos_ndk, "/native/BiSheng")
-  };
+  let bisheng_arg = String::from("--bisheng");
+  let mut ndk = format!("{}{}", &ctx.ohos_ndk, "/native/llvm");
+  if cargo_args.contains(&bisheng_arg) {
+    if ctx.hos_ndk.len() > 0 {
+      ndk = format!("{}{}", &ctx.hos_ndk, "/native/BiSheng")
+    } else {
+      println!("Currently use OpenHarmony SDK Compiler, Because Failed to get the HarmonyOS NDK.");
+    }
+  }
   let ran_path = format!("{}/bin/llvm-ranlib", ndk);
   let ar_path = format!("{}/bin/llvm-ar", ndk);
   let cc_path = format!("{}/bin/clang", ndk);
@@ -118,8 +120,12 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   ]);
 
   // respect cli extra args
-  args.extend(cargo_args.iter().map(|s| s.as_str()));
-
+  args.extend(
+    cargo_args
+      .iter()
+      .filter(|s| !s.eq_ignore_ascii_case(&bisheng_arg))
+      .map(|s| s.as_str()),
+  );
   let mut artifact_files: Vec<PathBuf> = Vec::new();
 
   let mut child = Command::new("cargo")

@@ -5,7 +5,11 @@ use std::cell::{LazyCell, RefCell};
 use std::collections::HashSet;
 #[cfg(not(feature = "noop"))]
 use std::ffi::CStr;
-#[cfg(all(not(feature = "noop"), feature = "node_version_detect"))]
+#[cfg(all(
+  not(feature = "noop"),
+  feature = "node_version_detect",
+  not(target_env = "ohos")
+))]
 use std::mem::MaybeUninit;
 #[cfg(not(feature = "noop"))]
 use std::ptr;
@@ -30,11 +34,11 @@ pub type ExportRegisterHookCallback =
 pub type ModuleExportsCallback =
   unsafe fn(env: sys::napi_env, exports: sys::napi_value) -> Result<()>;
 
-#[cfg(feature = "node_version_detect")]
+#[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
 pub static mut NODE_VERSION_MAJOR: u32 = 0;
-#[cfg(feature = "node_version_detect")]
+#[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
 pub static mut NODE_VERSION_MINOR: u32 = 0;
-#[cfg(feature = "node_version_detect")]
+#[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
 pub static mut NODE_VERSION_PATCH: u32 = 0;
 
 #[repr(transparent)]
@@ -249,7 +253,7 @@ pub unsafe extern "C" fn napi_register_module_v1(
   unsafe {
     sys::setup();
   }
-  #[cfg(feature = "node_version_detect")]
+  #[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
   {
     let mut node_version = MaybeUninit::uninit();
     check_status_or_throw!(

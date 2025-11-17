@@ -44,7 +44,6 @@ napi-ohos = { path = "../../crates/napi", default-features = false, features = [
   "tokio_io_util",
   "deferred_trace",
   "napi8",
-  "node_version_detect",
   "web_stream",
   "error_anyhow",
 ] }

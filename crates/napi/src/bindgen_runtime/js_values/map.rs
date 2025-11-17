@@ -31,7 +31,10 @@ where
       #[cfg(all(
         feature = "experimental",
         feature = "node_version_detect",
-        any(all(target_os = "linux", feature = "dyn-symbols"), target_os = "macos")
+        any(
+          all(target_os = "linux", feature = "dyn-symbols", not(target_env = "ohos")),
+          target_os = "macos"
+        )
       ))]
       {
         if NODE_VERSION_MAJOR >= 20 && NODE_VERSION_MINOR >= 18 {
@@ -43,7 +46,10 @@ where
       #[cfg(not(all(
         feature = "experimental",
         feature = "node_version_detect",
-        any(all(target_os = "linux", feature = "dyn-symbols"), target_os = "macos")
+        any(
+          all(target_os = "linux", feature = "dyn-symbols", not(target_env = "ohos")),
+          target_os = "macos"
+        )
       )))]
       obj.set(k.as_ref(), v)?;
     }
@@ -97,7 +103,10 @@ where
       #[cfg(all(
         feature = "experimental",
         feature = "node_version_detect",
-        any(all(target_os = "linux", feature = "dyn-symbols"), target_os = "macos")
+        any(
+          all(target_os = "linux", feature = "dyn-symbols", not(target_env = "ohos")),
+          target_os = "macos"
+        )
       ))]
       {
         if crate::bindgen_runtime::NODE_VERSION_MAJOR >= 20 && NODE_VERSION_MINOR >= 18 {
@@ -109,7 +118,10 @@ where
       #[cfg(not(all(
         feature = "experimental",
         feature = "node_version_detect",
-        any(all(target_os = "linux", feature = "dyn-symbols"), target_os = "macos")
+        any(
+          all(target_os = "linux", feature = "dyn-symbols", not(target_env = "ohos")),
+          target_os = "macos"
+        )
       )))]
       obj.set(k.as_ref(), v)?;
     }
@@ -165,7 +177,10 @@ where
       #[cfg(all(
         feature = "experimental",
         feature = "node_version_detect",
-        any(all(target_os = "linux", feature = "dyn-symbols"), target_os = "macos")
+        any(
+          all(target_os = "linux", feature = "dyn-symbols", not(target_env = "ohos")),
+          target_os = "macos"
+        )
       ))]
       {
         if crate::bindgen_runtime::NODE_VERSION_MAJOR >= 20 && NODE_VERSION_MINOR >= 18 {
@@ -177,7 +192,10 @@ where
       #[cfg(not(all(
         feature = "experimental",
         feature = "node_version_detect",
-        any(all(target_os = "linux", feature = "dyn-symbols"), target_os = "macos")
+        any(
+          all(target_os = "linux", feature = "dyn-symbols", not(target_env = "ohos")),
+          target_os = "macos"
+        )
       )))]
       obj.set(k.as_ref(), v)?;
     }
@@ -209,7 +227,10 @@ where
 #[cfg(all(
   feature = "experimental",
   feature = "node_version_detect",
-  any(all(target_os = "linux", feature = "dyn-symbols"), target_os = "macos")
+  any(
+    all(target_os = "linux", feature = "dyn-symbols", not(target_env = "ohos")),
+    target_os = "macos"
+  )
 ))]
 fn fast_set_property<K: AsRef<str>, V: ToNapiValue>(
   raw_env: sys::napi_env,

@@ -1,18 +1,14 @@
+use crate::build::get_hos_sdk;
 use crate::util::Arch;
 use std::collections::HashMap;
 use std::env;
 use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
-pub fn run(
-  arch: &Arch,
-  ohos_ndk: String,
-  hos_ndk: String,
-  args: Vec<&String>,
-) -> anyhow::Result<()> {
+pub fn run(arch: &Arch, ohos_ndk: String, args: Vec<&String>) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
   let mut ndk = format!("{}{}", &ohos_ndk, "/native/llvm");
-  if hos_ndk.len() > 0 {
+  if let Some(hos_ndk) = get_hos_sdk(&ohos_ndk) {
     ndk = format!("{}{}", &hos_ndk, "/native/BiSheng");
   }
   let ran_path = format!("{}/bin/llvm-ranlib", &ndk);

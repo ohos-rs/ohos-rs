@@ -1,10 +1,11 @@
 use crate::check_and_clean_file_or_dir;
 use crate::util::Arch;
+use anyhow::Result;
 use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::Package;
 use serde::Deserialize;
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 mod abort_tmp;
 mod artifact;
@@ -90,4 +91,22 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
 
   ts::generate_d_ts_file(&ctx)?;
   Ok(())
+}
+
+pub(crate) fn get_hos_sdk(ohos_ndk: &str) -> Option<String> {
+  let mut hos_ndk = None;
+  if let Some(root) = Path::new(ohos_ndk).parent() {
+    if let Some(path) = root.join("hms").to_str() {
+      hos_ndk = Some(path.to_string());
+    }
+  }
+  if hos_ndk.is_none() {
+    if let Ok(ndk) = env::var("HOS_NDK_HOME") {
+      hos_ndk = Some(ndk);
+    }
+  }
+  if hos_ndk.is_none() {
+    println!("Currently use OpenHarmony SDK Compiler, Because Failed to get the HarmonyOS NDK.");
+  }
+  hos_ndk
 }

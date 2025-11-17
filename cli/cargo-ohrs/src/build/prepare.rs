@@ -1,4 +1,4 @@
-use crate::build::{Context, Template};
+use crate::build::{get_hos_sdk, Context, Template};
 use crate::create_dist_dir;
 use anyhow::Error;
 use cargo_metadata::MetadataCommand;
@@ -168,14 +168,12 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
   });
 
   // 获取 ndk 环境变量配置
-  //hos sdk
-  ctx.hos_ndk = env::var("HOS_NDK_HOME").unwrap_or_default();
-  //ohos sdk
   let ohos_ndk = env::var("OHOS_NDK_HOME").map_err(|_| {
     Error::msg(
       "Failed to get the OHOS_NDK_HOME environment variable, please make sure you have set it.",
     )
   })?;
+  ctx.hos_ndk = get_hos_sdk(&ohos_ndk).unwrap_or_default();
   ctx.ohos_ndk = ohos_ndk;
 
   Ok(())

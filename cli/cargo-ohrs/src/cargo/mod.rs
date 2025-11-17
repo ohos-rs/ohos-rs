@@ -1,12 +1,11 @@
+use crate::util::Arch;
 use anyhow::Error;
 use std::{env, str::FromStr};
-
-use crate::util::Arch;
 
 mod run;
 
 pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
-  let ndk = env::var("OHOS_NDK_HOME").map_err(|_| {
+  let ohos_ndk = env::var("OHOS_NDK_HOME").map_err(|_| {
     Error::msg(
       "Failed to get the OHOS_NDK_HOME environment variable, please make sure you have set it.",
     )
@@ -63,7 +62,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
 
       all_args.extend(rest_args);
 
-      run::run(arch, ndk.clone(), all_args)?;
+      run::run(arch, ohos_ndk.clone(), all_args, args.bisheng)?;
       Ok(())
     })
     .collect::<anyhow::Result<Vec<_>>>()?;

@@ -1,6 +1,4 @@
-use crate::build::Context;
-use crate::util::Arch;
-use crate::{check_and_clean_file_or_dir, create_dist_dir, move_file};
+use crate::{build::Context, util::Arch, *};
 use anyhow::Error;
 use cargo_metadata::Message;
 use std::collections::HashMap;
@@ -13,19 +11,25 @@ use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 
 pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
-  let ran_path = format!("{}/native/llvm/bin/llvm-ranlib", &ctx.ndk);
-  let ar_path = format!("{}/native/llvm/bin/llvm-ar", &ctx.ndk);
-  let cc_path = format!("{}/native/llvm/bin/clang", &ctx.ndk);
-  let cxx_path = format!("{}/native/llvm/bin/clang++", &ctx.ndk);
-  let as_path = format!("{}/native/llvm/bin/llvm-as", &ctx.ndk);
-  let ld_path = format!("{}/native/llvm/bin/ld.lld", &ctx.ndk);
-  let strip_path = format!("{}/native/llvm/bin/llvm-strip", &ctx.ndk);
-  let obj_dump_path = format!("{}/native/llvm/bin/llvm-objdump", &ctx.ndk);
-  let obj_copy_path = format!("{}/native/llvm/bin/llvm-objcopy", &ctx.ndk);
-  let nm_path = format!("{}/native/llvm/bin/llvm-nm", &ctx.ndk);
-  let bin_path = format!("{}/native/llvm/bin", &ctx.ndk);
+
+  let mut ndk = format!("{}{}", &ctx.ndk, "/native/llvm");
+  if ctx.bisheng {
+    ndk = format!("{}{}", &ctx.hos_ndk, "/native/BiSheng");
+  }
+
+  let ran_path = format!("{}/bin/llvm-ranlib", ndk);
+  let ar_path = format!("{}/bin/llvm-ar", ndk);
+  let cc_path = format!("{}/bin/clang", ndk);
+  let cxx_path = format!("{}/bin/clang++", ndk);
+  let as_path = format!("{}/bin/llvm-as", ndk);
+  let ld_path = format!("{}/bin/ld.lld", ndk);
+  let strip_path = format!("{}/bin/llvm-strip", ndk);
+  let obj_dump_path = format!("{}/bin/llvm-objdump", ndk);
+  let obj_copy_path = format!("{}/bin/llvm-objcopy", ndk);
+  let nm_path = format!("{}/bin/llvm-nm", ndk);
+  let bin_path = format!("{}/bin", ndk);
   // for bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
-  let lib_path = format!("{}/native/llvm/lib", &ctx.ndk);
+  let lib_path = format!("{}/lib", ndk);
   let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
   let std_lib_type = String::from("c++");
 

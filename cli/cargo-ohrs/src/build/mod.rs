@@ -4,7 +4,7 @@ use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::Package;
 use serde::Deserialize;
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 mod abort_tmp;
 mod artifact;
@@ -36,8 +36,10 @@ pub struct Context<'a> {
   pub package: Option<Package>,
   // 当前构建项目的产物地址 用于支持cargo workspace的构建
   pub cargo_build_target_dir: Option<Utf8PathBuf>,
-  // ndk 路径
+  // ohos_ndk 路径
   pub ndk: String,
+  // hos_ndk 路径
+  pub hos_ndk: String,
   // 所有产物的文件路径 避免重复获取
   #[allow(dead_code)]
   pub dist_files: Vec<PathBuf>,
@@ -50,6 +52,7 @@ pub struct Context<'a> {
   pub dts_cache: bool,
   pub skip_check: bool,
   pub zigbuild: bool,
+  pub bisheng: bool,
 }
 
 /// build逻辑
@@ -88,4 +91,22 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
 
   ts::generate_d_ts_file(&ctx)?;
   Ok(())
+}
+
+pub(crate) fn get_hos_sdk(ohos_ndk: &str) -> Option<String> {
+  let mut hos_ndk = None;
+  if let Some(root) = Path::new(ohos_ndk).parent() {
+    if let Some(path) = root.join("hms").to_str() {
+      hos_ndk = Some(path.to_string());
+    }
+  }
+  if hos_ndk.is_none() {
+    if let Ok(ndk) = env::var("HOS_NDK_HOME") {
+      hos_ndk = Some(ndk);
+    }
+  }
+  if hos_ndk.is_none() {
+    println!("Currently use OpenHarmony SDK Compiler, Because Failed to get the HarmonyOS NDK.");
+  }
+  hos_ndk
 }

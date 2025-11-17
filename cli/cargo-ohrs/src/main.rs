@@ -30,6 +30,7 @@ pub(crate) struct BuildArgs {
   target_dir: Option<String>,
   skip_check: bool,
   zigbuild: bool,
+  bisheng: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -42,6 +43,7 @@ pub(crate) struct ArtifactArgs {
 #[derive(Debug, Clone)]
 pub(crate) struct CargoArgs {
   arch: Option<Vec<Arch>>,
+  bisheng: bool,
   disable_target: bool,
   args: Vec<String>,
 }

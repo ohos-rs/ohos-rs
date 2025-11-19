@@ -5,6 +5,7 @@ pub enum Arch {
   ARM64,
   ARM32,
   X86_64,
+  LoongArch64,
 }
 
 impl Arch {
@@ -13,6 +14,7 @@ impl Arch {
       Arch::ARM64 => "arm64-v8a",
       Arch::ARM32 => "armeabi-v7a",
       Arch::X86_64 => "x86_64",
+      Arch::LoongArch64 => "loongarch64",
     }
   }
   pub fn c_target(self) -> &'static str {
@@ -20,6 +22,7 @@ impl Arch {
       Arch::ARM64 => "aarch64-linux-ohos",
       Arch::ARM32 => "arm-linux-ohos",
       Arch::X86_64 => "x86_64-linux-ohos",
+      Arch::LoongArch64 => "loongarch64-linux-ohos",
     }
   }
   pub fn rust_link_target(self) -> &'static str {
@@ -27,6 +30,7 @@ impl Arch {
       Arch::ARM64 => "AARCH64_UNKNOWN_LINUX_OHOS",
       Arch::ARM32 => "ARMV7_UNKNOWN_LINUX_OHOS",
       Arch::X86_64 => "X86_64_UNKNOWN_LINUX_OHOS",
+      Arch::LoongArch64 => "LOONGARCH64_UNKNOWN_LINUX_OHOS",
     }
   }
 
@@ -35,6 +39,7 @@ impl Arch {
       Arch::ARM64 => "aarch64-unknown-linux-ohos",
       Arch::ARM32 => "armv7-unknown-linux-ohos",
       Arch::X86_64 => "x86_64-unknown-linux-ohos",
+      Arch::LoongArch64 => "loongarch64-unknown-linux-ohos",
     }
   }
 }
@@ -62,7 +67,14 @@ impl FromStr for Arch {
       | "x86_64-linux-ohos"
       | "x86_64-unknown-linux-ohos"
       | "X86_64_UNKNOWN_LINUX_OHOS" => Ok(Arch::X86_64),
-      _ => Err("Only supports aarch/arm64, arm/arm32, and x86_64/x64 architectures.".to_string()),
+      "loongarch64"
+      | "loongarch64-linux-ohos"
+      | "loongarch64-unknown-linux-ohos"
+      | "LOONGARCH64_UNKNOWN_LINUX_OHOS" => Ok(Arch::LoongArch64),
+      _ => Err(
+        "Only supports aarch/arm64, arm/arm32, x86_64/x64 and loongarch64 architectures."
+          .to_string(),
+      ),
     }
   }
 }

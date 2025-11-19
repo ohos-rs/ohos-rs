@@ -10,6 +10,12 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
       "Failed to get the OHOS_NDK_HOME environment variable, please make sure you have set it.",
     )
   })?;
+  if args.args.len() < 1 {
+    return Err(Error::msg(
+      "You don't provide any command for current command.",
+    ));
+  }
+
   let (command, rest_args) = args.args.split_at(1);
   let mut target_arch = args.arch.unwrap_or(vec![Arch::ARM64]);
   let mut target_arg = None;
@@ -49,18 +55,22 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
   target_arch
     .iter()
     .map(|arch| {
-      let mut all_args = Vec::new();
+      let mut all_args = match arch.to_arch() {
+        "loongarch64" => vec!["+nightly"],
+        _ => Vec::new(),
+      };
 
-      all_args.extend(command);
-
-      let t = String::from("--target");
-      let rt = String::from(arch.rust_target());
+      all_args.extend([command[0].as_str()]);
 
       if !args.disable_target {
-        all_args.extend([&t, &rt]);
+        all_args.extend(["--target", arch.rust_target()]);
       }
 
-      all_args.extend(rest_args);
+      if arch.to_arch() == "loongarch64" {
+        all_args.extend(["-Z", "build-std"]);
+      }
+
+      all_args.extend(rest_args.iter().map(|s| s.as_str()));
 
       run::run(arch, ohos_ndk.clone(), all_args, args.bisheng)?;
       Ok(())

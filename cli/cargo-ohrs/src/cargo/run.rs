@@ -5,7 +5,7 @@ use std::env;
 use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
-pub fn run(arch: &Arch, ndk: String, args: Vec<&String>, bisheng: bool) -> anyhow::Result<()> {
+pub fn run(arch: &Arch, ndk: String, args: Vec<&str>, bisheng: bool) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
 
   let mut ndk = format!("{}{}", &ndk, "/native/llvm");
@@ -26,7 +26,10 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<&String>, bisheng: bool) -> anyho
   let nm_path = format!("{}/bin/llvm-nm", &ndk);
   let bin_path = format!("{}/bin", &ndk);
   // for bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
-  // let lib_path = format!("{}/native/llvm/lib", &ndk);
+  let lib_path = format!("{}/lib", ndk);
+  let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
+  let std_lib_type = String::from("c++");
+
   let mut base_flags = vec![
     format!("--target={}", &arch.c_target()),
     format!("--sysroot={}/native/sysroot", &ndk),
@@ -61,7 +64,7 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<&String>, bisheng: bool) -> anyho
     .collect::<Vec<_>>()
     .join("\x1f");
 
-  if !args.is_empty() {
+  if !preset_args.is_empty() {
     rust_flags = format!("{}\x1f{}", &rust_flags, &preset_args)
   }
 
@@ -72,8 +75,9 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<&String>, bisheng: bool) -> anyho
 
   let prepare_env = HashMap::from([
     (linker_name.as_str(), &cc_path),
-    // ("LIBCLANG_PATH",&lib_path),
-    // ("CLANG_PATH",&cc_path),
+    ("LIBCLANG_PATH", &lib_path),
+    ("CLANG_PATH", &cxx_path),
+    (std_lib.as_str(), &std_lib_type),
     ("TARGET_CC", &cc_path),
     ("TARGET_CXX", &cxx_path),
     ("TARGET_RANLIB", &ran_path),
@@ -91,10 +95,11 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<&String>, bisheng: bool) -> anyho
     ("DEP_ATOMIC", &builtins),
   ]);
 
-  let cmd_args: Vec<&&String> = args.iter().collect();
+  println!("args: {:?}", args);
+  println!("prepare_env: {:?}", prepare_env);
 
   let mut child = Command::new("cargo")
-    .args(cmd_args)
+    .args(args)
     .envs(&prepare_env)
     .stdout(Stdio::piped())
     .spawn()?;

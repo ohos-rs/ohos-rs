@@ -14,7 +14,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
 
   let arch = long("arch")
     .short('a')
-    .help("The target build products support arm64/aarch, arm/arm32, and x86_64/x64 architectures, with all builds enabled by default.")
+    .help("The target build products support arm64/aarch, arm/arm32, x86_64/x64 and loongarch64 architectures, with arm64/arm/x64 enabled by default.")
     .argument::<Arch>("ARCH")
     .some("Please provide at least one architecture")
     .optional()

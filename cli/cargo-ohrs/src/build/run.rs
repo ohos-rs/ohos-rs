@@ -108,7 +108,17 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
     ("DEP_ATOMIC", &builtins),
   ]);
 
-  let mut args = ctx.init_args.clone();
+  let mut args = match arch.to_arch() {
+    "loongarch64" => {
+      // loongarch64 need to use nightly rust and build-std which is tier3 stage
+      let mut init_args = vec!["+nightly"];
+      init_args.extend(ctx.init_args.clone());
+      init_args.extend(["-Z", "build-std"]);
+      init_args
+    }
+    _ => ctx.init_args.clone(),
+  };
+
   args.extend([
     "--target",
     arch.rust_target(),

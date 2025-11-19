@@ -70,7 +70,7 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
 
   let cargo_args = current_args.cargo_args.unwrap_or_default();
 
-  [Arch::ARM64, Arch::ARM32, Arch::X86_64]
+  [Arch::ARM64, Arch::ARM32, Arch::X86_64, Arch::LoongArch64]
     .iter()
     .filter_map(|&i| {
       if build_arch.contains(&i) {

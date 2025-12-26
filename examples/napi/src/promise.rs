@@ -1,5 +1,4 @@
-use napi::{bindgen_prelude::*, Error, JsString};
-use napi_ohos::{bindgen_prelude::*, JsString};
+use napi_ohos::{bindgen_prelude::*, Error, JsString};
 
 #[napi]
 pub async fn async_plus_100(p: Promise<u32>) -> Result<u32> {

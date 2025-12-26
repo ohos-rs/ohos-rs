@@ -7,7 +7,10 @@ use crate::{
   check_status, sys, Result,
 };
 
-#[deprecated(since = "1.1.0", note = "Use `napi::bindgen_prelude::BigInt` instead")]
+#[deprecated(
+  since = "1.1.0",
+  note = "Use `napi_ohos::bindgen_prelude::BigInt` instead"
+)]
 #[derive(Clone, Copy)]
 pub struct JsBigInt {
   pub(crate) raw: Value,

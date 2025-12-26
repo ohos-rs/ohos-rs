@@ -54,8 +54,8 @@ pub fn fetch(
 
           Some(Ok(bytes))
         }
-        Err(e) => Some(Err(napi::Error::new(
-          napi::Status::Unknown,
+        Err(e) => Some(Err(napi_ohos::Error::new(
+          napi_ohos::Status::Unknown,
           format!("Error reading response stream: {e:?}"),
         ))),
       });

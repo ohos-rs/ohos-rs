@@ -6,7 +6,7 @@ use crate::{
 #[cfg(feature = "compat-mode")]
 #[deprecated(
   since = "1.1.0",
-  note = "Please use `napi::bindgen_prelude::Null` instead"
+  note = "Please use `napi_ohos::bindgen_prelude::Null` instead"
 )]
 #[derive(Clone, Copy)]
 pub struct JsNull(pub(crate) Value);

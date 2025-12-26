@@ -31,7 +31,7 @@ impl TypeName for JsFunction {
 ///
 /// Example:
 /// ```
-/// use napi::{JsFunction, CallContext, JsNull, Result};
+/// use napi_ohos::{JsFunction, CallContext, JsNull, Result};
 ///
 /// #[js_function(1)]
 /// pub fn call_function(ctx: CallContext) -> Result<JsNull> {

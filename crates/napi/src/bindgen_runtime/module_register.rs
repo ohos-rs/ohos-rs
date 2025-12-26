@@ -13,6 +13,8 @@ use std::ffi::CStr;
 use std::mem::MaybeUninit;
 #[cfg(not(feature = "noop"))]
 use std::ptr;
+#[cfg(all(not(feature = "noop"), feature = "node_version_detect"))]
+use std::sync::OnceLock;
 #[cfg(not(feature = "noop"))]
 use std::sync::{
   atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -22,6 +24,8 @@ use std::{any::TypeId, collections::HashMap};
 
 use rustc_hash::FxBuildHasher;
 
+#[cfg(all(not(feature = "noop"), feature = "node_version_detect"))]
+use crate::NodeVersion;
 #[cfg(not(feature = "noop"))]
 use crate::{check_status, check_status_or_throw, JsError};
 use crate::{sys, Property, Result};
@@ -35,6 +39,10 @@ pub type ModuleExportsCallback =
   unsafe fn(env: sys::napi_env, exports: sys::napi_value) -> Result<()>;
 
 #[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
+#[cfg(all(not(feature = "noop"), feature = "node_version_detect"))]
+pub static NODE_VERSION: OnceLock<NodeVersion> = OnceLock::new();
+
+#[cfg(feature = "node_version_detect")]
 pub static mut NODE_VERSION_MAJOR: u32 = 0;
 #[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
 pub static mut NODE_VERSION_MINOR: u32 = 0;
@@ -113,6 +121,12 @@ static MODULE_CLASS_PROPERTIES: LazyLock<ModuleClassProperty> = LazyLock::new(De
 static MODULE_COUNT: AtomicUsize = AtomicUsize::new(0);
 #[cfg(not(feature = "noop"))]
 static FIRST_MODULE_REGISTERED: AtomicBool = AtomicBool::new(false);
+#[cfg(all(
+  feature = "tokio_rt",
+  not(target_family = "wasm"),
+  not(feature = "noop")
+))]
+static ENV_CLEANUP_HOOK_ADDED: RwLock<bool> = RwLock::new(false);
 thread_local! {
   static REGISTERED_CLASSES: LazyCell<RegisteredClasses> = LazyCell::new(Default::default);
 }
@@ -249,24 +263,35 @@ pub unsafe extern "C" fn napi_register_module_v1(
   env: sys::napi_env,
   exports: sys::napi_value,
 ) -> sys::napi_value {
-  #[cfg(any(target_env = "msvc", feature = "dyn-symbols"))]
+  #[cfg(any(
+    target_env = "msvc",
+    all(not(target_family = "wasm"), feature = "dyn-symbols")
+  ))]
   unsafe {
     sys::setup();
   }
   #[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
   {
-    let mut node_version = MaybeUninit::uninit();
-    check_status_or_throw!(
-      env,
-      unsafe { sys::napi_get_node_version(env, node_version.as_mut_ptr()) },
-      "Failed to get node version"
-    );
-    let node_version = *node_version.assume_init();
-    unsafe {
-      NODE_VERSION_MAJOR = node_version.major;
-      NODE_VERSION_MINOR = node_version.minor;
-      NODE_VERSION_PATCH = node_version.patch;
-    };
+    NODE_VERSION.get_or_init(|| {
+      let mut node_version = MaybeUninit::uninit();
+      check_status_or_throw!(
+        env,
+        unsafe { sys::napi_get_node_version(env, node_version.as_mut_ptr()) },
+        "Failed to get node version"
+      );
+      let node_version = *node_version.assume_init();
+      unsafe {
+        NODE_VERSION_MAJOR = node_version.major;
+        NODE_VERSION_MINOR = node_version.minor;
+        NODE_VERSION_PATCH = node_version.patch;
+      }
+      NodeVersion {
+        major: node_version.major,
+        minor: node_version.minor,
+        patch: node_version.patch,
+        release: unsafe { CStr::from_ptr(node_version.release).to_str().unwrap() },
+      }
+    });
   }
 
   if MODULE_COUNT.fetch_add(1, Ordering::SeqCst) != 0 {
@@ -472,14 +497,23 @@ pub unsafe extern "C" fn napi_register_module_v1(
     #[cfg(feature = "tokio_rt")]
     {
       crate::tokio_runtime::start_async_runtime();
+      #[cfg(not(target_family = "wasm"))]
+      {
+        let mut env_cleanup_hook_added = ENV_CLEANUP_HOOK_ADDED.write().unwrap();
+        if !*env_cleanup_hook_added {
+          check_status_or_throw!(
+            env,
+            unsafe { sys::napi_add_env_cleanup_hook(env, Some(thread_cleanup), ptr::null_mut()) },
+            "Failed to add env cleanup hook"
+          );
+          *env_cleanup_hook_added = true;
+          drop(env_cleanup_hook_added);
+        }
+      }
     }
   }
 
-  #[cfg(all(
-    not(feature = "noop"),
-    all(feature = "tokio_rt", feature = "napi4"),
-    target_family = "wasm"
-  ))]
+  #[cfg(all(feature = "tokio_rt", feature = "napi4", target_family = "wasm"))]
   check_status_or_throw!(
     env,
     unsafe {
@@ -525,7 +559,7 @@ fn create_custom_gc(env: sys::napi_env) {
       unsafe {
         sys::napi_create_function(
           env,
-          "custom_gc".as_ptr().cast(),
+          c"custom_gc".as_ptr(),
           9,
           Some(empty),
           ptr::null_mut(),
@@ -538,7 +572,7 @@ fn create_custom_gc(env: sys::napi_env) {
     check_status_or_throw!(
       env,
       unsafe {
-        sys::napi_create_string_utf8(env, "CustomGC".as_ptr().cast(), 8, &mut async_resource_name)
+        sys::napi_create_string_utf8(env, c"CustomGC".as_ptr(), 8, &mut async_resource_name)
       },
       "Create async resource string in napi_register_module_v1"
     );
@@ -578,8 +612,7 @@ fn create_custom_gc(env: sys::napi_env) {
   all(feature = "tokio_rt", feature = "napi4"),
   not(target_family = "wasm")
 ))]
-#[ctor::dtor]
-fn thread_cleanup() {
+unsafe extern "C" fn thread_cleanup(_data: *mut std::ffi::c_void) {
   if MODULE_COUNT.fetch_sub(1, Ordering::Relaxed) == 1 {
     crate::tokio_runtime::shutdown_async_runtime();
   }

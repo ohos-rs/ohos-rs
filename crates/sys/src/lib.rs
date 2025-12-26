@@ -2,7 +2,10 @@
 
 #![allow(ambiguous_glob_reexports)]
 
-#[cfg(any(target_env = "msvc", feature = "dyn-symbols"))]
+#[cfg(any(
+  target_env = "msvc",
+  all(not(target_family = "wasm"), feature = "dyn-symbols")
+))]
 macro_rules! generate {
   (@stub_fn $name:ident($($param:ident: $ptype:ty,)*) -> napi_status) => {
     unsafe extern "C" fn $name($(_: $ptype,)*) -> napi_status {
@@ -23,13 +26,13 @@ macro_rules! generate {
   };
   (extern "C" {
     $(
-      $(#[$attr:meta])*
+      $(#[$cfg:meta])*
       fn $name:ident($($param:ident: $ptype:ty$(,)?)*)$( -> $rtype:ty)?;
     )+
   }) => {
     struct Napi {
       $(
-        $(#[$attr])*
+        $(#[$cfg])*
         $name: unsafe extern "C" fn(
           $($param: $ptype,)*
         )$( -> $rtype)*,
@@ -38,15 +41,13 @@ macro_rules! generate {
 
     static mut NAPI: Napi = {
       $(
-        $(#[$attr])*
-        unsafe extern "C" fn $name($(_: $ptype,)*)$( -> $rtype)* {
-          panic_load()
-        }
+        $(#[$cfg])*
         generate!(@stub_fn $name($($param: $ptype,)*) $( -> $rtype)?);
       )*
 
       Napi {
         $(
+          $(#[$cfg])*
           $name,
         )*
       }
@@ -58,15 +59,13 @@ macro_rules! generate {
     ) -> Result<(), libloading::Error> {
       NAPI = Napi {
         $(
-          $(#[$attr])*
+          $(#[$cfg])*
           $name: {
             let symbol: Result<libloading::Symbol<unsafe extern "C" fn ($(_: $ptype,)*)$( -> $rtype)*>, libloading::Error> = host.get(stringify!($name).as_bytes());
             match symbol {
               Ok(f) => *f,
-              Err(e) => {
-                #[cfg(debug_assertions)] {
-                  eprintln!("Load Node-API [{}] from host runtime failed: {}", stringify!($name), e);
-                }
+              Err(_) => {
+                // ignore error, use the stub function
                 NAPI.$name
               }
             }
@@ -78,7 +77,7 @@ macro_rules! generate {
     }
 
     $(
-      $(#[$attr])*
+      $(#[$cfg])*
       #[inline]
       #[allow(clippy::missing_safety_doc)]
       pub unsafe fn $name($($param: $ptype,)*)$( -> $rtype)* {
@@ -88,19 +87,22 @@ macro_rules! generate {
   };
 }
 
-#[cfg(not(any(target_env = "msvc", feature = "dyn-symbols")))]
+#[cfg(any(
+  target_family = "wasm",
+  all(not(target_env = "msvc"), not(feature = "dyn-symbols"))
+))]
 macro_rules! generate {
   (extern "C" {
     $(
-      $(#[$attr:meta])*
+      $(#[$cfg:meta])*
       fn $name:ident($($param:ident: $ptype:ty$(,)?)*)$( -> $rtype:ty)?;
     )+
   }) => {
     extern "C" {
       $(
-        $(#[$attr])*
+        $(#[$cfg])*
         pub fn $name($($param: $ptype,)*)$( -> $rtype)*;
-      ) *
+      )*
     }
   };
 }
@@ -111,12 +113,17 @@ mod types;
 pub use functions::*;
 pub use types::*;
 
+#[cfg(any(
+  target_env = "msvc",
+  all(not(target_family = "wasm"), feature = "dyn-symbols")
+))]
 /// Loads N-API symbols from host process.
 /// Must be called at least once before using any functions in bindings or
-/// they will panic.
-/// Safety: `env` must be a valid `napi_env` for the current thread
-#[cfg(any(target_env = "msvc", feature = "dyn-symbols"))]
-#[allow(clippy::missing_safety_doc)]
+/// they will panic
+///
+/// # Safety
+///
+/// The returned Library must be kept alive as long as any N-API
 pub unsafe fn setup() -> libloading::Library {
   match load_all() {
     Err(err) => panic!("{}", err),

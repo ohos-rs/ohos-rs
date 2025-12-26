@@ -1,7 +1,6 @@
 use std::env;
 
 mod android;
-mod macos;
 mod ohos;
 mod wasi;
 mod windows;
@@ -24,15 +23,21 @@ pub fn setup() {
       .replace("-", "_")
   );
 
-  match env::var("CARGO_CFG_TARGET_OS").as_deref() {
-    Ok("macos") => {
-      macos::setup();
-    }
-    Ok("android") => if android::setup().is_ok() {},
-    Ok("wasi") => {
+  let target_env = env::var("CARGO_CFG_TARGET_ENV").expect("CARGO_CFG_TARGET_ENV is not set");
+  let target_os = env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS is not set");
+
+  match target_os.as_str() {
+    "android" => if android::setup().is_ok() {},
+    "wasi" => {
       wasi::setup();
     }
-    Ok("windows") => {
+    "macos" => {
+      // Keep the dynamic lookup behavior on macOS to avoid breaking changes.
+      println!("cargo:rustc-cdylib-link-arg=-Wl");
+      println!("cargo:rustc-cdylib-link-arg=-undefined");
+      println!("cargo:rustc-cdylib-link-arg=dynamic_lookup");
+    }
+    "windows" => {
       if let Ok("gnu") = env::var("CARGO_CFG_TARGET_ENV").as_deref() {
         windows::setup_gnu();
       }
@@ -40,7 +45,15 @@ pub fn setup() {
     _ => {}
   }
 
-  if let Ok("ohos") = std::env::var("CARGO_CFG_TARGET_ENV").as_deref() {
+  if (target_env == "gnu" && target_os != "windows") || target_os == "freebsd" {
+    // https://sourceware.org/bugzilla/show_bug.cgi?id=21032
+    // https://sourceware.org/bugzilla/show_bug.cgi?id=21031
+    // https://github.com/rust-lang/rust/issues/134820
+    // pthread_key_create() destructors and segfault after a DSO unloading
+    println!("cargo:rustc-link-arg=-Wl,-z,nodelete");
+  }
+
+  if target_env == "ohos" {
     ohos::setup();
   }
 }

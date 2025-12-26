@@ -1,3 +1,0 @@
-[alias]
-ck = "check --workspace"
-lint = "clippy --workspace --all-targets"

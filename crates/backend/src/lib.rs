@@ -12,12 +12,14 @@ pub mod ast;
 pub mod codegen;
 #[cfg(feature = "type-def")]
 pub mod typegen;
+mod util;
 
 pub use ast::*;
 pub use codegen::*;
 pub use error::{BindgenResult, Diagnostic};
 #[cfg(feature = "type-def")]
 pub use typegen::*;
+pub use util::to_case;
 
 #[derive(Debug)]
 pub struct Napi {

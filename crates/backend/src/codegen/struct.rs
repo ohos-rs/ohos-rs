@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use convert_case::Casing;
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::ToTokens;
+
+use crate::util::to_case;
 
 use crate::{
   codegen::{get_intermediate_ident, js_mod_to_token_stream},
@@ -14,6 +15,19 @@ use crate::{NapiArray, NapiClass, NapiObject, NapiStructuredEnum, NapiTransparen
 static NAPI_IMPL_ID: AtomicU32 = AtomicU32::new(0);
 
 const STRUCT_FIELD_SPECIAL_CASE: &[&str] = &["Option", "Result"];
+
+#[cfg(feature = "tracing")]
+fn gen_tracing_debug(class_name: &str, method_name: &str) -> TokenStream {
+  let full_name = format!("{}::{}", class_name, method_name);
+  quote! {
+    napi_ohos::bindgen_prelude::tracing::debug!(target: "napi", "{}", #full_name);
+  }
+}
+
+#[cfg(not(feature = "tracing"))]
+fn gen_tracing_debug(_class_name: &str, _method_name: &str) -> TokenStream {
+  quote! {}
+}
 
 // Generate trait implementations for given Struct.
 fn gen_napi_value_map_impl(
@@ -223,11 +237,14 @@ impl NapiStruct {
       quote! { unsafe { cb.construct::<#is_empty_struct_hint, #name>(#js_name_str, #construct) } }
     };
 
+    let tracing_debug = gen_tracing_debug(js_name_str, "constructor");
+
     quote! {
       extern "C" fn constructor(
         env: napi_ohos::bindgen_prelude::sys::napi_env,
         cb: napi_ohos::bindgen_prelude::sys::napi_callback_info
       ) -> napi_ohos::bindgen_prelude::sys::napi_value {
+        #tracing_debug
         napi_ohos::bindgen_prelude::CallbackInfo::<#fields_len>::new(env, cb, None, false)
           .and_then(|cb| #constructor)
           .unwrap_or_else(|e| {
@@ -481,12 +498,18 @@ impl NapiStruct {
     let name = &self.name;
     let name_str = self.name.to_string();
 
-    let mut obj_field_setters = vec![];
     let mut obj_field_getters = vec![];
     let mut field_destructions = vec![];
 
-    for field in obj.fields.iter() {
+    // For optimized object creation: separate always-set fields from conditionally-set fields
+    let mut value_conversions = vec![];
+    let mut property_descriptors = vec![];
+    let mut conditional_setters = vec![];
+    let mut value_names = vec![];
+
+    for (idx, field) in obj.fields.iter().enumerate() {
       let field_js_name = &field.js_name;
+      let field_js_name_lit = Literal::string(&format!("{}\0", field.js_name));
       let mut ty = field.ty.clone();
       remove_lifetime_in_type(&mut ty);
       let is_optional_field = if let syn::Type::Path(syn::TypePath {
@@ -502,28 +525,60 @@ impl NapiStruct {
       } else {
         false
       };
+
+      // Determine if this field is always set or conditionally set
+      let is_always_set = !is_optional_field || self.use_nullable;
+
       match &field.name {
         syn::Member::Named(ident) => {
           let alias_ident = format_ident!("{}_", ident);
           field_destructions.push(quote! { #ident: #alias_ident });
-          if is_optional_field {
-            obj_field_setters.push(match self.use_nullable {
-              false => quote! {
-                if #alias_ident.is_some() {
-                  obj.set(#field_js_name, #alias_ident)?;
-                }
-              },
-              true => quote! {
-                if let Some(#alias_ident) = #alias_ident {
-                  obj.set(#field_js_name, #alias_ident)?;
+
+          if is_always_set {
+            // This field is always set - use batched approach
+            let value_var = Ident::new(&format!("__obj_value_{}", idx), Span::call_site());
+            value_names.push(value_var.clone());
+
+            if is_optional_field {
+              // Optional with use_nullable=true: set to value or null
+              value_conversions.push(quote! {
+                let #value_var = if let Some(inner) = #alias_ident {
+                  napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, inner)?
                 } else {
-                  obj.set(#field_js_name, napi_ohos::bindgen_prelude::Null)?;
-                }
-              },
+                  napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, napi_ohos::bindgen_prelude::Null)?
+                };
+              });
+            } else {
+              // Non-optional: always set
+              value_conversions.push(quote! {
+                let #value_var = napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, #alias_ident)?;
+              });
+            }
+
+            property_descriptors.push(quote! {
+              napi_ohos::bindgen_prelude::sys::napi_property_descriptor {
+                utf8name: std::ffi::CStr::from_bytes_with_nul_unchecked(#field_js_name_lit.as_bytes()).as_ptr(),
+                name: std::ptr::null_mut(),
+                method: None,
+                getter: None,
+                setter: None,
+                value: #value_var,
+                attributes: napi_ohos::bindgen_prelude::sys::PropertyAttributes::writable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::enumerable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::configurable,
+                data: std::ptr::null_mut(),
+              }
             });
           } else {
-            obj_field_setters.push(quote! { obj.set(#field_js_name, #alias_ident)?; });
+            // Optional with use_nullable=false: conditionally set
+            conditional_setters.push(quote! {
+              if #alias_ident.is_some() {
+                obj.set(#field_js_name, #alias_ident)?;
+              }
+            });
           }
+
+          // Getters remain the same
           if is_optional_field && !self.use_nullable {
             obj_field_getters.push(quote! {
               let #alias_ident: #ty = obj.get(#field_js_name).map_err(|mut err| {
@@ -546,24 +601,52 @@ impl NapiStruct {
         syn::Member::Unnamed(i) => {
           let arg_name = format_ident!("arg{}", i);
           field_destructions.push(quote! { #arg_name });
-          if is_optional_field {
-            obj_field_setters.push(match self.use_nullable {
-              false => quote! {
-                if #arg_name.is_some() {
-                  obj.set(#field_js_name, #arg_name)?;
-                }
-              },
-              true => quote! {
-                if let Some(#arg_name) = #arg_name {
-                  obj.set(#field_js_name, #arg_name)?;
+
+          if is_always_set {
+            // This field is always set - use batched approach
+            let value_var = Ident::new(&format!("__obj_value_{}", idx), Span::call_site());
+            value_names.push(value_var.clone());
+
+            if is_optional_field {
+              // Optional with use_nullable=true: set to value or null
+              value_conversions.push(quote! {
+                let #value_var = if let Some(inner) = #arg_name {
+                  napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, inner)?
                 } else {
-                  obj.set(#field_js_name, napi_ohos::bindgen_prelude::Null)?;
-                }
-              },
+                  napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, napi_ohos::bindgen_prelude::Null)?
+                };
+              });
+            } else {
+              // Non-optional: always set
+              value_conversions.push(quote! {
+                let #value_var = napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, #arg_name)?;
+              });
+            }
+
+            property_descriptors.push(quote! {
+              napi_ohos::bindgen_prelude::sys::napi_property_descriptor {
+                utf8name: std::ffi::CStr::from_bytes_with_nul_unchecked(#field_js_name_lit.as_bytes()).as_ptr(),
+                name: std::ptr::null_mut(),
+                method: None,
+                getter: None,
+                setter: None,
+                value: #value_var,
+                attributes: napi_ohos::bindgen_prelude::sys::PropertyAttributes::writable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::enumerable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::configurable,
+                data: std::ptr::null_mut(),
+              }
             });
           } else {
-            obj_field_setters.push(quote! { obj.set(#field_js_name, #arg_name)?; });
+            // Optional with use_nullable=false: conditionally set
+            conditional_setters.push(quote! {
+              if #arg_name.is_some() {
+                obj.set(#field_js_name, #arg_name)?;
+              }
+            });
           }
+
+          // Getters remain the same
           if is_optional_field && !self.use_nullable {
             obj_field_getters.push(quote! { let #arg_name: #ty = obj.get(#field_js_name)?; });
           } else {
@@ -610,20 +693,48 @@ impl NapiStruct {
         )
       };
 
+    // Generate object creation code
+    let object_creation = if conditional_setters.is_empty() {
+      // All fields are always set - use fully batched approach
+      quote! {
+        // Convert all values first, so error handling works correctly
+        #(#value_conversions)*
+
+        let properties = [
+          #(#property_descriptors),*
+        ];
+
+        let obj_ptr = napi_ohos::bindgen_prelude::create_object_with_properties(env, &properties)?;
+        Ok(obj_ptr)
+      }
+    } else {
+      // Some fields are conditionally set - use batched for always-set, then add conditionals
+      quote! {
+        // Convert all always-set values first
+        #(#value_conversions)*
+
+        let properties = [
+          #(#property_descriptors),*
+        ];
+
+        let obj_ptr = napi_ohos::bindgen_prelude::create_object_with_properties(env, &properties)?;
+
+        // Wrap in Object for conditional field setters
+        let mut obj = napi_ohos::bindgen_prelude::Object::from_raw(env, obj_ptr);
+
+        #(#conditional_setters)*
+
+        Ok(obj_ptr)
+      }
+    };
+
     let to_napi_value = if obj.object_to_js {
       quote! {
         #[automatically_derived]
         #to_napi_value_impl {
           unsafe fn to_napi_value(env: napi_ohos::bindgen_prelude::sys::napi_env, val: #name_with_lifetime) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
-            #[allow(unused_variables)]
-            let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
-            #[allow(unused_mut)]
-            let mut obj = napi_ohos::bindgen_prelude::Object::new(&env_wrapper)?;
-
             let #destructed_fields = val;
-            #(#obj_field_setters)*
-
-            napi_ohos::bindgen_prelude::Object::to_napi_value(env, obj)
+            #object_creation
           }
         }
       }
@@ -685,6 +796,7 @@ impl NapiStruct {
   fn gen_default_getters_setters(&self, class: &NapiClass) -> Vec<(String, TokenStream)> {
     let mut getters_setters = vec![];
     let struct_name = &self.name;
+    let js_name_str = &self.js_name;
 
     for field in class.fields.iter() {
       let field_ident = &field.name;
@@ -728,6 +840,7 @@ impl NapiStruct {
         } else {
           default_to_napi_value_convert
         };
+        let tracing_debug = gen_tracing_debug(js_name_str, &field.js_name);
         getters_setters.push((
           field.js_name.clone(),
           quote! {
@@ -735,6 +848,7 @@ impl NapiStruct {
               env: napi_ohos::bindgen_prelude::sys::napi_env,
               cb: napi_ohos::bindgen_prelude::sys::napi_callback_info
             ) -> napi_ohos::bindgen_prelude::sys::napi_value {
+              #tracing_debug
               napi_ohos::bindgen_prelude::CallbackInfo::<0>::new(env, cb, Some(0), false)
                 .and_then(|mut cb| cb.unwrap_borrow_mut::<#struct_name>())
                 .and_then(|obj| {
@@ -750,6 +864,8 @@ impl NapiStruct {
       }
 
       if field.setter {
+        let setter_tracing_debug =
+          gen_tracing_debug(js_name_str, &format!("set_{}", field.js_name));
         getters_setters.push((
           field.js_name.clone(),
           quote! {
@@ -757,6 +873,7 @@ impl NapiStruct {
               env: napi_ohos::bindgen_prelude::sys::napi_env,
               cb: napi_ohos::bindgen_prelude::sys::napi_callback_info
             ) -> napi_ohos::bindgen_prelude::sys::napi_value {
+              #setter_tracing_debug
               napi_ohos::bindgen_prelude::CallbackInfo::<1>::new(env, cb, Some(1), false)
                 .and_then(|mut cb_info| unsafe {
                   cb_info.unwrap_borrow_mut::<#struct_name>()
@@ -864,6 +981,7 @@ impl NapiStruct {
     let name = &self.name;
     let name_str = self.name.to_string();
     let discriminant = structured_enum.discriminant.as_str();
+    let discriminant_null_terminated = format!("{}\0", discriminant);
 
     let mut variant_arm_setters = vec![];
     let mut variant_arm_getters = vec![];
@@ -872,15 +990,40 @@ impl NapiStruct {
       let variant_name = &variant.name;
       let mut variant_name_str = variant_name.to_string();
       if let Some(case) = structured_enum.discriminant_case {
-        variant_name_str = variant_name_str.to_case(case);
+        variant_name_str = to_case(variant_name_str, case);
       }
-      let mut obj_field_setters = vec![quote! {
-        obj.set(#discriminant, #variant_name_str)?;
-      }];
+
       let mut obj_field_getters = vec![];
       let mut field_destructions = vec![];
-      for field in variant.fields.iter() {
+
+      // For optimized object creation
+      let mut value_conversions = vec![];
+      let mut property_descriptors = vec![];
+      let mut conditional_setters = vec![];
+
+      // First property is always the discriminant
+      let discriminant_value_var = Ident::new("__discriminant_value", Span::call_site());
+      value_conversions.push(quote! {
+        let #discriminant_value_var = napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, #variant_name_str)?;
+      });
+      property_descriptors.push(quote! {
+        napi_ohos::bindgen_prelude::sys::napi_property_descriptor {
+          utf8name: std::ffi::CStr::from_bytes_with_nul_unchecked(#discriminant_null_terminated.as_bytes()).as_ptr(),
+          name: std::ptr::null_mut(),
+          method: None,
+          getter: None,
+          setter: None,
+          value: #discriminant_value_var,
+          attributes: napi_ohos::bindgen_prelude::sys::PropertyAttributes::writable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::enumerable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::configurable,
+          data: std::ptr::null_mut(),
+        }
+      });
+
+      for (idx, field) in variant.fields.iter().enumerate() {
         let field_js_name = &field.js_name;
+        let field_js_name_lit = Literal::string(&format!("{}\0", field.js_name));
         let mut ty = field.ty.clone();
         remove_lifetime_in_type(&mut ty);
         let is_optional_field = if let syn::Type::Path(syn::TypePath {
@@ -896,28 +1039,59 @@ impl NapiStruct {
         } else {
           false
         };
+
+        // Determine if this field is always set or conditionally set
+        let is_always_set = !is_optional_field || self.use_nullable;
+
         match &field.name {
           syn::Member::Named(ident) => {
             let alias_ident = format_ident!("{}_", ident);
             field_destructions.push(quote! { #ident: #alias_ident });
-            if is_optional_field {
-              obj_field_setters.push(match self.use_nullable {
-                false => quote! {
-                  if #alias_ident.is_some() {
-                    obj.set(#field_js_name, #alias_ident)?;
-                  }
-                },
-                true => quote! {
-                  if let Some(#alias_ident) = #alias_ident {
-                    obj.set(#field_js_name, #alias_ident)?;
+
+            if is_always_set {
+              // This field is always set - use batched approach
+              let value_var = Ident::new(&format!("__variant_value_{}", idx), Span::call_site());
+
+              if is_optional_field {
+                // Optional with use_nullable=true: set to value or null
+                value_conversions.push(quote! {
+                  let #value_var = if let Some(inner) = #alias_ident {
+                    napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, inner)?
                   } else {
-                    obj.set(#field_js_name, napi_ohos::bindgen_prelude::Null)?;
-                  }
-                },
+                    napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, napi_ohos::bindgen_prelude::Null)?
+                  };
+                });
+              } else {
+                // Non-optional: always set
+                value_conversions.push(quote! {
+                  let #value_var = napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, #alias_ident)?;
+                });
+              }
+
+              property_descriptors.push(quote! {
+                napi_ohos::bindgen_prelude::sys::napi_property_descriptor {
+                  utf8name: std::ffi::CStr::from_bytes_with_nul_unchecked(#field_js_name_lit.as_bytes()).as_ptr(),
+                  name: std::ptr::null_mut(),
+                  method: None,
+                  getter: None,
+                  setter: None,
+                  value: #value_var,
+                  attributes: napi_ohos::bindgen_prelude::sys::PropertyAttributes::writable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::enumerable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::configurable,
+                  data: std::ptr::null_mut(),
+                }
               });
             } else {
-              obj_field_setters.push(quote! { obj.set(#field_js_name, #alias_ident)?; });
+              // Optional with use_nullable=false: conditionally set
+              conditional_setters.push(quote! {
+                if #alias_ident.is_some() {
+                  obj.set(#field_js_name, #alias_ident)?;
+                }
+              });
             }
+
+            // Getters remain the same
             if is_optional_field && !self.use_nullable {
               obj_field_getters.push(quote! {
                 let #alias_ident: #ty = obj.get(#field_js_name).map_err(|mut err| {
@@ -940,33 +1114,60 @@ impl NapiStruct {
           syn::Member::Unnamed(i) => {
             let arg_name = format_ident!("arg{}", i);
             field_destructions.push(quote! { #arg_name });
-            if is_optional_field {
-              obj_field_setters.push(match self.use_nullable {
-                false => quote! {
-                  if #arg_name.is_some() {
-                    obj.set(#field_js_name, #arg_name)?;
-                  }
-                },
-                true => quote! {
-                  if let Some(#arg_name) = #arg_name {
-                    obj.set(#field_js_name, #arg_name)?;
+
+            if is_always_set {
+              // This field is always set - use batched approach
+              let value_var = Ident::new(&format!("__variant_value_{}", idx), Span::call_site());
+
+              if is_optional_field {
+                // Optional with use_nullable=true: set to value or null
+                value_conversions.push(quote! {
+                  let #value_var = if let Some(inner) = #arg_name {
+                    napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, inner)?
                   } else {
-                    obj.set(#field_js_name, napi_ohos::bindgen_prelude::Null)?;
-                  }
-                },
+                    napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, napi_ohos::bindgen_prelude::Null)?
+                  };
+                });
+              } else {
+                // Non-optional: always set
+                value_conversions.push(quote! {
+                  let #value_var = napi_ohos::bindgen_prelude::ToNapiValue::to_napi_value(env, #arg_name)?;
+                });
+              }
+
+              property_descriptors.push(quote! {
+                napi_ohos::bindgen_prelude::sys::napi_property_descriptor {
+                  utf8name: std::ffi::CStr::from_bytes_with_nul_unchecked(#field_js_name_lit.as_bytes()).as_ptr(),
+                  name: std::ptr::null_mut(),
+                  method: None,
+                  getter: None,
+                  setter: None,
+                  value: #value_var,
+                  attributes: napi_ohos::bindgen_prelude::sys::PropertyAttributes::writable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::enumerable
+                  | napi_ohos::bindgen_prelude::sys::PropertyAttributes::configurable,
+                  data: std::ptr::null_mut(),
+                }
               });
             } else {
-              obj_field_setters.push(quote! { obj.set(#field_js_name, #arg_name)?; });
+              // Optional with use_nullable=false: conditionally set
+              conditional_setters.push(quote! {
+                if #arg_name.is_some() {
+                  obj.set(#field_js_name, #arg_name)?;
+                }
+              });
             }
+
+            // Getters remain the same
             if is_optional_field && !self.use_nullable {
               obj_field_getters.push(quote! { let #arg_name: #ty = obj.get(#field_js_name)?; });
             } else {
               obj_field_getters.push(quote! {
-              let #arg_name: #ty = obj.get(#field_js_name)?.ok_or_else(|| napi_ohos::bindgen_prelude::Error::new(
-                napi_ohos::bindgen_prelude::Status::InvalidArg,
-                format!("Missing field `{}`", #field_js_name),
-              ))?;
-            });
+                let #arg_name: #ty = obj.get(#field_js_name)?.ok_or_else(|| napi_ohos::bindgen_prelude::Error::new(
+                  napi_ohos::bindgen_prelude::Status::InvalidArg,
+                  format!("Missing field `{}`", #field_js_name),
+                ))?;
+              });
             }
           }
         }
@@ -982,9 +1183,39 @@ impl NapiStruct {
         }
       };
 
+      // Generate object creation for this variant
+      let variant_object_creation = if conditional_setters.is_empty() {
+        // All fields are always set - use fully batched approach
+        quote! {
+          #(#value_conversions)*
+
+          let properties = [
+            #(#property_descriptors),*
+          ];
+
+          napi_ohos::bindgen_prelude::create_object_with_properties(env, &properties)
+        }
+      } else {
+        // Some fields are conditionally set
+        quote! {
+          #(#value_conversions)*
+
+          let properties = [
+            #(#property_descriptors),*
+          ];
+
+          let obj_ptr = napi_ohos::bindgen_prelude::create_object_with_properties(env, &properties)?;
+          let mut obj = napi_ohos::bindgen_prelude::Object::from_raw(env, obj_ptr);
+
+          #(#conditional_setters)*
+
+          Ok(obj_ptr)
+        }
+      };
+
       variant_arm_setters.push(quote! {
         #destructed_fields => {
-          #(#obj_field_setters)*
+          #variant_object_creation
         },
       });
 
@@ -1000,15 +1231,9 @@ impl NapiStruct {
       quote! {
         impl napi_ohos::bindgen_prelude::ToNapiValue for #name {
           unsafe fn to_napi_value(env: napi_ohos::bindgen_prelude::sys::napi_env, val: #name) -> napi_ohos::bindgen_prelude::Result<napi_ohos::bindgen_prelude::sys::napi_value> {
-            #[allow(unused_variables)]
-            let env_wrapper = napi_ohos::bindgen_prelude::Env::from(env);
-            #[allow(unused_mut)]
-            let mut obj = napi_ohos::bindgen_prelude::Object::new(&env_wrapper)?;
             match val {
               #(#variant_arm_setters)*
-            };
-
-            napi_ohos::bindgen_prelude::Object::to_napi_value(env, obj)
+            }
           }
         }
       }

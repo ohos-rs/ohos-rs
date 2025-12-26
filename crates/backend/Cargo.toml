@@ -1,12 +1,13 @@
 [package]
-description  = "Codegen backend for napi-harmony procedural macro"
-edition      = "2021"
-license      = "MIT"
-name         = "napi-derive-backend-ohos"
-readme       = "README.md"
-repository   = "https://github.com/ohos-rs/ohos-rs"
-rust-version = "1.80"
-version      = "1.1.4"
+description            = "Codegen backend for napi-harmony procedural macro"
+edition                = "2021"
+homepage               = "https://ohos.rs"
+license                = "MIT"
+name                   = "napi-derive-backend-ohos"
+readme                 = "README.md"
+repository             = "https://github.com/ohos-rs/ohos-rs"
+rust-version.workspace = true
+version                = "1.1.4"
 
 [package.metadata.workspaces]
 independent = true
@@ -14,10 +15,11 @@ independent = true
 [features]
 noop     = []
 strict   = []
+tracing  = []
 type-def = ["semver"]
 
 [dependencies]
-convert_case = "0.8"
+convert_case = "0.10"
 proc-macro2  = "1"
 quote        = "1"
 syn          = { version = "2", features = ["fold", "full", "extra-traits"] }

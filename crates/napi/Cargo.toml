@@ -11,7 +11,7 @@ license = "MIT"
 name = "napi-ohos"
 readme = "README.md"
 repository = "https://github.com/ohos-rs/ohos-rs"
-rust-version = "1.80"
+rust-version.workspace = true
 version = "1.1.4"
 
 [lib]
@@ -66,6 +66,7 @@ tokio_tracing      = ["tokio/tracing"]
 dyn-symbols        = ["napi-sys-ohos/dyn-symbols"]
 # Add a runtime Node version detection
 node_version_detect = []
+tracing             = ["dep:tracing"]
 
 [dependencies]
 bitflags      = "2"
@@ -78,8 +79,9 @@ optional = true
 version  = "1"
 
 [dependencies.napi-sys-ohos]
-path    = "../sys"
-version = "1.1.4"
+path             = "../sys"
+version          = "1.1.4"
+default-features = false
 
 [dependencies.encoding_rs]
 optional = true
@@ -88,6 +90,10 @@ version  = "0.8"
 [dependencies.chrono]
 optional = true
 version  = "0.4"
+
+[dependencies.tracing]
+optional = true
+version  = "0.1"
 
 [target.'cfg(any(all(target_family = "wasm", tokio_unstable), not(target_family = "wasm")))'.dependencies]
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "sync"], optional = true }
@@ -114,6 +120,9 @@ version  = "0.3"
 [dependencies.tokio-stream]
 optional = true
 version  = "0.1"
+
+[dependencies.futures]
+version = "0.3"
 
 [build-dependencies]
 napi-build-ohos = { path = "../build", version = "1.1.4" }

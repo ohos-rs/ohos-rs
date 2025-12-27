@@ -13,7 +13,11 @@ use std::ffi::CStr;
 use std::mem::MaybeUninit;
 #[cfg(not(feature = "noop"))]
 use std::ptr;
-#[cfg(all(not(feature = "noop"), feature = "node_version_detect"))]
+#[cfg(all(
+  not(feature = "noop"),
+  feature = "node_version_detect",
+  not(target_env = "ohos")
+))]
 use std::sync::OnceLock;
 #[cfg(not(feature = "noop"))]
 use std::sync::{
@@ -24,7 +28,11 @@ use std::{any::TypeId, collections::HashMap};
 
 use rustc_hash::FxBuildHasher;
 
-#[cfg(all(not(feature = "noop"), feature = "node_version_detect"))]
+#[cfg(all(
+  not(feature = "noop"),
+  feature = "node_version_detect",
+  not(target_env = "ohos")
+))]
 use crate::NodeVersion;
 #[cfg(not(feature = "noop"))]
 use crate::{check_status, check_status_or_throw, JsError};
@@ -38,11 +46,14 @@ pub type ExportRegisterHookCallback =
 pub type ModuleExportsCallback =
   unsafe fn(env: sys::napi_env, exports: sys::napi_value) -> Result<()>;
 
-#[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
-#[cfg(all(not(feature = "noop"), feature = "node_version_detect"))]
+#[cfg(all(
+  not(feature = "noop"),
+  feature = "node_version_detect",
+  not(target_env = "ohos")
+))]
 pub static NODE_VERSION: OnceLock<NodeVersion> = OnceLock::new();
 
-#[cfg(feature = "node_version_detect")]
+#[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
 pub static mut NODE_VERSION_MAJOR: u32 = 0;
 #[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
 pub static mut NODE_VERSION_MINOR: u32 = 0;

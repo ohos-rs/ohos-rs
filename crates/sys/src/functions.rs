@@ -810,6 +810,15 @@ mod experimental {
         finalize_data: *mut c_void,
         finalize_hint: *mut c_void,
       ) -> napi_status;
+
+      fn napi_create_object_with_properties(
+        env: napi_env,
+        prototype_or_null: napi_value,
+        property_names: *const napi_value,
+        property_values: *const napi_value,
+        property_count: usize,
+        result: *mut napi_value,
+      ) -> napi_status;
     }
   );
 }
@@ -930,7 +939,10 @@ fn find_node_library() -> Result<libloading::Library, libloading::Error> {
   };
 }
 
-#[cfg(any(target_env = "msvc", feature = "dyn-symbols"))]
+#[cfg(any(
+  target_env = "msvc",
+  all(not(target_family = "wasm"), feature = "dyn-symbols")
+))]
 pub(super) unsafe fn load_all() -> Result<libloading::Library, libloading::Error> {
   #[cfg(all(windows, target_env = "msvc"))]
   let host = libloading::os::windows::Library::this()?.into();

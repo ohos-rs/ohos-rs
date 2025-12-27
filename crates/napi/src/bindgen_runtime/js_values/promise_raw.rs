@@ -2,7 +2,6 @@ use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::ptr;
 
-#[cfg(all(feature = "napi4", feature = "tokio_rt"))]
 use crate::bindgen_runtime::Promise;
 use crate::{
   bindgen_prelude::{
@@ -65,6 +64,42 @@ impl<T> PromiseRaw<'_, T> {
       env,
       _phantom: &PhantomData,
     }
+  }
+}
+
+impl<'env, T: ToNapiValue> PromiseRaw<'env, T> {
+  /// Create a new promise and resolve it with the given value
+  pub fn resolve(env: &Env, value: T) -> Result<Self> {
+    let mut deferred = ptr::null_mut();
+    let mut promise = ptr::null_mut();
+    check_status!(
+      unsafe { sys::napi_create_promise(env.0, &mut deferred, &mut promise) },
+      "Failed to create promise"
+    )?;
+    check_status!(
+      unsafe {
+        sys::napi_resolve_deferred(env.0, deferred, ToNapiValue::to_napi_value(env.0, value)?)
+      },
+      "Failed to resolve promise"
+    )?;
+    Ok(PromiseRaw::new(env.0, promise))
+  }
+
+  /// Create a new promise and reject it with the given error
+  pub fn reject<E: ToNapiValue>(env: &Env, error: E) -> Result<Self> {
+    let mut deferred = ptr::null_mut();
+    let mut promise = ptr::null_mut();
+    check_status!(
+      unsafe { sys::napi_create_promise(env.0, &mut deferred, &mut promise) },
+      "Failed to create promise"
+    )?;
+    check_status!(
+      unsafe {
+        sys::napi_reject_deferred(env.0, deferred, ToNapiValue::to_napi_value(env.0, error)?)
+      },
+      "Failed to reject promise"
+    )?;
+    Ok(PromiseRaw::new(env.0, promise))
   }
 }
 
@@ -249,7 +284,6 @@ impl<'env, T: FromNapiValue> PromiseRaw<'env, T> {
     })
   }
 
-  #[cfg(all(feature = "napi4", feature = "tokio_rt"))]
   /// Convert `PromiseRaw<T>` to `Promise<T>`
   ///
   /// So you can await the Promise in Rust
@@ -515,7 +549,10 @@ extern "C" fn promise_callback_finalizer<T, U, Cb>(
   U: ToNapiValue,
   Cb: FnOnce(CallbackContext<T>) -> Result<U>,
 {
-  if !unsafe { *Box::from_raw(finalize_data.cast()) } {
-    drop(unsafe { Box::from_raw(finalize_hint.cast::<Cb>()) });
+  // Always clean up the executed flag allocation
+  let executed = unsafe { Box::from_raw(finalize_data.cast::<bool>()) };
+  if !*executed {
+    // Callback was never executed, clean up the rust_cb which contains (Cb, *mut bool)
+    drop(unsafe { Box::from_raw(finalize_hint.cast::<(Cb, *mut bool)>()) });
   }
 }

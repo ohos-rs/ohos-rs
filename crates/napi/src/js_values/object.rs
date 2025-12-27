@@ -12,7 +12,10 @@ use crate::{
 #[cfg(feature = "napi5")]
 use crate::{bindgen_runtime::FinalizeContext, Env};
 
-#[deprecated(since = "1.1.0", note = "Use `napi::bindgen_prelude::Object` instead")]
+#[deprecated(
+  since = "1.1.0",
+  note = "Use `napi_ohos::bindgen_prelude::Object` instead"
+)]
 #[derive(Clone, Copy)]
 pub struct JsObject(pub(crate) Value);
 

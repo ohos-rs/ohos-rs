@@ -12,7 +12,7 @@ use super::JsValue;
 
 #[deprecated(
   since = "1.1.0",
-  note = "Use `napi::bindgen_prelude::ArrayBuffer` instead"
+  note = "Use `napi_ohos::bindgen_prelude::ArrayBuffer` instead"
 )]
 pub struct JsArrayBuffer(pub(crate) Value);
 
@@ -58,7 +58,7 @@ impl JsValue<'_> for JsArrayBuffer {
 
 #[deprecated(
   since = "1.1.0",
-  note = "Use `napi::bindgen_prelude::ArrayBuffer` instead"
+  note = "Use `napi_ohos::bindgen_prelude::ArrayBuffer` instead"
 )]
 pub struct JsArrayBufferValue {
   pub value: JsArrayBuffer,
@@ -68,7 +68,7 @@ pub struct JsArrayBufferValue {
 
 #[deprecated(
   since = "1.1.0",
-  note = "Use `napi::bindgen_prelude::Uint8Array/Int8Array...` instead"
+  note = "Use `napi_ohos::bindgen_prelude::Uint8Array/Int8Array...` instead"
 )]
 pub struct JsTypedArray(pub(crate) Value);
 
@@ -100,7 +100,7 @@ impl JsValue<'_> for JsTypedArray {
 
 #[deprecated(
   since = "1.1.0",
-  note = "Use `napi::bindgen_prelude::Uint8Array/Int8Array...` instead"
+  note = "Use `napi_ohos::bindgen_prelude::Uint8Array/Int8Array...` instead"
 )]
 pub struct JsTypedArrayValue {
   pub arraybuffer: JsArrayBuffer,

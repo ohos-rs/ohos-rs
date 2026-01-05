@@ -24,11 +24,18 @@ pub fn cli_cargo() -> impl Parser<crate::Options> {
     .help("Use bisheng to run the project, will be set to false by default.")
     .flag(true, false);
 
+  let package = long("package")
+    .short('p')
+    .help("Package to run command for (workspace mode only). Can also be specified via cargo args: -- -p package")
+    .argument::<String>("PACKAGE")
+    .optional();
+
   let cargo_parser = construct!(crate::CargoArgs {
     arch,
     bisheng,
     disable_target,
-    args
+    args,
+    package,
   });
   construct!(crate::Options::Cargo(cargo_parser))
 }

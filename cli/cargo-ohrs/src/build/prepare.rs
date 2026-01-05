@@ -1,7 +1,7 @@
 use crate::build::{get_hos_sdk, Context, Template};
 use crate::create_dist_dir;
 use anyhow::Error;
-use cargo_metadata::MetadataCommand;
+use cargo_metadata::{MetadataCommand, Package};
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -21,12 +21,11 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.zigbuild = args.zigbuild;
   ctx.bisheng = args.bisheng;
 
-  // 判断当前构建环境以及获取metadata信息
   let cargo_file = ctx.pwd.join("./Cargo.toml");
   let cargo_file_str = cargo_file.to_str().unwrap_or_default();
   if cargo_file.try_exists().is_err() {
     return Err(Error::msg(format!(
-      "No crate found in manifest: {}.",
+      "No Rust project found in path: {}.",
       cargo_file_str
     )));
   }
@@ -36,13 +35,37 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
     .manifest_path(&cargo_file)
     .exec()?;
 
-  let pkg = metadata
-    .packages
-    .iter()
-    .find(|p| {
-      return p.manifest_path.eq(cargo_file_str);
-    })
-    .ok_or(Error::msg("Try to get package meta-info failed."))?;
+  let is_workspace = !metadata.workspace_members.is_empty();
+
+  let packages_to_build: Vec<&Package> = if is_workspace {
+    metadata
+      .workspace_members
+      .iter()
+      .filter_map(|member_id| metadata.packages.iter().find(|p| &p.id == member_id))
+      .filter(|p| {
+        p.dependencies
+          .iter()
+          .any(|dep| dep.name == "napi-derive-ohos")
+      })
+      .collect()
+  } else {
+    let pkg = metadata
+      .packages
+      .iter()
+      .find(|p| {
+        return p.manifest_path.eq(cargo_file_str);
+      })
+      .ok_or(Error::msg("Try to get package meta-info failed."))?;
+    vec![pkg]
+  };
+
+  if packages_to_build.is_empty() {
+    return Err(Error::msg(
+      "No package found with napi-derive-ohos dependency.",
+    ));
+  }
+
+  let pkg = packages_to_build[0];
 
   let toml_content: Option<Template> = pkg
     .metadata
@@ -92,6 +115,7 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
   ctx.template = toml_content;
 
   ctx.package = Some((*pkg).clone());
+  ctx.workspace_packages = packages_to_build.iter().map(|p| (*p).clone()).collect();
   ctx.cargo_build_target_dir = Some(metadata.target_directory.clone());
 
   ctx.init_args = if ctx.zigbuild {

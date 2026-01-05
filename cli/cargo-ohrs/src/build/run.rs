@@ -125,6 +125,16 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
     "--message-format=json-render-diagnostics",
   ]);
 
+  if let Some(ref pkg) = ctx.package {
+    let has_package_arg = cargo_args
+      .iter()
+      .any(|arg| arg == "-p" || arg == "--package");
+
+    if !has_package_arg && ctx.workspace_packages.len() > 1 {
+      args.extend(["-p", &pkg.name]);
+    }
+  }
+
   // respect cli extra args
   args.extend(cargo_args.iter().map(|s| s.as_str()));
 

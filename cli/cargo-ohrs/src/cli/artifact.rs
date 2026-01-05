@@ -20,10 +20,17 @@ pub fn cli_artifact() -> impl Parser<crate::Options> {
     .switch()
     .fallback(false);
 
+  let package = long("package")
+    .short('p')
+    .help("Package to generate artifact for (workspace mode only). Can also be specified via cargo args: -- -p package")
+    .argument::<String>("PACKAGE")
+    .optional();
+
   let artifact_parser = construct!(crate::ArtifactArgs {
     name,
     dist,
-    skip_libs
+    skip_libs,
+    package,
   });
   construct!(crate::Options::Artifact(artifact_parser))
 }

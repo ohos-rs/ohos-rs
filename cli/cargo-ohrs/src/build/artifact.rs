@@ -33,7 +33,6 @@ pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Ve
           return None;
         }
         if item_path.starts_with("native=") {
-
           return Some(
             PathBuf::from(&item_path[7..])
               .canonicalize()
@@ -43,7 +42,9 @@ pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Ve
         if is_rust_intermediate_lib(&i) {
           return None;
         }
-        let current_path = i.canonicalize().expect(&format!("Convert {} to absolute path failed.", i.as_str()));
+        let current_path = i
+          .canonicalize()
+          .expect(&format!("Convert {} to absolute path failed.", i.as_str()));
         if !i.is_dir() && !i.is_file() {
           println!("Note: {} is not a dir or file.", i.as_str());
           return None;

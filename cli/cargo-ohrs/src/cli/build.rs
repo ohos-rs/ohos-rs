@@ -57,6 +57,14 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     .help("Use bisheng to build the project, will be set to false by default.")
     .flag(true, false);
 
+  let package = long("package")
+    .short('p')
+    .help(
+      "Package to build (workspace mode only). Can also be specified via cargo args: -- -p package",
+    )
+    .argument::<String>("PACKAGE")
+    .optional();
+
   let init_parser = construct!(crate::BuildArgs {
     dist,
     arch,
@@ -69,6 +77,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     bisheng,
     target_dir,
     cargo_args,
+    package,
   });
   construct!(crate::Options::Build(init_parser))
 }

@@ -28,7 +28,7 @@ pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Ve
       .iter()
       .filter_map(|i| {
         let item_path = i.as_str();
-        // ignore sysroot lib
+        // Ignore sysroot lib
         if item_path.starts_with(&sysroot) {
           return None;
         }
@@ -71,9 +71,9 @@ pub fn resolve_artifact_library(target: Artifact) -> Option<Vec<PathBuf>> {
       .filenames
       .iter()
       .filter_map(|i| {
-        // avoid final target has the same package name with crate
-        // for example: build reqwest
-        // support build exec, but ignore it
+        // Avoid final target having the same package name as crate
+        // For example: build reqwest
+        // Support build exec, but ignore it
         if let Some(ext) = i.extension() {
           if (ext == "so" || ext == "a") && !is_rust_intermediate_lib(i) {
             return Some(i);

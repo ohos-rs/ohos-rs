@@ -21,29 +21,29 @@ pub struct Template {
   pub header: Option<String>,
 }
 
-/// 构建命令执行时的上下文
+/// Context for build command execution
 #[derive(Debug, Clone, Default)]
 pub struct Context<'a> {
-  // 当前运行环境
+  // Current working environment
   pub pwd: PathBuf,
-  // 构建执行命令
+  // Build execution command
   pub init_args: Vec<&'a str>,
-  // 当前构建模式
+  // Current build mode
   #[allow(dead_code)]
   pub mode: &'a str,
-  // 目标产物路径
+  // Target artifact path
   pub dist: PathBuf,
-  // 构建的信息
+  // Build information
   pub package: Option<Package>,
 
   pub workspace_packages: Vec<Package>,
-  // 当前构建项目的产物地址 用于支持cargo workspace的构建
+  // Current build project artifact path, used to support cargo workspace builds
   pub cargo_build_target_dir: Option<Utf8PathBuf>,
-  // ohos_ndk 路径
+  // ohos_ndk path
   pub ndk: String,
-  // hos_ndk 路径
+  // hos_ndk path
   pub hos_ndk: String,
-  // 所有产物的文件路径 避免重复获取
+  // All artifact file paths to avoid duplicate retrieval
   #[allow(dead_code)]
   pub dist_files: Vec<PathBuf>,
   pub template: Option<Template>,
@@ -58,7 +58,7 @@ pub struct Context<'a> {
   pub bisheng: bool,
 }
 
-/// build逻辑
+/// Build logic
 pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
   let mut current_args = args.clone();
   let mut ctx = Context::default();
@@ -73,7 +73,7 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
 
   let cargo_args = current_args.cargo_args.unwrap_or_default();
 
-  // 解析 package 参数（从 -p 参数或 cargo_args 中的 -p）
+  // Parse package parameter (from -p argument or -p in cargo_args)
   let package_filter = current_args.package.clone().or_else(|| {
     cargo_args
       .iter()
@@ -84,7 +84,7 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
   let is_workspace = !ctx.workspace_packages.is_empty();
   let packages_to_build = if is_workspace {
     let all_packages = &ctx.workspace_packages;
-    // 如果指定了 package 参数，只构建指定的包
+    // If package parameter is specified, only build the specified package
     if let Some(ref pkg_name) = package_filter {
       all_packages
         .iter()
@@ -95,7 +95,7 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
       all_packages
     }
   } else if let Some(ref pkg) = ctx.package {
-    // 单包模式，如果指定了 package 参数，检查是否匹配
+    // Single package mode, if package parameter is specified, check if it matches
     if let Some(ref pkg_name) = package_filter {
       if pkg.name != *pkg_name {
         return Err(anyhow::anyhow!(
@@ -114,10 +114,29 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
     let mut package_ctx = ctx.clone();
     package_ctx.package = Some(pkg.clone());
 
-    if is_workspace {
-      package_ctx.dist = ctx.dist.join(&pkg.name);
-      crate::create_dist_dir!(package_ctx.dist.clone());
+    // If executing in workspace root, need to set dist for each package in their respective directories
+    // If executing in a package directory, dist has already been correctly set in prepare
+    if is_workspace && packages_to_build.len() > 1 {
+      // Executing in workspace root, set dist for each package in their respective directories
+      // Check if ctx.dist is under ctx.pwd (i.e., if it's in the root directory)
+      if let Some(manifest_dir) = pkg.manifest_path.parent() {
+        let manifest_dir_path = PathBuf::from(manifest_dir.as_str());
+        // If the parent directory of ctx.dist is ctx.pwd, it means dist is in the root directory
+        // Need to set dist for each package in their respective directories
+        if ctx.dist.parent() == Some(&ctx.pwd) {
+          // Extract dist name from ctx.dist
+          let dist_name = ctx
+            .dist
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("dist");
+          package_ctx.dist = manifest_dir_path.join(dist_name);
+          crate::create_dist_dir!(package_ctx.dist.clone());
+        }
+        // Otherwise, ctx.dist is already in a package directory, no need to modify
+      }
     }
+    // If executing in a package directory (packages_to_build.len() == 1), dist has already been correctly set in prepare, no need to modify
 
     let target_dir = current_args.target_dir.to_owned().unwrap_or(
       package_ctx
@@ -158,7 +177,7 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
       tmp_full_path.to_str().unwrap_or_default(),
     );
 
-    // 为每个包执行构建
+    // Execute build for each package
     [Arch::ARM64, Arch::ARM32, Arch::X86_64, Arch::LoongArch64]
       .iter()
       .filter_map(|&i| {

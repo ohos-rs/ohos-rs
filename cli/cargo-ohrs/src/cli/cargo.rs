@@ -34,8 +34,8 @@ pub fn cli_cargo() -> impl Parser<crate::Options> {
     arch,
     bisheng,
     disable_target,
-    args,
     package,
+    args
   });
   construct!(crate::Options::Cargo(cargo_parser))
 }

@@ -76,8 +76,8 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     zigbuild,
     bisheng,
     target_dir,
-    cargo_args,
     package,
+    cargo_args,
   });
   construct!(crate::Options::Build(init_parser))
 }

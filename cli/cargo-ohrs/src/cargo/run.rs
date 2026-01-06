@@ -5,7 +5,7 @@ use std::env;
 use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
-pub fn run(arch: &Arch, ndk: String, args: Vec<&str>, bisheng: bool) -> anyhow::Result<()> {
+pub fn run(arch: &Arch, ndk: String, args: Vec<String>, bisheng: bool) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
 
   let mut ndk = format!("{}{}", &ndk, "/native/llvm");

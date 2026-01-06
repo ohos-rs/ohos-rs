@@ -24,7 +24,7 @@ fn get_napi_packages() -> anyhow::Result<Vec<Package>> {
   let is_workspace = !metadata.workspace_members.is_empty();
 
   if is_workspace {
-    let packages: Vec<Package> = metadata
+    let all_candidates: Vec<Package> = metadata
       .workspace_members
       .iter()
       .filter_map(|member_id| {
@@ -40,7 +40,35 @@ fn get_napi_packages() -> anyhow::Result<Vec<Package>> {
           .any(|dep| dep.name == "napi-derive-ohos")
       })
       .collect();
-    Ok(packages)
+
+    // Check if current directory is within a package directory
+    // If so, only return that package; otherwise return all packages
+    let current_pkg = all_candidates.iter().find(|p| {
+      if let Some(manifest_dir) = p.manifest_path.parent() {
+        let pwd_canonical = pwd.canonicalize().ok();
+        let manifest_dir_path = std::path::PathBuf::from(manifest_dir.as_str());
+        let manifest_dir_canonical = manifest_dir_path.canonicalize().ok();
+
+        if let (Some(pwd_path), Some(md_path)) = (pwd_canonical, manifest_dir_canonical) {
+          pwd_path.starts_with(&md_path) || pwd_path == md_path
+        } else {
+          // Fallback: compare string paths if canonicalize fails
+          let pwd_str = pwd.to_string_lossy();
+          let manifest_dir_str = manifest_dir.as_str();
+          pwd_str.starts_with(manifest_dir_str) || pwd_str == manifest_dir_str
+        }
+      } else {
+        false
+      }
+    });
+
+    if let Some(pkg) = current_pkg {
+      // Only return the package in the current directory
+      Ok(vec![pkg.clone()])
+    } else {
+      // Return all packages (when running from workspace root)
+      Ok(all_candidates)
+    }
   } else {
     let cargo_file_str = cargo_file.to_str().unwrap_or_default();
     if let Some(pkg) = metadata
@@ -72,7 +100,7 @@ pub fn artifact(args: crate::ArtifactArgs) -> anyhow::Result<()> {
     ));
   }
 
-  // 如果指定了 package 参数，只处理指定的包
+  // If package parameter is specified, only process the specified package
   if let Some(ref pkg_name) = args.package {
     packages.retain(|p| p.name == *pkg_name);
     if packages.is_empty() {
@@ -101,7 +129,7 @@ pub fn artifact(args: crate::ArtifactArgs) -> anyhow::Result<()> {
         )));
       }
 
-      // skip copy libs
+      // Skip copy libs
       if !args.skip_libs {
         let dist_source = (&pwd).join(&args.dist).join(&pkg.name);
 
@@ -125,10 +153,10 @@ pub fn artifact(args: crate::ArtifactArgs) -> anyhow::Result<()> {
           )));
         }
 
-        // clean the folder before we copy it
+        // Clean the folder before we copy it
         check_and_clean_file_or_dir!((&package_source).join("libs"));
 
-        // copy dist
+        // Copy dist
         let mut op = CopyOptions::new();
         op.overwrite = true;
         op.copy_inside = true;
@@ -176,10 +204,10 @@ pub fn artifact(args: crate::ArtifactArgs) -> anyhow::Result<()> {
         )));
       }
 
-      // clean the folder before we copy it
+      // Clean the folder before we copy it
       check_and_clean_file_or_dir!((&package_source).join("libs"));
 
-      // copy dist
+      // Copy dist
       let mut op = CopyOptions::new();
       op.overwrite = true;
       op.copy_inside = true;

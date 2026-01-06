@@ -115,7 +115,16 @@ pub fn artifact(args: crate::ArtifactArgs) -> anyhow::Result<()> {
     for pkg in &packages {
       println!("Generating artifact for package: {}", pkg.name);
 
-      let package_source = (&pwd).join("package").join(&pkg.name);
+      // Determine package_source based on package manifest directory
+      // In workspace mode, package folder should be in each package's directory
+      let package_source = if let Some(manifest_dir) = pkg.manifest_path.parent() {
+        let manifest_dir_path = PathBuf::from(manifest_dir.as_str());
+        manifest_dir_path.join("package")
+      } else {
+        // Fallback to workspace root if manifest_dir is None
+        (&pwd).join("package").join(&pkg.name)
+      };
+
       if !package_source.exists() {
         return Err(Error::msg(format!(
           "{:?} is not existed,please create this folder",
@@ -131,7 +140,20 @@ pub fn artifact(args: crate::ArtifactArgs) -> anyhow::Result<()> {
 
       // Skip copy libs
       if !args.skip_libs {
-        let dist_source = (&pwd).join(&args.dist).join(&pkg.name);
+        // Determine dist_source based on package manifest directory
+        // Check if dist is in package directory or workspace root
+        let dist_source = if let Some(manifest_dir) = pkg.manifest_path.parent() {
+          let manifest_dir_path = PathBuf::from(manifest_dir.as_str());
+          let pkg_dist = manifest_dir_path.join(&args.dist);
+          // If dist exists in package directory, use it; otherwise use workspace root
+          if pkg_dist.exists() {
+            pkg_dist
+          } else {
+            (&pwd).join(&args.dist).join(&pkg.name)
+          }
+        } else {
+          (&pwd).join(&args.dist).join(&pkg.name)
+        };
 
         if !dist_source.is_dir() {
           return Err(Error::msg(format!(
@@ -163,7 +185,14 @@ pub fn artifact(args: crate::ArtifactArgs) -> anyhow::Result<()> {
         fs_extra::dir::copy(&dist_source, (&package_source).join("libs"), &op)?;
       }
 
-      let package_path = PathBuf::from(&pwd).join(format!("{}-{}.har", args.name, pkg.name));
+      // Generate har file in the package's directory
+      let package_path = if let Some(manifest_dir) = pkg.manifest_path.parent() {
+        let manifest_dir_path = PathBuf::from(manifest_dir.as_str());
+        manifest_dir_path.join(format!("{}-{}.har", args.name, pkg.name))
+      } else {
+        // Fallback to workspace root if manifest_dir is None
+        PathBuf::from(&pwd).join(format!("{}-{}.har", args.name, pkg.name))
+      };
       generate_har(package_path, package_source);
     }
   } else {

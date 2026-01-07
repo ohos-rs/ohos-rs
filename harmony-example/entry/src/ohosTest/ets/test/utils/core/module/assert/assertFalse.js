@@ -16,7 +16,7 @@
 function assertFalse(actualValue) {
   return {
     pass: actualValue === false,
-    message: "expect false, actualValue is " + actualValue
+    message: "expect false, actualValue is " + actualValue,
   };
 }
 

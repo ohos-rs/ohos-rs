@@ -14,7 +14,7 @@ export default () => {
       const name = "JsSymbol";
       const value = "JsValue";
       const obj = {
-        [name]: value
+        [name]: value,
       };
       t.is(bindings.testGetProperty(obj, name), value);
     });
@@ -31,7 +31,7 @@ export default () => {
 
     test("testGetNamedProperty", (t) => {
       const obj = {
-        p: "JsSymbol"
+        p: "JsSymbol",
       };
       t.is(bindings.testGetNamedProperty(obj), obj.p);
     });
@@ -39,7 +39,7 @@ export default () => {
     test("testHasNamedProperty", (t) => {
       const obj = {
         a: 1,
-        b: undefined
+        b: undefined,
       };
 
       t.true(bindings.testHasNamedProperty(obj, "a"));
@@ -50,15 +50,15 @@ export default () => {
     test("testHasOwnProperty", (t) => {
       const obj = {
         a: "1",
-        b: undefined
+        b: undefined,
       };
 
       const child = Object.create(obj, {
         d: {
           value: 1,
           enumerable: true,
-          configurable: true
-        }
+          configurable: true,
+        },
       });
 
       t.false(bindings.testHasOwnProperty(child, "a"));
@@ -69,7 +69,7 @@ export default () => {
     test("testHasOwnPropertyJs", (t) => {
       const obj = {
         a: "1",
-        b: undefined
+        b: undefined,
       };
 
       const child = Object.create(obj);
@@ -84,7 +84,7 @@ export default () => {
     test("testHasProperty", (t) => {
       const obj = {
         a: "1",
-        b: undefined
+        b: undefined,
       };
 
       const child = Object.create(obj);
@@ -103,7 +103,7 @@ export default () => {
         [key]: 1,
         a: 0,
         b: undefined,
-        2: "c"
+        2: "c",
       };
       t.true(bindings.testHasPropertyJs(obj, key));
       t.true(bindings.testHasPropertyJs(obj, "a"));
@@ -117,12 +117,12 @@ export default () => {
       const k3 = "foo";
       const obj = {
         [k2]: 2,
-        k4: 4
+        k4: 4,
       };
       Object.defineProperty(obj, k3, {
         configurable: false,
         enumerable: true,
-        value: "k3"
+        value: "k3",
       });
       t.true(bindings.testDeleteProperty(obj, k2));
       t.false(bindings.testDeleteProperty(obj, k3));
@@ -138,12 +138,12 @@ export default () => {
       const obj = {
         [k1]: 1,
         [k2]: 2,
-        k4: 4
+        k4: 4,
       };
       Object.defineProperty(obj, k3, {
         configurable: false,
         enumerable: true,
-        value: "k3"
+        value: "k3",
       });
       t.true(bindings.testDeleteNamedProperty(obj, k1));
       t.true(bindings.testDeleteNamedProperty(obj, k2));
@@ -159,11 +159,9 @@ export default () => {
       const k3 = "k3";
       const obj = {
         [k2]: 1,
-        [k3]: 1
+        [k3]: 1,
       };
-      const ret = bindings
-        .testGetPropertyNames(obj)
-        .map((v: string | number) => v.toString());
+      const ret = bindings.testGetPropertyNames(obj).map((v: string | number) => v.toString());
 
       t.deepEqual(ret, ["2", "k3"]);
     });
@@ -228,8 +226,8 @@ export default () => {
         bindings.testIsPromise(
           new Promise<void>((resolve) => {
             resolve();
-          })
-        )
+          }),
+        ),
       );
     });
   });

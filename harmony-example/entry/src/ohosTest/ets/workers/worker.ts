@@ -1,10 +1,4 @@
-import {
-  buffer,
-  ErrorEvent,
-  MessageEvents,
-  ThreadWorkerGlobalScope,
-  worker
-} from "@kit.ArkTS";
+import { buffer, ErrorEvent, MessageEvents, ThreadWorkerGlobalScope, worker } from "@kit.ArkTS";
 import * as native from "libexample.so";
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort;
@@ -19,14 +13,14 @@ workerPort.onmessage = (e: MessageEvents) => {
   switch (e.type) {
     case "require":
       workerPort.postMessage(
-        native.Animal.withKind(native.Kind.Cat).whoami() + native.DEFAULT_COST
+        native.Animal.withKind(native.Kind.Cat).whoami() + native.DEFAULT_COST,
       );
       break;
     case "async:buffer":
       Promise.all(
         Array.from({ length: 100 }).map(() =>
-          native.bufferPassThrough(buffer.from([1, 2, 3]).buffer)
-        )
+          native.bufferPassThrough(buffer.from([1, 2, 3]).buffer),
+        ),
       )
         .then(() => {
           workerPort.postMessage("done");
@@ -38,8 +32,8 @@ workerPort.onmessage = (e: MessageEvents) => {
     case "async:arraybuffer":
       Promise.all(
         Array.from({ length: 100 }).map(() =>
-          native.arrayBufferPassThrough(Uint8Array.from([1, 2, 3]))
-        )
+          native.arrayBufferPassThrough(Uint8Array.from([1, 2, 3])),
+        ),
       )
         .then(() => {
           workerPort.postMessage("done");

@@ -16,7 +16,7 @@
 function assertFail() {
   return {
     pass: false,
-    message: "fail "
+    message: "fail ",
   };
 }
 

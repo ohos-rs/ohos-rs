@@ -119,10 +119,7 @@ export type AfterFn<Context = unknown> = {
    * Declare a hook that is run once, after all tests have passed.
    * Additional arguments are passed to the implementation or macro.
    */
-  <Args extends unknown[]>(
-    implementation: Implementation<Args, Context>,
-    ...args: Args
-  ): void;
+  <Args extends unknown[]>(implementation: Implementation<Args, Context>, ...args: Args): void;
 
   always: AlwaysInterface<Context>;
   skip: HookSkipFn<Context>;
@@ -143,10 +140,7 @@ export type AlwaysInterface<Context = unknown> = {
    * Declare a hook that is run once, after all tests are done.
    * Additional arguments are passed to the implementation or macro.
    */
-  <Args extends unknown[]>(
-    implementation: Implementation<Args, Context>,
-    ...args: Args
-  ): void;
+  <Args extends unknown[]>(implementation: Implementation<Args, Context>, ...args: Args): void;
 
   skip: HookSkipFn<Context>;
 };
@@ -166,10 +160,7 @@ export type BeforeFn<Context = unknown> = {
    * Declare a hook that is run once, before all tests.
    * Additional arguments are passed to the implementation or macro.
    */
-  <Args extends unknown[]>(
-    implementation: Implementation<Args, Context>,
-    ...args: Args
-  ): void;
+  <Args extends unknown[]>(implementation: Implementation<Args, Context>, ...args: Args): void;
 
   skip: HookSkipFn<Context>;
 };
@@ -204,10 +195,7 @@ export type HookSkipFn<Context = unknown> = {
   ): void;
 
   /** Skip this hook. */
-  <Args extends unknown[]>(
-    implementation: Implementation<Args, Context>,
-    ...args: Args
-  ): void;
+  <Args extends unknown[]>(implementation: Implementation<Args, Context>, ...args: Args): void;
 };
 
 export type OnlyFn<Context = unknown> = {
@@ -266,10 +254,7 @@ export type SkipFn<Context = unknown> = {
 /** Declare a test that should be implemented later. */
 export type TodoFn = (title: string) => void;
 
-export type MacroDeclarationOptions<
-  Args extends unknown[],
-  Context = unknown
-> = {
+export type MacroDeclarationOptions<Args extends unknown[], Context = unknown> = {
   /** The function that is executed when the macro is used. */
   exec: ImplementationFn<Args, Context>;
 
@@ -283,10 +268,10 @@ export type MacroFn<Context = unknown> = {
     /** The function that is executed when the macro is used. */ exec: ImplementationFn<
       Args,
       Context
-    >
+    >,
   ): Macro<Args, Context>;
   <Args extends unknown[]>(
-    declaration: MacroDeclarationOptions<Args, Context>
+    declaration: MacroDeclarationOptions<Args, Context>,
   ): Macro<Args, Context>;
 };
 

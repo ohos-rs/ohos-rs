@@ -16,7 +16,7 @@
 function assertNaN(actualValue) {
   return {
     pass: actualValue !== actualValue,
-    message: "expect NaN, actualValue  is " + actualValue
+    message: "expect NaN, actualValue  is " + actualValue,
   };
 }
 

@@ -25,17 +25,24 @@ jobs:
           toolchain: stable
           target: 'aarch64-unknown-linux-ohos,armv7-unknown-linux-ohos,x86_64-unknown-linux-ohos'
 
+      - name: Install oxk
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: oxk
+          git: https://github.com/ohos-rs/oxc-ark.git
+          tag: v0.2.1
+
+      - name: Setup just
+        uses: extractions/setup-just@v3
+
+      - name: Install ohrs
+        run: cargo install ohrs
+
       - name: Cli test
         run: cd cli/cargo-ohrs && cargo test
 
-      - name: Install
-        run: cargo install ohrs
+      - name: Lint
+        run: just check
 
-      - name: Run basic
-        run: cd examples/hello && ohrs build
-
-      - name: Run example
-        run: cd examples/napi && ohrs build
-
-      - name: Run compact exmaple
-        run: cd examples/napi-compact-mode && ohrs build
+      - name: Run examples
+        run: just test

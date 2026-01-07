@@ -67,7 +67,7 @@ impl<T: for<'task> ScopedTask<'task>> AsyncTask<T> {
     Self {
       inner: task,
       abort_signal: None,
-      qos: qos,
+      qos,
     }
   }
 

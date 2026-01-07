@@ -24,7 +24,7 @@ use syn::ItemFn;
 static IS_FIRST_NAPI_MACRO: AtomicBool = AtomicBool::new(true);
 
 fn auto_add_register_code() -> proc_macro2::TokenStream {
-  let prepare = match IS_FIRST_NAPI_MACRO.load(Ordering::SeqCst) {
+  match IS_FIRST_NAPI_MACRO.load(Ordering::SeqCst) {
     true => {
       // must same with target name,if not harmony os will crash.
       // and must with default value.`cargo expand` will ignore build.rs script
@@ -54,9 +54,7 @@ fn auto_add_register_code() -> proc_macro2::TokenStream {
     _ => {
       quote!()
     }
-  };
-
-  prepare
+  }
 }
 
 /// ```ignore

@@ -16,7 +16,7 @@
 function assertLessOrEqual(actualValue, expected) {
   return {
     pass: actualValue <= expected[0],
-    message: actualValue + " is not less than " + expected[0]
+    message: actualValue + " is not less than " + expected[0],
   };
 }
 

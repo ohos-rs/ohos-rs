@@ -138,10 +138,7 @@ class MockKit {
     }
 
     values.forEach(function (value, key, map) {
-      if (
-        ArgumentMatchers.isRegExp(key) &&
-        matcher.matcheReturnKey(params[0], key)
-      ) {
+      if (ArgumentMatchers.isRegExp(key) && matcher.matcheReturnKey(params[0], key)) {
         retrunKet = key;
       }
     });
@@ -163,10 +160,7 @@ class MockKit {
   }
 
   isFunctionFromPrototype(f, container, propName) {
-    if (
-      container.constructor !== Object &&
-      container.constructor.prototype !== container
-    ) {
+    if (container.constructor !== Object && container.constructor.prototype !== container) {
       return container.constructor.prototype[propName] === f;
     }
     return false;
@@ -225,7 +219,7 @@ class MockKit {
       f.originalFromPrototype = this.isFunctionFromPrototype(
         f.original,
         originalObject,
-        f.propName
+        f.propName,
       );
     }
     f.mocker = this;

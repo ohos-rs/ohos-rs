@@ -42,7 +42,7 @@ export default () => {
       t.notThrows(() =>
         bindings.testThreadsafeFunction(() => {
           throw Error("Throw in thread safe function");
-        })
+        }),
       );
     });
 

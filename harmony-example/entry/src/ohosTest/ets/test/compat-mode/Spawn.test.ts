@@ -11,9 +11,7 @@ export default () => {
 
     test("should be able to spawn thread with ref value", async (t) => {
       const fixture = "hello";
-      const result = await bindings.testSpawnThreadWithRef(
-        buffer.from(fixture).buffer
-      );
+      const result = await bindings.testSpawnThreadWithRef(buffer.from(fixture).buffer);
       t.is(result, fixture.length);
     });
 

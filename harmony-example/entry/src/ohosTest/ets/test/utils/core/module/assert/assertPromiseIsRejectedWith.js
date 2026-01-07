@@ -21,7 +21,7 @@ function assertPromiseIsRejectedWith(actualPromise, expectedValue) {
       function () {},
       function () {
         return { pass: false, message: "Expected not be called on a promise." };
-      }
+      },
     );
   }
 
@@ -38,33 +38,28 @@ function assertPromiseIsRejectedWith(actualPromise, expectedValue) {
     function (got) {
       return {
         pass: false,
-        message: tips(false) + " but actualValue is resolve"
+        message: tips(false) + " but actualValue is resolve",
       };
     },
     function (actualValue) {
       if (actualValue?.message === expectedValue?.message) {
         return {
           pass: true,
-          message: "actualValue was rejected with " + actualValue.message + "."
+          message: "actualValue was rejected with " + actualValue.message + ".",
         };
       }
       if (JSON.stringify(actualValue) == JSON.stringify(expectedValue[0])) {
         return {
           pass: true,
-          message:
-            "actualValue was rejected with " + JSON.stringify(actualValue) + "."
+          message: "actualValue was rejected with " + JSON.stringify(actualValue) + ".",
         };
       } else {
         return {
           pass: false,
-          message:
-            tips(false) +
-            " but it was rejected with " +
-            JSON.stringify(actualValue) +
-            "."
+          message: tips(false) + " but it was rejected with " + JSON.stringify(actualValue) + ".",
         };
       }
-    }
+    },
   );
 }
 

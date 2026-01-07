@@ -2,9 +2,7 @@ export namespace SharedWorker {
   export type ProtocolIdentifier = "ava-4";
 
   export type FactoryOptions = {
-    negotiateProtocol<Data = unknown>(
-      supported: readonly ["ava-4"]
-    ): Protocol<Data>;
+    negotiateProtocol<Data = unknown>(supported: readonly ["ava-4"]): Protocol<Data>;
     // Add overloads for additional protocols.
   };
 
@@ -45,10 +43,7 @@ export namespace SharedWorker {
   };
 
   export namespace Plugin {
-    export type RegistrationOptions<
-      Identifier extends ProtocolIdentifier,
-      Data = unknown
-    > = {
+    export type RegistrationOptions<Identifier extends ProtocolIdentifier, Data = unknown> = {
       readonly filename: string | URL;
       readonly initialData?: Data;
       readonly supportedProtocols: readonly Identifier[];

@@ -24,7 +24,7 @@ import {
   StatusInValidate,
   returnUndefinedIfInvalid,
   returnUndefinedIfInvalidPromise,
-  validateOptional
+  validateOptional,
 } from "libexample.so";
 import { buffer } from "@kit.ArkTS";
 
@@ -35,7 +35,7 @@ export default () => {
 
       t.throws(() => validateArray(1 as ESObject), {
         message: "Expected an array",
-        code: "InvalidArg"
+        code: "InvalidArg",
       });
     });
 
@@ -44,21 +44,21 @@ export default () => {
 
       t.throws(() => validateTypedArray(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expected a TypedArray value"
+        message: "Expected a TypedArray value",
       });
 
       t.is(validateTypedArraySlice(new Uint8Array([1, 2, 3])), 3);
 
       t.throws(() => validateTypedArraySlice(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expected a TypedArray value"
+        message: "Expected a TypedArray value",
       });
 
       t.is(validateBufferSlice(buffer.from("hello").buffer), 5);
 
       t.throws(() => validateBufferSlice(2 as ESObject), {
         code: "InvalidArg",
-        message: "Expected a Buffer value"
+        message: "Expected a Buffer value",
       });
     });
 
@@ -68,7 +68,7 @@ export default () => {
 
       t.throws(() => validateBigint(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be BigInt, but received Number"
+        message: "Expect value to be BigInt, but received Number",
       });
     });
 
@@ -77,7 +77,7 @@ export default () => {
 
       t.throws(() => validateBuffer(2 as ESObject), {
         code: "InvalidArg",
-        message: "Expected a Buffer value"
+        message: "Expected a Buffer value",
       });
     });
 
@@ -87,7 +87,7 @@ export default () => {
 
       t.throws(() => validateBoolean(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be Boolean, but received Number"
+        message: "Expect value to be Boolean, but received Number",
       });
     });
 
@@ -98,12 +98,12 @@ export default () => {
 
       t.throws(() => validateDate(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expected a Date object"
+        message: "Expected a Date object",
       });
 
       t.throws(() => validateDateTime(2 as ESObject), {
         code: "InvalidArg",
-        message: "Expected a Date object"
+        message: "Expected a Date object",
       });
     });
 
@@ -113,19 +113,19 @@ export default () => {
 
       t.throws(() => validateExternal(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be External, but received Number"
+        message: "Expect value to be External, but received Number",
       });
     });
 
     test("should validate function", (t) => {
       t.is(
         validateFunction(() => 1),
-        4
+        4,
       );
 
       t.throws(() => validateFunction(2 as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be Function, but received Number"
+        message: "Expect value to be Function, but received Number",
       });
     });
 
@@ -133,14 +133,14 @@ export default () => {
       t.is(
         validateHashMap({
           a: 1,
-          b: 2
+          b: 2,
         }),
-        2
+        2,
       );
 
       t.throws(() => validateHashMap(undefined as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be Object, but received Undefined"
+        message: "Expect value to be Object, but received Undefined",
       });
     });
 
@@ -151,14 +151,14 @@ export default () => {
             setTimeout(() => {
               resolve(1);
             }, 100);
-          })
+          }),
         ),
-        2
+        2,
       );
 
       await t.throwsAsync(() => validatePromise(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expected Promise object"
+        message: "Expected Promise object",
       });
     });
 
@@ -167,7 +167,7 @@ export default () => {
 
       t.throws(() => validateString(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be String, but received Number"
+        message: "Expect value to be String, but received Number",
       });
     });
 
@@ -176,7 +176,7 @@ export default () => {
 
       t.throws(() => validateNull(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be Null, but received Number"
+        message: "Expect value to be Null, but received Number",
       });
     });
 
@@ -187,7 +187,7 @@ export default () => {
 
       t.throws(() => validateUndefined(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be Undefined, but received Number"
+        message: "Expect value to be Undefined, but received Number",
       });
     });
 
@@ -196,14 +196,14 @@ export default () => {
 
       t.throws(() => validateEnum("3" as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be Number, but received String"
+        message: "Expect value to be Number, but received String",
       });
 
       t.is(validateStringEnum(StatusInValidate.Poll), "Poll");
 
       t.throws(() => validateStringEnum(1 as ESObject), {
         code: "InvalidArg",
-        message: "Expect value to be String, but received Number"
+        message: "Expect value to be String, but received Number",
       });
     });
 

@@ -19,7 +19,7 @@ function assertDeepEquals(actualValue, expected) {
   let msg = logMsg(actualValue, expected[0]);
   return {
     pass: result,
-    message: msg
+    message: msg,
   };
 }
 
@@ -124,11 +124,7 @@ function eq(a, b) {
     return false;
   }
 
-  if (
-    DeepTypeUtils.isDomNode(a) ||
-    DeepTypeUtils.isPromise(a) ||
-    DeepTypeUtils.isFunction(a)
-  ) {
+  if (DeepTypeUtils.isDomNode(a) || DeepTypeUtils.isPromise(a) || DeepTypeUtils.isFunction(a)) {
     result = isEqualNodeOrPromiseOrFunction(a, b);
     return result;
   }
@@ -227,8 +223,7 @@ function isEqualSampleObj(a, b) {
   }
   // 俩个Number对象
   if (aClassName === "[object Number]") {
-    equalSampleObj =
-      a !== +a ? b !== +b : a === 0 && b === 0 ? 1 / a === 1 / b : a === +b;
+    equalSampleObj = a !== +a ? b !== +b : a === 0 && b === 0 ? 1 / a === 1 / b : a === +b;
     return equalSampleObj;
   }
 
@@ -298,9 +293,7 @@ function isEqualArray(a, b) {
   }
   for (let i = 0; i < aLength || i < bLength; i++) {
     // 递归每一个元素是否相同
-    equalArray =
-      eq(i < aLength ? a[i] : void 0, i < bLength ? b[i] : void 0) &&
-      equalArray;
+    equalArray = eq(i < aLength ? a[i] : void 0, i < bLength ? b[i] : void 0) && equalArray;
   }
   return equalArray;
 }
@@ -355,7 +348,7 @@ function isEqualSet(a, b) {
   });
   const setPairs = [
     [valuesA, valuesB],
-    [valuesB, valuesA]
+    [valuesB, valuesA],
   ];
   for (let i = 0; equalSet && i < setPairs.length; i++) {
     const baseValues = setPairs[i][0];

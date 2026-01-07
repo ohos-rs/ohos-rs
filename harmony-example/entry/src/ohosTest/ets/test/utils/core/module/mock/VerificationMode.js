@@ -35,17 +35,13 @@ class VerificationMode {
 
   atLeast(count) {
     if (count > this.doTimes) {
-      throw Error(
-        "failed " + count + " greater than the actual execution times of method"
-      );
+      throw Error("failed " + count + " greater than the actual execution times of method");
     }
   }
 
   atMost(count) {
     if (count < this.doTimes) {
-      throw Error(
-        "failed " + count + " less than the actual execution times of method"
-      );
+      throw Error("failed " + count + " less than the actual execution times of method");
     }
   }
 }

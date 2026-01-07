@@ -31,10 +31,7 @@ type AvaSerializedError = SerializedErrorBase & {
   source: ErrorSource | undefined;
 };
 
-type SerializedError =
-  | AggregateSerializedError
-  | NativeSerializedError
-  | AvaSerializedError;
+type SerializedError = AggregateSerializedError | NativeSerializedError | AvaSerializedError;
 
 export type StateChangeEvent =
   | {

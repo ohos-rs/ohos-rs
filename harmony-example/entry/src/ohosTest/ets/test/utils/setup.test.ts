@@ -38,7 +38,7 @@ const testContext: ESObject = {
   },
   not: (actual: ESObject, expected: ESObject) => {
     expected(actual).not().assertDeepEquals(expected);
-  }
+  },
 };
 
 const testRunner = ((title: ESObject, spec: ESObject) => {

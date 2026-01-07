@@ -59,9 +59,7 @@ class NotClassFilter {
   }
 
   filterIt() {
-    return this.params
-      .split(",")
-      .some((item) => item == this.suiteName + "#" + this.itName);
+    return this.params.split(",").some((item) => item == this.suiteName + "#" + this.itName);
   }
 }
 
@@ -163,10 +161,4 @@ class NestFilter {
     return !result;
   }
 }
-export {
-  ClassFilter,
-  NotClassFilter,
-  SuiteAndItNameFilter,
-  TestTypesFilter,
-  NestFilter
-};
+export { ClassFilter, NotClassFilter, SuiteAndItNameFilter, TestTypesFilter, NestFilter };

@@ -21,7 +21,7 @@ function assertPromiseIsPending(actualPromise) {
       function () {},
       function () {
         return { pass: false, message: "Expected not be called on a promise." };
-      }
+      },
     );
   }
   const helper = {};
@@ -31,15 +31,15 @@ function assertPromiseIsPending(actualPromise) {
         ? { pass: true, message: "actualValue is isPending" }
         : {
             pass: false,
-            message: "expect isPending, actualValue is resolve"
+            message: "expect isPending, actualValue is resolve",
           };
     },
     function () {
       return {
         pass: false,
-        message: "expect isPending, actualValue is reject"
+        message: "expect isPending, actualValue is reject",
       };
-    }
+    },
   );
 }
 

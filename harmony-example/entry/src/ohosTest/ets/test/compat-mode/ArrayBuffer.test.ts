@@ -6,10 +6,7 @@ export default () => {
   describe("CompatArrayBufferTest", () => {
     test("should get arraybuffer length", (t) => {
       const fixture = buffer.from("wow, hello");
-      t.is(
-        bindings.getArraybufferLength(fixture.buffer),
-        fixture.buffer.byteLength
-      );
+      t.is(bindings.getArraybufferLength(fixture.buffer), fixture.buffer.byteLength);
     });
 
     test("should be able to mutate Uint8Array", (t) => {

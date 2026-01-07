@@ -23,10 +23,7 @@ export const writeTxtFile = (path) => {
     fs.unlinkSync(path + "/test.txt");
   }
 
-  let file = fs.openSync(
-    path + "/test.txt",
-    fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE
-  );
+  let file = fs.openSync(path + "/test.txt", fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
 
   fs.writeSync(file.fd, EXAMPLE_STRING);
 };
@@ -36,9 +33,6 @@ export const writeJsonFile = (path) => {
   if (isExist) {
     fs.unlinkSync(path + "/test.json");
   }
-  let file = fs.openSync(
-    path + "/test.json",
-    fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE
-  );
+  let file = fs.openSync(path + "/test.json", fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
   fs.writeSync(file.fd, EXAMPLE_JSON);
 };

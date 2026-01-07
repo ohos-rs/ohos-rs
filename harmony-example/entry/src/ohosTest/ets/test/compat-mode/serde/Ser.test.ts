@@ -7,7 +7,7 @@ export default () => {
     test("serialize make_bytes_struct", (t) => {
       t.deepEqual(bindings.make_bytes_struct(), {
         code: buffer.from([0, 1, 2, 3]).buffer,
-        map: "source map"
+        map: "source map",
       });
     });
   });

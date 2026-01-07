@@ -84,9 +84,9 @@ impl Env {
     check_status!(unsafe { sys::napi_get_boolean(self.0, value, &mut raw_value) })?;
     Ok(unsafe { JsBoolean::from_raw_unchecked(self.0, raw_value) })
   }
+
   #[cfg(feature = "compat-mode")]
   #[deprecated(since = "1.1.0", note = "Use `i32` instead")]
-
   /// Create a new JavaScript number from a Rust `i32`
   pub fn create_int32(&self, int: i32) -> Result<JsNumber<'_>> {
     let mut raw_value = ptr::null_mut();

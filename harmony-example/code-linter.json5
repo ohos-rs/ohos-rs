@@ -15,6 +15,5 @@
     "plugin:@performance/recommended",
     "plugin:@typescript-eslint/recommended"
   ],
-  "rules": {
-  }
+  "rules": {}
 }

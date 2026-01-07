@@ -14,7 +14,7 @@ export class AbortSignal {
           capture?: boolean;
           once?: boolean;
           passive?: boolean;
-        }
+        },
   ) => void;
 
   removeEventListener: (
@@ -24,7 +24,7 @@ export class AbortSignal {
       | boolean
       | {
           capture?: boolean;
-        }
+        },
   ) => void;
 
   dispatchEvent: (event: any) => void;
@@ -42,18 +42,13 @@ export interface Test {
   id: number;
 }
 
-export declare function asyncFib(
-  input: number,
-  signal: AbortSignal
-): Promise<unknown>;
+export declare function asyncFib(input: number, signal: AbortSignal): Promise<unknown>;
 
 export declare function asyncFibQos(input: number): Promise<unknown>;
 
 export declare function loadLog(): void;
 
-export declare function runBle(
-  cb: (err: Error | null, arg: number) => void
-): void;
+export declare function runBle(cb: (err: Error | null, arg: number) => void): void;
 
 export declare function stop(): void;
 
@@ -61,7 +56,7 @@ export declare function sum(left: number, right: number): number;
 
 export declare function threadsafeFunctionFatalMode(
   v: boolean,
-  cb: (arg: boolean) => unknown
+  cb: (arg: boolean) => unknown,
 ): void;
 
 export declare class Utils {

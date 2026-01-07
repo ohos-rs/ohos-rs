@@ -4,25 +4,25 @@ _default:
     @just --list -u
 
 init:
-    cargo binstall typos-cli taplo-cli -y
+    cargo install typos-cli taplo-cli -y
+    cargo install oxk --git https://github.com/ohos-rs/oxc-ark.git
 
 ready:
     typos
     cargo fmt
     just check
-    just lint
-    git status
-
-lint:
-    cargo lint -- --deny warnings
+    git status   
 
 check:
-    cargo ck
+    cargo fmt --check
+    ohrs cargo clippy -- --workspace --target aarch64-unknown-linux-ohos
+    ohrs cargo clippy -- --workspace --target armv7-unknown-linux-ohos
+    ohrs cargo clippy -- --workspace --target x86_64-unknown-linux-ohos
 
 fmt:
     cargo fmt
     taplo format
-    npx prettier --write '**/*.(ts|js|ets)' --trailing-comma=none
+    oxk format "**/*.{ts,js,ets,json5}"
 
 test:
     bash ./scripts/test.sh

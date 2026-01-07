@@ -22,32 +22,20 @@ export default () => {
     });
 
     test("should create borrowed buffer with noop finalize", (t) => {
-      t.deepEqual(
-        bindings.createBorrowedBufferWithNoopFinalize(),
-        buffer.from([1, 2, 3]).buffer
-      );
+      t.deepEqual(bindings.createBorrowedBufferWithNoopFinalize(), buffer.from([1, 2, 3]).buffer);
     });
 
     test("should create borrowed buffer with finalize", (t) => {
-      t.deepEqual(
-        bindings.createBorrowedBufferWithFinalize(),
-        buffer.from([1, 2, 3]).buffer
-      );
+      t.deepEqual(bindings.createBorrowedBufferWithFinalize(), buffer.from([1, 2, 3]).buffer);
     });
 
     test("should create empty borrowed buffer with finalize", (t) => {
-      t.throws(
-        () => bindings.createEmptyBorrowedBufferWithFinalize().toString(),
-        {
-          message: "Borrowed data should not be null"
-        }
-      );
-      t.throws(
-        () => bindings.createEmptyBorrowedBufferWithFinalize().toString(),
-        {
-          message: "Borrowed data should not be null"
-        }
-      );
+      t.throws(() => bindings.createEmptyBorrowedBufferWithFinalize().toString(), {
+        message: "Borrowed data should not be null",
+      });
+      t.throws(() => bindings.createEmptyBorrowedBufferWithFinalize().toString(), {
+        message: "Borrowed data should not be null",
+      });
     });
 
     test("should create empty buffer", (t) => {

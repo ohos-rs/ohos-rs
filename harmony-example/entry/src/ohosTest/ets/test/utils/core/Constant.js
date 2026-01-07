@@ -71,7 +71,7 @@ export const TESTTYPE = {
   user: 1 << 7,
   standard: 1 << 8,
   safety: 1 << 9,
-  resilience: 1 << 10
+  resilience: 1 << 10,
 };
 
 export const LEVEL = {
@@ -79,13 +79,13 @@ export const LEVEL = {
   1: 1 << 25,
   2: 1 << 26,
   3: 1 << 27,
-  4: 1 << 28
+  4: 1 << 28,
 };
 
 export const SIZE = {
   small: 1 << 16,
   medium: 1 << 17,
-  large: 1 << 18
+  large: 1 << 18,
 };
 
 export const KEYSET = [
@@ -118,5 +118,5 @@ export const KEYSET = [
   "stress",
   "coverage",
   "skipMessage",
-  "runSkipped"
+  "runSkipped",
 ];

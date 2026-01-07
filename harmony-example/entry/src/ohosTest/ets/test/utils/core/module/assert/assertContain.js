@@ -28,7 +28,7 @@ function assertContain(actualValue, expect) {
   }
   return {
     pass: result,
-    message: "expect false, " + actualValue + " do not have  " + expect[0]
+    message: "expect false, " + actualValue + " do not have  " + expect[0],
   };
 }
 

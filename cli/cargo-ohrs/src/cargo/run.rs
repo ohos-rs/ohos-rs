@@ -95,9 +95,6 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<String>, bisheng: bool) -> anyhow
     ("DEP_ATOMIC", &builtins),
   ]);
 
-  println!("args: {:?}", args);
-  println!("prepare_env: {:?}", prepare_env);
-
   let mut child = Command::new("cargo")
     .args(args)
     .envs(&prepare_env)

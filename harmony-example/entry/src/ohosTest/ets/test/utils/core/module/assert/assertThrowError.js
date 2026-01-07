@@ -24,7 +24,7 @@ function assertThrowError(actualValue, expected) {
     actualValue();
     return {
       pass: result,
-      message: " An error is not thrown while it is expected!"
+      message: " An error is not thrown while it is expected!",
     };
   } catch (e) {
     err = e;
@@ -32,36 +32,26 @@ function assertThrowError(actualValue, expected) {
   if (!expected && !(err instanceof Error)) {
     return {
       pass: false,
-      message: "An error is not thrown while it is expected!"
+      message: "An error is not thrown while it is expected!",
     };
   }
   if (err instanceof Error) {
     let type = typeof expected?.[0];
     if (type === "function") {
       result = err.constructor.name === expected[0].name;
-      message =
-        "expected throw failed , " +
-        err.constructor.name +
-        " is not " +
-        expected[0].name;
+      message = "expected throw failed , " + err.constructor.name + " is not " + expected[0].name;
     } else if (type === "string") {
       result = err.message.includes(expected[0]);
-      message =
-        "expected throw failed , " + err.message + " is not " + expected[0];
+      message = "expected throw failed , " + err.message + " is not " + expected[0];
     } else if (type === "object") {
       if (expected[0].message) {
         result = err.message.includes(expected[0].message);
-        message =
-          "expected throw failed , " +
-          err.message +
-          " is not " +
-          expected[0].message;
+        message = "expected throw failed , " + err.message + " is not " + expected[0].message;
       }
 
       if (expected[0].code) {
         result = err.code.includes(expected[0].code);
-        message =
-          "expected throw failed , " + err.code + " is not " + expected[0].code;
+        message = "expected throw failed , " + err.code + " is not " + expected[0].code;
       }
     } else if (type === "undefined") {
       result = true;
@@ -69,7 +59,7 @@ function assertThrowError(actualValue, expected) {
   }
   return {
     pass: result,
-    message: message
+    message: message,
   };
 }
 

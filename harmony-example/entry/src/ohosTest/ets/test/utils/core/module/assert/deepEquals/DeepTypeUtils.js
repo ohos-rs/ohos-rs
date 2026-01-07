@@ -73,9 +73,7 @@ class DeepTypeUtils {
    * @param obj
    */
   static isMap(obj) {
-    return (
-      obj !== null && typeof obj !== "undefined" && obj.constructor === Map
-    );
+    return obj !== null && typeof obj !== "undefined" && obj.constructor === Map;
   }
 
   /**
@@ -83,9 +81,7 @@ class DeepTypeUtils {
    * @param obj 对象
    */
   static isSet(obj) {
-    return (
-      obj !== null && typeof obj !== "undefined" && obj.constructor === Set
-    );
+    return obj !== null && typeof obj !== "undefined" && obj.constructor === Set;
   }
 
   /**

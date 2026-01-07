@@ -19,7 +19,7 @@ export class Subject {
     return {
       unsubscribe: () => {
         this.observers = this.observers.filter((obs) => obs !== observer);
-      }
+      },
     };
   }
 }
@@ -38,7 +38,7 @@ export function take(count) {
           }
         });
         return subscription;
-      }
+      },
     };
   };
 }

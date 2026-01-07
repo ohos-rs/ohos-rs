@@ -21,7 +21,7 @@ function assertPromiseIsResolvedWith(actualPromise, expectedValue) {
       function () {},
       function () {
         return { pass: false, message: "Expected not be called on a promise." };
-      }
+      },
     );
   }
 
@@ -39,22 +39,20 @@ function assertPromiseIsResolvedWith(actualPromise, expectedValue) {
       if (JSON.stringify(got) == JSON.stringify(expectedValue[0])) {
         return {
           pass: true,
-          message: "actualValue was resolved with " + JSON.stringify(got) + "."
+          message: "actualValue was resolved with " + JSON.stringify(got) + ".",
         };
       }
       return {
         pass: false,
-        message:
-          tips(false) + " but it was resolved with " + JSON.stringify(got) + "."
+        message: tips(false) + " but it was resolved with " + JSON.stringify(got) + ".",
       };
     },
     function (rej) {
       return {
         pass: false,
-        message:
-          tips(false) + " but it was rejected with " + JSON.stringify(rej) + "."
+        message: tips(false) + " but it was rejected with " + JSON.stringify(rej) + ".",
       };
-    }
+    },
   );
 }
 

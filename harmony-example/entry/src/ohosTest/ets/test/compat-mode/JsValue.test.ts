@@ -39,7 +39,7 @@ export default () => {
 
     test("strict_equals", (t) => {
       const a = {
-        foo: "bar"
+        foo: "bar",
       };
       const b = { ...a };
       t.false(bindings.strictEquals(a, b));

@@ -25,9 +25,7 @@ class LogExpectError {
       return "expect not false, actualValue is " + actualValue;
     }
     if (matcherName === "assertEqual") {
-      return (
-        "expect not Equal, actualValue is " + actualValue + " equals " + expect
-      );
+      return "expect not Equal, actualValue is " + actualValue + " equals " + expect;
     }
     if (matcherName === "assertContain") {
       return "expect not have, " + actualValue + " have " + expect;
@@ -45,17 +43,13 @@ class LogExpectError {
       return "expect not Larger, " + actualValue + " is larger than " + expect;
     }
     if (matcherName === "assertLargerOrEqual") {
-      return (
-        "expect not LargerOrEqual, " + actualValue + " larger than " + expect
-      );
+      return "expect not LargerOrEqual, " + actualValue + " larger than " + expect;
     }
     if (matcherName === "assertLess") {
       return "expect not Less, " + actualValue + " less than " + expect;
     }
     if (matcherName === "assertLessOrEqual") {
-      return (
-        "expect not LessOrEqual, " + actualValue + " is less than " + expect
-      );
+      return "expect not LessOrEqual, " + actualValue + " is less than " + expect;
     }
     if (matcherName === "assertNaN") {
       return "expect not NaN, actualValue is " + actualValue;

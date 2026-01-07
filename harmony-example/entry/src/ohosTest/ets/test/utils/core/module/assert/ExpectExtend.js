@@ -61,8 +61,7 @@ class ExpectExtend {
     this.matchers.assertPromiseIsPending = assertPromiseIsPending;
     this.matchers.assertPromiseIsRejected = assertPromiseIsRejected;
     this.matchers.assertPromiseIsRejectedWith = assertPromiseIsRejectedWith;
-    this.matchers.assertPromiseIsRejectedWithError =
-      assertPromiseIsRejectedWithError;
+    this.matchers.assertPromiseIsRejectedWithError = assertPromiseIsRejectedWithError;
     this.matchers.assertPromiseIsResolved = assertPromiseIsResolved;
     this.matchers.assertPromiseIsResolvedWith = assertPromiseIsResolvedWith;
   }
@@ -78,7 +77,7 @@ class ExpectExtend {
     return {
       expect: function (actualValue) {
         return this.coreContext.getDefaultService("expect").expect(actualValue);
-      }
+      },
     };
   }
 }

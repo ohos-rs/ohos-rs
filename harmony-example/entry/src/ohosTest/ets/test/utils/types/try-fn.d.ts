@@ -57,8 +57,5 @@ export type TryFn<Context = unknown> = {
    * Attempt to run some assertions. The result must be explicitly committed or discarded or else
    * the test will fail.
    */
-  <Args extends unknown[]>(
-    fn: Implementation<Args, Context>,
-    ...args: Args
-  ): Promise<TryResult>;
+  <Args extends unknown[]>(fn: Implementation<Args, Context>, ...args: Args): Promise<TryResult>;
 };

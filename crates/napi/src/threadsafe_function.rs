@@ -62,6 +62,7 @@ impl From<ThreadsafeFunctionPriority> for sys::napi_task_priority {
 pub struct ThreadsafeFunctionHandle {
   raw: AtomicPtr<sys::napi_threadsafe_function__>,
   aborted: RwLock<bool>,
+  #[allow(dead_code)]
   referred: AtomicBool,
 }
 

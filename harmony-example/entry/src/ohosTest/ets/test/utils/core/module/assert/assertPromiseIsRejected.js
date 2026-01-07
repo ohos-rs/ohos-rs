@@ -21,19 +21,19 @@ function assertPromiseIsRejected(actualPromise) {
       function () {},
       function () {
         return { pass: false, message: "Expected not be called on a promise." };
-      }
+      },
     );
   }
   return actualPromise.then(
     function (got) {
       return {
         pass: false,
-        message: "expect isRejected, but actualValue is resolve"
+        message: "expect isRejected, but actualValue is resolve",
       };
     },
     function () {
       return { pass: true, message: "actualValue is isRejected" };
-    }
+    },
   );
 }
 

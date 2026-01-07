@@ -15,7 +15,7 @@ import {
   beforeItSpecified,
   afterItSpecified,
   xdescribe,
-  xit
+  xit,
 } from "./core/interface";
 import { MockKit, when } from "./core/module/mock/MockKit";
 import ArgumentMatchers from "./core/module/mock/ArgumentMatchers";
@@ -41,20 +41,15 @@ class Hypium {
     return Hypium.context.get(key);
   }
 
-  static hypiumTest(
-    abilityDelegator,
-    abilityDelegatorArguments,
-    ctx,
-    testsuite
-  ) {
+  static hypiumTest(abilityDelegator, abilityDelegatorArguments, ctx, testsuite) {
     const core = Core.getInstance();
     const expectExtend = new ExpectExtend({
-      id: "extend"
+      id: "extend",
     });
     core.addService("expect", expectExtend);
     const ohReport = new OhReport({
       delegator: abilityDelegator,
-      abilityDelegatorArguments: abilityDelegatorArguments
+      abilityDelegatorArguments: abilityDelegatorArguments,
     });
     SysTestKit.delegator = abilityDelegator;
     core.addService("report", ohReport);
@@ -64,21 +59,14 @@ class Hypium {
     core.subscribeEvent("task", ohReport);
     const configService = core.getDefaultService("config");
     if (abilityDelegatorArguments !== null) {
-      let testParameters = configService.translateParams(
-        abilityDelegatorArguments.parameters
-      );
+      let testParameters = configService.translateParams(abilityDelegatorArguments.parameters);
       console.info(`${TAG}parameters:${JSON.stringify(testParameters)}`);
       configService.setConfig(testParameters);
     }
     testsuite(ctx);
     core.execute(abilityDelegator);
   }
-  static async hypiumInitWorkers(
-    abilityDelegator,
-    scriptURL,
-    workerNum = 8,
-    params
-  ) {
+  static async hypiumInitWorkers(abilityDelegator, scriptURL, workerNum = 8, params) {
     console.info(`${TAG}, hypiumInitWorkers call,${scriptURL}`);
     let workerPromiseArray = [];
 
@@ -95,13 +83,11 @@ class Hypium {
       error: 0,
       pass: 0,
       ignore: 0,
-      duration: 0
+      duration: 0,
     };
     Promise.all(workerPromiseArray)
       .then(async (items) => {
-        console.info(
-          `${TAG}, all result from workers, ${JSON.stringify(items)}`
-        );
+        console.info(`${TAG}, all result from workers, ${JSON.stringify(items)}`);
         let allItemList = new Array();
         // 统计执行结果
         Hypium.handleWorkerTestResult(ret, allItemList, items);
@@ -113,7 +99,7 @@ class Hypium {
           error: 0,
           pass: 0,
           ignore: 0,
-          duration: 0
+          duration: 0,
         };
         // 标记用例执行结果
         Hypium.configWorkerItTestResult(retResult, allItemList);
@@ -131,14 +117,8 @@ class Hypium {
         abilityDelegator.finishTest("you worker test finished!!!", 0, () => {});
       })
       .catch((e) => {
-        console.info(
-          `${TAG}, [end] error you worker test, ${JSON.stringify(e)}`
-        );
-        abilityDelegator.finishTest(
-          "you worker test error finished!!!",
-          0,
-          () => {}
-        );
+        console.info(`${TAG}, [end] error you worker test, ${JSON.stringify(e)}`);
+        abilityDelegator.finishTest("you worker test error finished!!!", 0, () => {});
       })
       .finally(() => {
         console.info(`${TAG}, all promise finally end`);
@@ -149,16 +129,14 @@ class Hypium {
     console.info(`${TAG}, createWorkerPromiser, ${scriptURL}, ${i}`);
     const workerPromise = new Promise((resolve, reject) => {
       const workerInstance = new worker.ThreadWorker(scriptURL, {
-        name: `worker_${i}`
+        name: `worker_${i}`,
       });
       console.info(`${TAG}, send data to worker`);
       // 发送数据到worker线程中
       workerInstance.postMessage(params);
       workerInstance.onmessage = function (e) {
         let currentThreadName = e.data?.currentThreadName;
-        console.info(
-          `${TAG}, receview data from ${currentThreadName}, ${JSON.stringify(e.data)}`
-        );
+        console.info(`${TAG}, receview data from ${currentThreadName}, ${JSON.stringify(e.data)}`);
         //
         resolve(e.data?.summary);
         console.info(`${TAG}, ${currentThreadName} finish`);
@@ -179,15 +157,7 @@ class Hypium {
   }
   static handleWorkerTestResult(ret, allItemList, items) {
     console.info(`${TAG}, handleWorkerTestResult, ${JSON.stringify(items)}`);
-    for (const {
-      total,
-      failure,
-      error,
-      pass,
-      ignore,
-      duration,
-      itItemList
-    } of items) {
+    for (const { total, failure, error, pass, ignore, duration, itItemList } of items) {
       ret.total += total;
       ret.failure += failure;
       ret.error += error;
@@ -212,16 +182,14 @@ class Hypium {
         let it = {
           description: description,
           currentThreadName: currentThreadName,
-          result: result
+          result: result,
         };
         allItemList.push(it);
       }
     }
   }
   static configWorkerItTestResult(retResult, allItemList) {
-    console.info(
-      `${TAG}, configWorkerItTestResult, ${JSON.stringify(allItemList)}`
-    );
+    console.info(`${TAG}, configWorkerItTestResult, ${JSON.stringify(allItemList)}`);
     for (const { currentThreadName, description, result } of allItemList) {
       console.info(`${TAG}, description, ${description}, result,${result}`);
       retResult.total++;
@@ -237,14 +205,10 @@ class Hypium {
     }
   }
   static printWorkerTestResult(abilityDelegator, allItemList) {
-    console.info(
-      `${TAG}, printWorkerTestResult, ${JSON.stringify(allItemList)}`
-    );
+    console.info(`${TAG}, printWorkerTestResult, ${JSON.stringify(allItemList)}`);
     let index = 1;
     for (const { currentThreadName, description, result } of allItemList) {
-      console.info(
-        `${TAG}, description print, ${description}, result,${result}`
-      );
+      console.info(`${TAG}, description print, ${description}, result,${result}`);
       let itArray = description.split("#");
       let des;
       let itName;
@@ -267,25 +231,12 @@ class Hypium {
       index++;
     }
   }
-  static hypiumWorkerTest(
-    abilityDelegator,
-    abilityDelegatorArguments,
-    ctx,
-    testsuite,
-    workerPort
-  ) {
+  static hypiumWorkerTest(abilityDelegator, abilityDelegatorArguments, ctx, testsuite, workerPort) {
     console.info(`${TAG}, hypiumWorkerTest call`);
     SysTestKit.workerPort = workerPort;
     let currentWorkerName = workerPort.name;
-    console.info(
-      `${TAG}, hypiumWorkerTest_currentWorkerName: ${currentWorkerName}`
-    );
-    Hypium.hypiumTest(
-      abilityDelegator,
-      abilityDelegatorArguments,
-      ctx,
-      testsuite
-    );
+    console.info(`${TAG}, hypiumWorkerTest_currentWorkerName: ${currentWorkerName}`);
+    Hypium.hypiumTest(abilityDelegator, abilityDelegatorArguments, ctx, testsuite);
   }
 
   static registerAssert(customAssertion) {
@@ -302,9 +253,7 @@ class Hypium {
     const core = Core.getInstance();
     const expectService = core.getDefaultService("expect");
     let customAssertionName =
-      typeof customAssertion === "function"
-        ? customAssertion.name
-        : customAssertion;
+      typeof customAssertion === "function" ? customAssertion.name : customAssertion;
     expectService.removeMatchers(customAssertionName);
     console.info(`${TAG}success to unregister the ${customAssertionName}`);
   }
@@ -334,5 +283,5 @@ export {
   xit,
   MockKit,
   when,
-  ArgumentMatchers
+  ArgumentMatchers,
 };

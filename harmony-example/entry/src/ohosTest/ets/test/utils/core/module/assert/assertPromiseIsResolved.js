@@ -21,7 +21,7 @@ function assertPromiseIsResolved(actualPromise) {
       function () {},
       function () {
         return { pass: false, message: "Expected not be called on a promise." };
-      }
+      },
     );
   }
 
@@ -36,9 +36,9 @@ function assertPromiseIsResolved(actualPromise) {
           "Expected a promise to be resolved but it was " +
           "rejected with " +
           JSON.stringify(rej) +
-          "."
+          ".",
       };
-    }
+    },
   );
 }
 

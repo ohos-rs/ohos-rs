@@ -18,7 +18,7 @@ import {
   NotClassFilter,
   SuiteAndItNameFilter,
   TestTypesFilter,
-  NestFilter
+  NestFilter,
 } from "./Filter";
 import { TAG, TESTTYPE, LEVEL, SIZE, KEYSET } from "../../Constant";
 const STRESS_RULE = /^[1-9]\d*$/;
@@ -58,11 +58,7 @@ class ConfigService {
   }
 
   getStress() {
-    if (
-      this.stress === undefined ||
-      this.stress === "" ||
-      this.stress === null
-    ) {
+    if (this.stress === undefined || this.stress === "" || this.stress === null) {
       return 1;
     }
     return !this.stress.match(STRESS_RULE) ? 1 : Number.parseInt(this.stress);
@@ -96,7 +92,7 @@ class ConfigService {
         "user",
         "standard",
         "safety",
-        "resilience"
+        "resilience",
       ];
       if (testTypeArray.indexOf(testType) === -1) {
         this.filterValid.push("testType:" + testType);
@@ -112,29 +108,15 @@ class ConfigService {
       }
     }
 
-    let paramKeys = [
-      "dryRun",
-      "random",
-      "breakOnError",
-      "coverage",
-      "skipMessage"
-    ];
+    let paramKeys = ["dryRun", "random", "breakOnError", "coverage", "skipMessage"];
     for (const key of paramKeys) {
-      if (
-        params[key] !== undefined &&
-        params[key] !== "true" &&
-        params[key] !== "false"
-      ) {
+      if (params[key] !== undefined && params[key] !== "true" && params[key] !== "false") {
         this.filterValid.push(`${key}:${params[key]}`);
       }
     }
 
     // 压力测试参数验证,正整数
-    if (
-      params.stress !== undefined &&
-      params.stress !== "" &&
-      params.stress !== null
-    ) {
+    if (params.stress !== undefined && params.stress !== "" && params.stress !== null) {
       if (!params.stress.match(STRESS_RULE)) {
         this.filterValid.push("stress:" + params.stress);
       }
@@ -143,16 +125,10 @@ class ConfigService {
     let nameRule = /^[A-Za-z]{1}[\w#,.]*$/;
     let paramClassKeys = ["class", "notClass"];
     for (const key of paramClassKeys) {
-      if (
-        params[key] !== undefined &&
-        params[key] !== "" &&
-        params[key] !== null
-      ) {
+      if (params[key] !== undefined && params[key] !== "" && params[key] !== null) {
         let classArray = params[key].split(",");
         classArray.forEach((item) =>
-          !item.match(nameRule)
-            ? this.filterValid.push(`${key}:${params[key]}`)
-            : null
+          !item.match(nameRule) ? this.filterValid.push(`${key}:${params[key]}`) : null,
         );
       }
     }
@@ -182,7 +158,7 @@ class ConfigService {
       this.filterParam = {
         testType: TESTTYPE,
         level: LEVEL,
-        size: SIZE
+        size: SIZE,
       };
       this.parseParams();
     } catch (err) {
@@ -230,18 +206,12 @@ class ConfigService {
   filterSuite(currentSuiteName) {
     let filterArray = [];
     if (this.suite !== undefined && this.suite !== "" && this.suite !== null) {
-      filterArray.push(
-        new SuiteAndItNameFilter(currentSuiteName, "", this.suite)
-      );
+      filterArray.push(new SuiteAndItNameFilter(currentSuiteName, "", this.suite));
     }
     if (this.class !== undefined && this.class !== "" && this.class !== null) {
       filterArray.push(new ClassFilter(currentSuiteName, "", this.class));
     }
-    if (
-      this.notClass !== undefined &&
-      this.notClass !== "" &&
-      this.notClass !== null
-    ) {
+    if (this.notClass !== undefined && this.notClass !== "" && this.notClass !== null) {
       filterArray.push(new NotClassFilter(currentSuiteName, "", this.notClass));
     }
 
@@ -253,60 +223,33 @@ class ConfigService {
 
   filterDesc(currentSuiteName, desc, fi, coreContext) {
     let filterArray = [];
-    if (
-      this.itName !== undefined &&
-      this.itName !== "" &&
-      this.itName !== null
-    ) {
-      filterArray.push(
-        new SuiteAndItNameFilter(currentSuiteName, desc, this.itName)
-      );
+    if (this.itName !== undefined && this.itName !== "" && this.itName !== null) {
+      filterArray.push(new SuiteAndItNameFilter(currentSuiteName, desc, this.itName));
     }
     if (this.class !== undefined && this.class !== "" && this.class !== null) {
       filterArray.push(new ClassFilter(currentSuiteName, desc, this.class));
     }
-    if (
-      this.notClass !== undefined &&
-      this.notClass !== "" &&
-      this.notClass !== null
-    ) {
-      filterArray.push(
-        new NotClassFilter(currentSuiteName, desc, this.notClass)
-      );
+    if (this.notClass !== undefined && this.notClass !== "" && this.notClass !== null) {
+      filterArray.push(new NotClassFilter(currentSuiteName, desc, this.notClass));
     }
     if (typeof this.filter !== "undefined" && this.filter !== 0 && fi !== 0) {
       filterArray.push(new TestTypesFilter("", "", fi, this.filter));
     }
-    let result = filterArray
-      .map((item) => item.filterIt())
-      .reduce((pre, cur) => pre || cur, false);
+    let result = filterArray.map((item) => item.filterIt()).reduce((pre, cur) => pre || cur, false);
     return result;
   }
 
   filterWithNest(desc, filter) {
     let filterArray = [];
     const nestFilter = new NestFilter();
-    const targetSuiteArray =
-      this.coreContext.getDefaultService("suite").targetSuiteArray;
-    const targetSpecArray =
-      this.coreContext.getDefaultService("suite").targetSpecArray;
+    const targetSuiteArray = this.coreContext.getDefaultService("suite").targetSuiteArray;
+    const targetSpecArray = this.coreContext.getDefaultService("suite").targetSpecArray;
     const suiteStack = this.coreContext.getDefaultService("suite").suitesStack;
-    let isFilter = nestFilter.filterNestName(
-      targetSuiteArray,
-      targetSpecArray,
-      suiteStack,
-      desc
-    );
+    let isFilter = nestFilter.filterNestName(targetSuiteArray, targetSpecArray, suiteStack, desc);
     const isFullRun = this.coreContext.getDefaultService("suite").fullRun;
-    if (
-      typeof this.filter !== "undefined" &&
-      this.filter !== 0 &&
-      filter !== 0
-    ) {
+    if (typeof this.filter !== "undefined" && this.filter !== 0 && filter !== 0) {
       filterArray.push(new TestTypesFilter("", "", filter, this.filter));
-      return filterArray
-        .map((item) => item.filterIt())
-        .reduce((pre, cur) => pre || cur, false);
+      return filterArray.map((item) => item.filterIt()).reduce((pre, cur) => pre || cur, false);
     }
     if (isFilter && !isFullRun) {
       return true;

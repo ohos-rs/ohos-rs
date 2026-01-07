@@ -55,10 +55,7 @@ class DataDriver {
       return specParams;
     }
     for (const specItem of specs) {
-      if (
-        ObjectUtils.has(specItem, IT_KEY) &&
-        ObjectUtils.get(specItem, IT_KEY) === specDesc
-      ) {
+      if (ObjectUtils.has(specItem, IT_KEY) && ObjectUtils.get(specItem, IT_KEY) === specDesc) {
         return ObjectUtils.get(specItem, PARAMS_KEY, specParams);
       }
     }
@@ -100,7 +97,7 @@ class DataDriver {
         suiteParams = Object.assign(
           {},
           suiteParams,
-          ObjectUtils.get(suiteItem, PARAMS_KEY, suiteParams)
+          ObjectUtils.get(suiteItem, PARAMS_KEY, suiteParams),
         );
       }
     }
@@ -113,14 +110,9 @@ class DataDriver {
       return stress;
     }
     for (const specItem of specs) {
-      if (
-        ObjectUtils.has(specItem, IT_KEY) &&
-        ObjectUtils.get(specItem, IT_KEY) === specDesc
-      ) {
+      if (ObjectUtils.has(specItem, IT_KEY) && ObjectUtils.get(specItem, IT_KEY) === specDesc) {
         let tempStress = ObjectUtils.get(specItem, STRESS_KEY, stress);
-        return Number.isInteger(tempStress) && tempStress >= 1
-          ? tempStress
-          : stress;
+        return Number.isInteger(tempStress) && tempStress >= 1 ? tempStress : stress;
       }
     }
     return stress;
@@ -157,9 +149,7 @@ class DataDriver {
         describeValue.includes(suiteDesc)
       ) {
         let tempStress = ObjectUtils.get(suiteItem, STRESS_KEY, stress);
-        return Number.isInteger(tempStress) && tempStress >= 1
-          ? tempStress
-          : stress;
+        return Number.isInteger(tempStress) && tempStress >= 1 ? tempStress : stress;
       }
     }
     return stress;

@@ -1,6 +1,7 @@
 // borrowed from https://github.com/neon-bindings/neon/tree/main/crates/neon/src/sys/bindings
 
 #![allow(ambiguous_glob_reexports)]
+#![allow(dead_code)]
 
 #[cfg(any(
   target_env = "msvc",

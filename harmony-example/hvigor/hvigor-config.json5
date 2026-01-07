@@ -1,7 +1,6 @@
 {
   "modelVersion": "5.0.0",
-  "dependencies": {
-  },
+  "dependencies": {},
   "execution": {
     // "analyze": "normal",                     /* Define the build analyze mode. Value: [ "normal" | "advanced" | false ]. Default: "normal" */
     // "daemon": true,                          /* Enable daemon compilation. Value: [ true | false ]. Default: true */

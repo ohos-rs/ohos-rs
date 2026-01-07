@@ -27,25 +27,20 @@ export default class SysTestKit {
   }
 
   static getDescribeName() {
-    return Core.getInstance()
-      .getDefaultService("suite")
-      .getCurrentRunningSuite().description;
+    return Core.getInstance().getDefaultService("suite").getCurrentRunningSuite().description;
   }
 
   static getItName() {
-    return Core.getInstance().getDefaultService("spec").getCurrentRunningSpec()
-      .description;
+    return Core.getInstance().getDefaultService("spec").getCurrentRunningSpec().description;
   }
 
   static getItAttribute() {
-    return Core.getInstance().getDefaultService("spec").getCurrentRunningSpec()
-      .fi;
+    return Core.getInstance().getDefaultService("spec").getCurrentRunningSpec().fi;
   }
 
   static actionStart(tag) {
     console.info(`${TAG}${JSON.stringify(tag)}`);
-    var message =
-      "\n" + "OHOS_REPORT_ACTIONSTART: " + JSON.stringify(tag) + "\n";
+    var message = "\n" + "OHOS_REPORT_ACTIONSTART: " + JSON.stringify(tag) + "\n";
     SysTestKit.print(message);
     console.info(`${TAG}${JSON.stringify(tag)} actionStart print success`);
   }
@@ -61,7 +56,7 @@ export default class SysTestKit {
     let reg = new RegExp(/^[a-zA-Z0-9]{1,}$/);
     if (!reg.test(keyword)) {
       throw new Error(
-        "keyword must contain more than one string, and only letters and numbers are supported."
+        "keyword must contain more than one string, and only letters and numbers are supported.",
       );
     }
     timeout = timeout || 4;
@@ -88,15 +83,11 @@ export default class SysTestKit {
       await SysTestKit.systemTime
         .getRealTime()
         .then((time) => {
-          console.info(
-            `${TAG}systemTime.getRealTime success data: ${JSON.stringify(time)}`
-          );
+          console.info(`${TAG}systemTime.getRealTime success data: ${JSON.stringify(time)}`);
           currentTime = time;
         })
         .catch((error) => {
-          console.error(
-            `${TAG}failed to systemTime.getRealTime because ${JSON.stringify(error)}`
-          );
+          console.error(`${TAG}failed to systemTime.getRealTime because ${JSON.stringify(error)}`);
         });
     }
     return currentTime;
@@ -106,12 +97,8 @@ export default class SysTestKit {
 function executePromise(cmd, timeout) {
   return new Promise((resolve, reject) => {
     SysTestKit.delegator.executeShellCommand(cmd, timeout, (error, data) => {
-      console.info(
-        `${TAG}existKeyword CallBack: err : ${JSON.stringify(error)}`
-      );
-      console.info(
-        `${TAG}existKeyword CallBack: data : ${JSON.stringify(data)}`
-      );
+      console.info(`${TAG}existKeyword CallBack: err : ${JSON.stringify(error)}`);
+      console.info(`${TAG}existKeyword CallBack: data : ${JSON.stringify(data)}`);
       resolve(parseInt(data.stdResult) > 3 ? true : false);
     });
   });

@@ -35,7 +35,7 @@ class ReportExtend {
         name: testcase.description,
         status: "run",
         time: "0.0",
-        classname: testsuite.description
+        classname: testsuite.description,
       };
       if (testcase.error) {
         caseReport.result = false;
@@ -43,8 +43,8 @@ class ReportExtend {
           {
             tag: "error",
             type: "",
-            message: testcase.error.message
-          }
+            message: testcase.error.message,
+          },
         ];
         report.errors++;
         suiteReport.errors++;
@@ -66,8 +66,8 @@ class ReportExtend {
           {
             tag: "failure",
             type: "",
-            message: message
-          }
+            message: message,
+          },
         ];
         report.failures++;
         suiteReport.failures++;
@@ -87,7 +87,7 @@ class ReportExtend {
       errors: 0,
       failures: 0,
       tests: 0,
-      children: []
+      children: [],
     };
     const rootSuite = this.suiteService.rootSuite;
     if (rootSuite && rootSuite.childSuites) {
@@ -99,7 +99,7 @@ class ReportExtend {
           tests: 0,
           failures: 0,
           time: "0.1",
-          children: []
+          children: [],
         };
         let specs = testsuite["specs"];
         this.handleSpecs(specs, report, suiteReport, testsuite);
@@ -124,7 +124,7 @@ function writeXmlReport(report) {
     },
     complete: function () {
       console.info("call complete callback success");
-    }
+    },
   });
 }
 

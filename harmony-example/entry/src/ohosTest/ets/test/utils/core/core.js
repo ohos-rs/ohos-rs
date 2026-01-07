@@ -13,12 +13,7 @@
  * limitations under the License.
  */
 
-import {
-  SuiteService,
-  SpecService,
-  ExpectService,
-  ReportService
-} from "./service";
+import { SuiteService, SpecService, ExpectService, ReportService } from "./service";
 import { ConfigService } from "./module/config/configService";
 import { SpecEvent, TaskEvent, SuiteEvent } from "./event";
 
@@ -41,12 +36,12 @@ class Core {
       config: {},
       expect: {},
       log: {},
-      report: {}
+      report: {},
     };
     this.events = {
       suite: {},
       spec: {},
-      task: {}
+      task: {},
     };
   }
 
@@ -121,18 +116,9 @@ class Core {
     this.addService("expect", new ExpectService({ id: "default" }));
     this.addService("report", new ReportService({ id: "default" }));
     this.addService("config", new ConfigService({ id: "default" }));
-    this.registerEvent(
-      "task",
-      new TaskEvent({ id: "default", coreContext: this })
-    );
-    this.registerEvent(
-      "suite",
-      new SuiteEvent({ id: "default", coreContext: this })
-    );
-    this.registerEvent(
-      "spec",
-      new SpecEvent({ id: "default", coreContext: this })
-    );
+    this.registerEvent("task", new TaskEvent({ id: "default", coreContext: this }));
+    this.registerEvent("suite", new SuiteEvent({ id: "default", coreContext: this }));
+    this.registerEvent("spec", new SpecEvent({ id: "default", coreContext: this }));
     this.subscribeEvent("spec", this.getDefaultService("report"));
     this.subscribeEvent("suite", this.getDefaultService("report"));
     this.subscribeEvent("task", this.getDefaultService("report"));

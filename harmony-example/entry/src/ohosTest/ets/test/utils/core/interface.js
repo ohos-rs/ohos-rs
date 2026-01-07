@@ -18,14 +18,10 @@ import Core from "./core";
 const core = Core.getInstance();
 
 const describe = function (desc, func) {
-  return Reflect.has(core, "describe")
-    ? core.describe(desc, func)
-    : (desc, func) => {};
+  return Reflect.has(core, "describe") ? core.describe(desc, func) : (desc, func) => {};
 };
 const it = function (desc, filter, func) {
-  return Reflect.has(core, "it")
-    ? core.it(desc, filter, func)
-    : (desc, filter, func) => {};
+  return Reflect.has(core, "it") ? core.it(desc, filter, func) : (desc, filter, func) => {};
 };
 const beforeItSpecified = function (itDescs, func) {
   return Reflect.has(core, "beforeItSpecified")
@@ -51,9 +47,7 @@ const afterAll = function (func) {
   return Reflect.has(core, "afterAll") ? core.afterAll(func) : (func) => {};
 };
 const expect = function (actualValue) {
-  return Reflect.has(core, "expect")
-    ? core.expect(actualValue)
-    : (actualValue) => {};
+  return Reflect.has(core, "expect") ? core.expect(actualValue) : (actualValue) => {};
 };
 
 const xdescribe = function (desc, func) {
@@ -92,5 +86,5 @@ export {
   beforeItSpecified,
   afterItSpecified,
   xdescribe,
-  xit
+  xit,
 };

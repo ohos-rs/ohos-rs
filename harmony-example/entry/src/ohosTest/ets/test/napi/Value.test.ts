@@ -180,7 +180,7 @@ import {
   callFinallyOnPromise,
   StructuredKind,
   validateStructuredEnum,
-  createArraybuffer
+  createArraybuffer,
 } from "libexample.so";
 import { spy } from "../utils/mock.test";
 import { buffer } from "@kit.ArkTS";
@@ -200,7 +200,7 @@ export default (path) => {
       t.throws(
         () => fibonacci("" as ESObject),
         void 0,
-        "Expect value to be Number, but received String"
+        "Expect value to be Number, but received String",
       );
     });
 
@@ -210,14 +210,8 @@ export default (path) => {
 
       t.is(concatStr("æ¶½¾DEL"), "æ¶½¾DEL + Rust 🦀 string!");
       t.is(concatLatin1("æ¶½¾DEL"), "æ¶½¾DEL + Rust 🦀 string!");
-      t.is(
-        concatUtf16("JavaScript 🌳 你好 napi"),
-        "JavaScript 🌳 你好 napi + Rust 🦀 string!"
-      );
-      t.is(
-        roundtripStr("what up?!\u0000after the NULL"),
-        "what up?!\u0000after the NULL"
-      );
+      t.is(concatUtf16("JavaScript 🌳 你好 napi"), "JavaScript 🌳 你好 napi + Rust 🦀 string!");
+      t.is(roundtripStr("what up?!\u0000after the NULL"), "what up?!\u0000after the NULL");
     });
     test("array", (t) => {
       t.deepEqual(getNums(), [1, 1, 2, 3, 5, 8]);
@@ -231,46 +225,46 @@ export default (path) => {
     test("map", (t) => {
       t.deepEqual(getMapping(), {
         a: 101,
-        b: 102
+        b: 102,
       });
       t.is(
         sumMapping({
           a: 101,
-          b: 102
+          b: 102,
         }),
-        203
+        203,
       );
       t.deepEqual(getBtreeMapping(), {
         a: 101,
-        b: 102
+        b: 102,
       });
       t.is(
         sumBtreeMapping({
           a: 101,
-          b: 102
+          b: 102,
         }),
-        203
+        203,
       );
       t.deepEqual(getIndexMapping(), {
         a: 101,
-        b: 102
+        b: 102,
       });
       t.is(
         sumIndexMapping({
           a: 101,
-          b: 102
+          b: 102,
         }),
-        203
+        203,
       );
       t.deepEqual(
         indexmapPassthrough({
           a: 101,
-          b: 102
+          b: 102,
         }),
         {
           a: 101,
-          b: 102
-        }
+          b: 102,
+        },
       );
     });
 
@@ -281,21 +275,21 @@ export default (path) => {
 
     test("structured enum", (t) => {
       const hello: StructuredKind = {
-        type2: "Hello"
+        type2: "Hello",
       };
       const greeting: StructuredKind = {
         type2: "Greeting",
-        name: "Napi-rs"
+        name: "Napi-rs",
       };
       const birthday: StructuredKind = {
         type2: "Birthday",
         name: "Napi-rs",
-        age: 10
+        age: 10,
       };
       const tuple: StructuredKind = {
         type2: "Tuple",
         field0: 1,
-        field1: 2
+        field1: 2,
       };
       t.deepEqual(hello, validateStructuredEnum(hello));
       t.deepEqual(greeting, validateStructuredEnum(greeting));
@@ -303,28 +297,28 @@ export default (path) => {
       t.deepEqual(tuple, validateStructuredEnum(tuple));
       t.throws(() =>
         validateStructuredEnum({
-          type2: "unknown"
-        } as ESObject)
+          type2: "unknown",
+        } as ESObject),
       );
       t.throws(() =>
         validateStructuredEnum({
-          type2: "Greeting"
-        } as ESObject)
+          type2: "Greeting",
+        } as ESObject),
       );
     });
 
     test("function call", async (t) => {
       t.is(
         call0(() => 42),
-        42
+        42,
       );
       t.is(
         call1((a) => a + 10, 42),
-        52
+        52,
       );
       t.is(
         call2((a, b) => a + b, 42, 10),
-        52
+        52,
       );
       const ctx = new Animal(Kind.Dog, "旺财");
       apply0(ctx, function (this: Animal) {
@@ -337,16 +331,16 @@ export default (path) => {
         function (this: Animal, name: string) {
           this.name = name;
         },
-        "可乐"
+        "可乐",
       );
       t.is(ctx2.name, "可乐");
       t.is(
         callFunction(() => 42),
-        42
+        42,
       );
       t.is(
         callFunctionWithArg((a, b) => a + b, 42, 10),
-        52
+        52,
       );
       const ctx3 = new Animal(Kind.Dog, "旺财");
       callFunctionWithArgAndCtx(
@@ -354,7 +348,7 @@ export default (path) => {
         function (this: Animal, name: string) {
           this.name = name;
         },
-        "可乐"
+        "可乐",
       );
       t.is(ctx3.name, "可乐");
       const cbSpy = spy();
@@ -362,7 +356,7 @@ export default (path) => {
       cbSpy.mocker.verify("test", []).times(1);
       t.is(
         referenceAsCallback((a, b) => a + b, 42, 10),
-        52
+        52,
       );
     });
 
@@ -383,15 +377,12 @@ export default (path) => {
       dog.name = "可乐";
       t.is(dog.name, "可乐");
       t.deepEqual(dog.returnOtherClass(), new Dog("Doge"));
-      t.deepEqual(
-        dog.returnOtherClassWithCustomConstructor(),
-        new Bird("parrot")
-      );
+      t.deepEqual(dog.returnOtherClassWithCustomConstructor(), new Bird("parrot"));
       t.is(
         dog.overrideIndividualArgOnMethod("Jafar", {
-          n: "Iago"
+          n: "Iago",
         }).name,
-        "Jafar-Iago"
+        "Jafar-Iago",
       );
       t.is(dog.returnOtherClassWithCustomConstructor().getCount(), 1234);
       t.is(dog.type, Kind.Dog);
@@ -418,8 +409,8 @@ export default (path) => {
           new CatchOnConstructor2();
         },
         {
-          message: "CatchOnConstructor2 panic"
-        }
+          message: "CatchOnConstructor2 panic",
+        },
       );
     });
 
@@ -446,7 +437,7 @@ export default (path) => {
       t.is(doge.name, "旺财");
 
       t.throws(() => new ClassWithFactory(), {
-        message: "Class contains no `constructor`, can not new it!"
+        message: "Class contains no `constructor`, can not new it!",
       });
     });
 
@@ -510,7 +501,7 @@ export default (path) => {
       t.throws(
         // @ts-ignore
         () => getCwd(),
-        "Expect value to be Function, but received Undefined" as ESObject
+        "Expect value to be Function, but received Undefined" as ESObject,
       );
 
       readFile((err, content) => {
@@ -524,13 +515,13 @@ export default (path) => {
         },
         (err) => {
           t.is((err as Error).message, "Testing");
-        }
+        },
       );
     });
 
     test("callback function return Promise and spawn", async (t) => {
       const finalReturn = await callbackReturnPromiseAndSpawn((input) =>
-        Promise.resolve(`${input} world`)
+        Promise.resolve(`${input} world`),
       );
       t.is(finalReturn, "Hello world 😼");
     });
@@ -549,61 +540,61 @@ export default (path) => {
       t.deepEqual(
         listObjKeys({
           name: "John Doe",
-          age: 20
+          age: 20,
         }),
-        ["name", "age"]
+        ["name", "age"],
       );
       t.deepEqual(createObj(), {
-        test: 1
+        test: 1,
       });
       t.throws(
         () =>
           objectGetNamedPropertyShouldPerformTypecheck({
             // @ts-ignore
             foo: "2",
-            bar: "3"
+            bar: "3",
           }),
         {
           message: `Object property 'foo' type mismatch. Expect value to be Number, but received String`,
-          code: "InvalidArg"
-        }
+          code: "InvalidArg",
+        },
       );
       t.throws(
         () =>
           objectGetNamedPropertyShouldPerformTypecheck({
             foo: 2,
             // @ts-ignore
-            bar: 3
+            bar: 3,
           }),
         {
           message: `Object property 'bar' type mismatch. Expect value to be String, but received Number`,
-          code: "InvalidArg"
-        }
+          code: "InvalidArg",
+        },
       );
       t.notThrows(() =>
         objectGetNamedPropertyShouldPerformTypecheck({
           foo: 2,
-          bar: "3"
-        })
+          bar: "3",
+        }),
       );
       t.deepEqual(returnObjectOnlyToJs(), {
         name: 42,
         dependencies: {
           "@napi-rs/cli": "^3.0.0",
-          rollup: "^4.0.0"
-        }
+          "rollup": "^4.0.0",
+        },
       });
       t.throws(
         () =>
           receiveAllOptionalObject({
             // @ts-ignore
-            name: 1
+            name: 1,
           }),
         {
           code: "StringExpected",
           message:
-            "Failed to convert JavaScript value `Number 1 ` into rust type `String` on AllOptionalObject.name"
-        }
+            "Failed to convert JavaScript value `Number 1 ` into rust type `String` on AllOptionalObject.name",
+        },
       );
     });
 
@@ -623,7 +614,7 @@ export default (path) => {
 
     test("get undefined", (t) => {
       for (const _ of Array.from({
-        length: 100
+        length: 100,
       })) {
         t.is(getUndefined(), undefined);
       }
@@ -631,7 +622,7 @@ export default (path) => {
 
     test("get null", (t) => {
       for (const _ of Array.from({
-        length: 100
+        length: 100,
       })) {
         t.is(getNull(), null);
       }
@@ -664,13 +655,13 @@ export default (path) => {
 
     test("custom status code in Error", (t) => {
       t.throws(() => customStatusCode(), {
-        code: "Panic"
+        code: "Panic",
       });
       t.throws(() => CustomStruct.customStatusCodeForFactory(), {
-        code: "Panic"
+        code: "Panic",
       });
       t.throws(() => new CustomStruct(), {
-        code: "Panic"
+        code: "Panic",
       });
     });
 
@@ -679,23 +670,20 @@ export default (path) => {
         tsRename({
           foo: 1,
           bar: 2,
-          baz: 2
+          baz: 2,
         } as ESObject),
-        ["foo", "bar", "baz"]
+        ["foo", "bar", "baz"],
       );
     });
 
     test("function individual ts arg type override", (t) => {
       t.is(
         overrideIndividualArgOnFunction("someStr", () => "anotherStr", 42),
-        "oia: someStr-42-anotherStr"
+        "oia: someStr-42-anotherStr",
       );
       t.deepEqual(
-        overrideIndividualArgOnFunctionWithCbArg(
-          (town, opt) => `im: ${town}-${opt}`,
-          89
-        ),
-        "im: World(89)-null"
+        overrideIndividualArgOnFunctionWithCbArg((town, opt) => `im: ${town}-${opt}`, 89),
+        "im: World(89)-null",
       );
     });
 
@@ -708,19 +696,19 @@ export default (path) => {
       t.throws(
         () =>
           receiveStrictObject({
-            name: 1
+            name: 1,
           } as ESObject),
         {
           message:
-            "Failed to convert JavaScript value `Number 1 ` into rust type `String` on StrictObject.name"
-        }
+            "Failed to convert JavaScript value `Number 1 ` into rust type `String` on StrictObject.name",
+        },
       );
       t.throws(
         () =>
           receiveStrictObject({
-            bar: 1
+            bar: 1,
           } as ESObject),
-        { message: "Missing field `name`" }
+        { message: "Missing field `name`" },
       );
     });
 
@@ -728,7 +716,7 @@ export default (path) => {
       const a = ALIAS.A;
       const b: AliasedStruct = {
         a,
-        b: 1
+        b: 1,
       };
       t.notThrows(() => fnReceivedAliased(b, ALIAS.B));
     });
@@ -751,24 +739,24 @@ export default (path) => {
         testSerdeRoundtrip({
           a: 1,
           b: 1.2,
-          c: -1
+          c: -1,
         }),
         {
           a: 1,
           b: 1.2,
-          c: -1
-        }
+          c: -1,
+        },
       );
       t.throws(() => testSerdeRoundtrip(NaN));
 
       t.is(testSerdeRoundtrip(null), null);
 
       t.throws(() => testSerdeRoundtrip(undefined), {
-        message: "undefined cannot be represented as a serde_json::Value"
+        message: "undefined cannot be represented as a serde_json::Value",
       });
 
       t.throws(() => testSerdeRoundtrip(() => {}), {
-        message: "JS functions cannot be represented as a serde_json::Value"
+        message: "JS functions cannot be represented as a serde_json::Value",
       });
     });
 
@@ -776,44 +764,43 @@ export default (path) => {
       t.is(testSerdeBigNumberPrecision("12345").number, 12345);
       t.is(
         testSerdeBigNumberPrecision("123456789012345678901234567890").number,
-        1.2345678901234568e29
+        1.2345678901234568e29,
       );
       t.is(
-        testSerdeBigNumberPrecision("123456789012345678901234567890.123456789")
-          .number,
-        1.2345678901234568e29
+        testSerdeBigNumberPrecision("123456789012345678901234567890.123456789").number,
+        1.2345678901234568e29,
       );
       t.is(
         testSerdeBigNumberPrecision("109775245175819965").number.toString(),
-        "109775245175819965"
+        "109775245175819965",
       );
     });
 
     test("serde-buffer-bytes", (t) => {
       t.is(
         testSerdeBufferBytes({
-          code: new Uint8Array([1, 2, 3])
+          code: new Uint8Array([1, 2, 3]),
         }),
-        3n
+        3n,
       );
       t.is(
         testSerdeBufferBytes({
-          code: new Uint8Array(0)
+          code: new Uint8Array(0),
         }),
-        0n
+        0n,
       );
 
       t.is(
         testSerdeBufferBytes({
-          code: buffer.from([1, 2, 3]).buffer
+          code: buffer.from([1, 2, 3]).buffer,
         }),
-        3n
+        3n,
       );
       t.is(
         testSerdeBufferBytes({
-          code: buffer.alloc(0).buffer
+          code: buffer.alloc(0).buffer,
         }),
-        0n
+        0n,
       );
     });
 
@@ -840,11 +827,7 @@ export default (path) => {
       t.deepEqual(i16ArrayToArray(new Int16Array([1, 2, 3])), [1, 2, 3]);
       t.deepEqual(u32ArrayToArray(new Uint32Array([1, 2, 3])), [1, 2, 3]);
       t.deepEqual(i32ArrayToArray(new Int32Array([1, 2, 3])), [1, 2, 3]);
-      t.deepEqual(u64ArrayToArray(new BigUint64Array([1n, 2n, 3n])), [
-        1n,
-        2n,
-        3n
-      ]);
+      t.deepEqual(u64ArrayToArray(new BigUint64Array([1n, 2n, 3n])), [1n, 2n, 3n]);
       t.deepEqual(i64ArrayToArray(new BigInt64Array([1n, 2n, 3n])), [1, 2, 3]);
       t.deepEqual(f32ArrayToArray(new Float32Array([1, 2, 3])), [1, 2, 3]);
       t.deepEqual(f64ArrayToArray(new Float64Array([1, 2, 3])), [1, 2, 3]);
@@ -857,9 +840,9 @@ export default (path) => {
       t.is(
         acceptUint8ClampedSliceAndBufferSlice(
           buffer.from([1, 2, 3]).buffer,
-          new Uint8ClampedArray([1, 2, 3])
+          new Uint8ClampedArray([1, 2, 3]),
         ),
-        6n
+        6n,
       );
     });
 
@@ -894,10 +877,7 @@ export default (path) => {
     });
 
     test("deref uint8 array", (t) => {
-      t.is(
-        derefUint8Array(new Uint8Array([1, 2]), new Uint8ClampedArray([3, 4])),
-        4
-      );
+      t.is(derefUint8Array(new Uint8Array([1, 2]), new Uint8ClampedArray([3, 4])), 4);
     });
 
     // test('async', async (t) => {
@@ -912,7 +892,7 @@ export default (path) => {
 
     test("panic in async fn", async (t) => {
       await t.throwsAsync(() => panicInAsync(), {
-        message: "panic in async function"
+        message: "panic in async function",
       });
     });
 
@@ -937,7 +917,7 @@ export default (path) => {
       const fixture = buffer.from(input).buffer;
       t.is(
         await asyncReduceBuffer(fixture),
-        input.reduce((acc, cur) => acc + cur)
+        input.reduce((acc, cur) => acc + cur),
       );
     });
 
@@ -954,10 +934,7 @@ export default (path) => {
     });
 
     test("Uint8Array from String", async (t) => {
-      t.is(
-        buffer.from(await uInit8ArrayFromString()).toString("utf8"),
-        "Hello world"
-      );
+      t.is(buffer.from(await uInit8ArrayFromString()).toString("utf8"), "Hello world");
     });
 
     test("either", (t) => {
@@ -996,21 +973,21 @@ export default (path) => {
     test("either from objects", (t) => {
       t.is(
         eitherFromObjects({
-          foo: 1
+          foo: 1,
         }),
-        "A"
+        "A",
       );
       t.is(
         eitherFromObjects({
-          bar: 2
+          bar: 2,
         }),
-        "B"
+        "B",
       );
       t.is(
         eitherFromObjects({
-          baz: 3
+          baz: 3,
         }),
-        "C"
+        "C",
       );
     });
 
@@ -1028,15 +1005,15 @@ export default (path) => {
       t.is(either4(false), 0);
       t.is(
         either4({
-          v: 1
+          v: 1,
         }),
-        1
+        1,
       );
       t.is(
         either4({
-          v: "world"
+          v: "world",
         }),
-        "world".length
+        "world".length,
       );
     });
 
@@ -1054,10 +1031,7 @@ export default (path) => {
         // @ts-ignore
         getExternal(ext2);
       } catch (e) {
-        t.is(
-          e?.message,
-          "<u32> on `External` is not the type of wrapped object"
-        );
+        t.is(e?.message, "<u32> on `External` is not the type of wrapped object");
       }
     });
 
@@ -1076,10 +1050,7 @@ export default (path) => {
         // @ts-ignore
         getOptionalExternal(ext2);
       } catch (e) {
-        t.is(
-          e?.message,
-          "<u32> on `External` is not the type of wrapped object"
-        );
+        t.is(e?.message, "<u32> on `External` is not the type of wrapped object");
       }
     });
 
@@ -1090,7 +1061,7 @@ export default (path) => {
 
     test("should be able to return object from shared crate", (t) => {
       t.deepEqual(returnFromSharedCrate(), {
-        value: 42
+        value: 42,
       });
     });
 
@@ -1136,10 +1107,7 @@ export default (path) => {
       t.is(xxh3.xxh3_64(buffer.from("hello world").buffer), BigInt("1116"));
       t.is(xxh3.xxh128(buffer.from("hello world").buffer), BigInt("1116"));
       t.is(xxh2.xxh2Plus(1, 2), 3);
-      t.is(
-        xxh2.xxh3Xxh64Alias(buffer.from("hello world").buffer),
-        BigInt("1116")
-      );
+      t.is(xxh2.xxh3Xxh64Alias(buffer.from("hello world").buffer), BigInt("1116"));
       t.is(xxh3.ALIGNMENT, 16);
       const xx3 = new xxh3.Xxh3();
       xx3.update(buffer.from("hello world").buffer);
@@ -1165,10 +1133,10 @@ export default (path) => {
               value,
               Array.from(
                 {
-                  length: 100
+                  length: 100,
                 },
-                (_, i) => i
-              ).reduce((a, b) => a + b)
+                (_, i) => i,
+              ).reduce((a, b) => a + b),
             );
           }
         });
@@ -1225,16 +1193,14 @@ export default (path) => {
       const result = await asyncPlus100(
         new Promise((resolve) => {
           setTimeout(() => resolve(fx), 50);
-        })
+        }),
       );
       t.is(result, fx + 100);
     });
 
     test("Promise should reject raw error in rust", async (t) => {
       const fxError = new Error("What is Happy Planet");
-      const err = await t.throwsAsync(() =>
-        asyncPlus100(Promise.reject(fxError))
-      );
+      const err = await t.throwsAsync(() => asyncPlus100(Promise.reject(fxError)));
       t.is(err, fxError);
     });
 
@@ -1246,7 +1212,7 @@ export default (path) => {
               resolve();
               return "ReturnFromJavaScriptRawCallback";
             });
-          })
+          }),
       );
     });
 
@@ -1257,7 +1223,7 @@ export default (path) => {
           t.is(arg2, 1);
           t.is(arg3, 2);
           return "ReturnFromJavaScriptRawCallback";
-        })
+        }),
       );
     });
 
@@ -1269,8 +1235,8 @@ export default (path) => {
             throw new Error(errMsg);
           }),
         {
-          message: errMsg
-        }
+          message: errMsg,
+        },
       );
     });
 
@@ -1331,8 +1297,8 @@ export default (path) => {
             });
           }),
         {
-          message: "Timeout"
-        }
+          message: "Timeout",
+        },
       );
       // trigger Promise.then in Rust after `Promise` is dropped
       await new Promise((resolve) => setTimeout(resolve, 400));
@@ -1349,7 +1315,7 @@ export default (path) => {
               t.is(count, 100);
               resolve();
             }
-          }
+          },
         });
       });
     });
@@ -1387,10 +1353,7 @@ export default (path) => {
       t.is(chronoUtcDateToMillis(fixture), fixture.getTime());
       t.is(chronoLocalDateToMillis(fixture), fixture.getTime());
       t.is(chronoDateWithTimezoneToMillis(fixture), fixture.getTime());
-      t.deepEqual(
-        chronoDateAdd1Minute(fixture),
-        new Date(fixture.getTime() + 60 * 1000)
-      );
+      t.deepEqual(chronoDateAdd1Minute(fixture), new Date(fixture.getTime() + 60 * 1000));
     });
 
     test("Get date", (t) => {

@@ -60,11 +60,7 @@ class OhReport {
       if (specService.skipSpecNum > 0) {
         message += ", SkipSpec: " + specService.skipSpecNum;
       }
-      message +=
-        "\n" +
-        `${PrintTag.OHOS_REPORT_CODE}: ` +
-        (summary.failure > 0 ? -1 : 0) +
-        "\n";
+      message += "\n" + `${PrintTag.OHOS_REPORT_CODE}: ` + (summary.failure > 0 ? -1 : 0) + "\n";
       let isHasError = summary.failure > 0 || summary.error > 0;
       let config = this.coreContext.getDefaultService("config");
       if (config.isBreakOnError() && isHasError) {
@@ -74,10 +70,7 @@ class OhReport {
           `${PrintTag.OHOS_REPORT_RESULT}: breakOnError model, Stopping whole test suite if one specific test case failed or error` +
           "\n";
       }
-      message +=
-        `${PrintTag.OHOS_REPORT_STATUS}: taskconsuming=` +
-        summary.duration +
-        "\n";
+      message += `${PrintTag.OHOS_REPORT_STATUS}: taskconsuming=` + summary.duration + "\n";
       console.info(`${message}`);
       await SysTestKit.print(message);
     }
@@ -89,10 +82,10 @@ class OhReport {
       // worker线程执行完成将数据发送到主线程中。
       let sendData = {
         currentThreadName: this.currentThreadName,
-        summary: summary
+        summary: summary,
       };
       console.info(
-        `${TAG}, send data to mainThread, ${this.currentThreadName}, ${JSON.stringify(sendData)}`
+        `${TAG}, send data to mainThread, ${this.currentThreadName}, ${JSON.stringify(sendData)}`,
       );
       SysTestKit.workerPort.postMessage(sendData);
     }
@@ -107,27 +100,21 @@ class OhReport {
   }
 
   incorrectTestSuiteFormat() {
-    if (
-      this.coreContext.getDefaultService("config").filterXdescribe.length !== 0
-    ) {
+    if (this.coreContext.getDefaultService("config").filterXdescribe.length !== 0) {
       let value = this.coreContext.getDefaultService("config").filterXdescribe;
-      let message =
-        "xdescribe " + value.join(",") + " should not contain it" + "\n";
+      let message = "xdescribe " + value.join(",") + " should not contain it" + "\n";
       this.delegator.finishTest(message, 0, () => {});
     }
   }
   async suiteStart() {
     if (this.abilityDelegatorArguments !== null) {
       let specArr = [];
-      this.suiteService.getAllChildSuiteNum(
-        this.suiteService.getCurrentRunningSuite(),
-        specArr
-      );
+      this.suiteService.getAllChildSuiteNum(this.suiteService.getCurrentRunningSuite(), specArr);
       let message = "\n" + `${PrintTag.OHOS_REPORT_SUM}: ` + specArr.length;
       this.suiteService.setCurrentRunningSuiteDesc(
         this.suiteService.getRootSuite(),
         this.suiteService.getCurrentRunningSuite(),
-        ""
+        "",
       );
       message +=
         "\n" +
@@ -141,14 +128,12 @@ class OhReport {
           "\n";
       }
       if (SysTestKit.workerPort !== null) {
-        message +=
-          `${PrintTag.OHOS_REPORT_STATUS}: currentWorkerName=` +
-          this.currentThreadName;
+        message += `${PrintTag.OHOS_REPORT_STATUS}: currentWorkerName=` + this.currentThreadName;
       }
       console.info(`${message}`);
       await SysTestKit.print(message);
       console.info(
-        `${TAG}${this.suiteService.getCurrentRunningSuite().description} suiteStart print success`
+        `${TAG}${this.suiteService.getCurrentRunningSuite().description} suiteStart print success`,
       );
     }
   }
@@ -159,7 +144,7 @@ class OhReport {
       this.suiteService.setCurrentRunningSuiteDesc(
         this.suiteService.getRootSuite(),
         this.suiteService.getCurrentRunningSuite(),
-        ""
+        "",
       );
       let message =
         "\n" +
@@ -180,19 +165,16 @@ class OhReport {
         this.suiteService.getCurrentRunningSuite().duration;
       if (currentRunningSuite.hookError) {
         message +=
-          "\n" +
-          `${PrintTag.OHOS_REPORT_STATUS}: ${currentRunningSuite.hookError.message}`;
+          "\n" + `${PrintTag.OHOS_REPORT_STATUS}: ${currentRunningSuite.hookError.message}`;
       }
       message += "\n";
       if (SysTestKit.workerPort !== null) {
-        message +=
-          `${PrintTag.OHOS_REPORT_STATUS}: currentWorkerName=` +
-          this.currentThreadName;
+        message += `${PrintTag.OHOS_REPORT_STATUS}: currentWorkerName=` + this.currentThreadName;
       }
       console.info(`${message}`);
       await SysTestKit.print(message);
       console.info(
-        `${TAG}${this.suiteService.getCurrentRunningSuite().description} suiteDone print success`
+        `${TAG}${this.suiteService.getCurrentRunningSuite().description} suiteDone print success`,
       );
     }
   }
@@ -203,13 +185,10 @@ class OhReport {
         "\n" +
         `${PrintTag.OHOS_REPORT_STATUS}: class=` +
         this.suiteService.getCurrentRunningSuiteDesc();
-      message +=
-        "\n" + `${PrintTag.OHOS_REPORT_STATUS}: current=` + ++this.index;
+      message += "\n" + `${PrintTag.OHOS_REPORT_STATUS}: current=` + ++this.index;
       message += "\n" + `${PrintTag.OHOS_REPORT_STATUS}: id=JS`;
       message +=
-        "\n" +
-        `${PrintTag.OHOS_REPORT_STATUS}: numtests=` +
-        this.specService.getTestTotal();
+        "\n" + `${PrintTag.OHOS_REPORT_STATUS}: numtests=` + this.specService.getTestTotal();
       message += "\n" + `${PrintTag.OHOS_REPORT_STATUS}: stream=`;
       message +=
         "\n" +
@@ -223,14 +202,12 @@ class OhReport {
           "\n";
       }
       if (SysTestKit.workerPort !== null) {
-        message +=
-          `${PrintTag.OHOS_REPORT_STATUS}: currentWorkerName=` +
-          this.currentThreadName;
+        message += `${PrintTag.OHOS_REPORT_STATUS}: currentWorkerName=` + this.currentThreadName;
       }
       console.info(`${message}`);
       await SysTestKit.print(message);
       console.info(
-        `${TAG}${this.specService.currentRunningSpec.description} specStart start print success`
+        `${TAG}${this.specService.currentRunningSpec.description} specStart start print success`,
       );
     }
   }
@@ -244,9 +221,7 @@ class OhReport {
       message += "\n" + `${PrintTag.OHOS_REPORT_STATUS}: current=` + this.index;
       message += "\n" + `${PrintTag.OHOS_REPORT_STATUS}: id=JS`;
       message +=
-        "\n" +
-        `${PrintTag.OHOS_REPORT_STATUS}: numtests=` +
-        this.specService.getTestTotal();
+        "\n" + `${PrintTag.OHOS_REPORT_STATUS}: numtests=` + this.specService.getTestTotal();
       let messageStack = "";
       let messageCode = "";
       if (this.specService.currentRunningSpec.error) {
@@ -277,8 +252,7 @@ class OhReport {
             "\n" +
             `${PrintTag.OHOS_REPORT_STATUS}: test=` +
             this.specService.currentRunningSpec.description;
-          messageCode +=
-            "\n" + `${PrintTag.OHOS_REPORT_STATUS_CODE}: -2` + "\n";
+          messageCode += "\n" + `${PrintTag.OHOS_REPORT_STATUS_CODE}: -2` + "\n";
         } else {
           messageStack += `${PrintTag.OHOS_REPORT_STATUS}: stream=`;
           messageCode +=
@@ -300,8 +274,7 @@ class OhReport {
         "\n";
       if (SysTestKit.workerPort !== null) {
         messageCode +=
-          `${PrintTag.OHOS_REPORT_STATUS}: currentWorkerName=` +
-          this.currentThreadName;
+          `${PrintTag.OHOS_REPORT_STATUS}: currentWorkerName=` + this.currentThreadName;
       }
       console.info(`${message}`);
       console.info(`\n${messageStack}`);
@@ -310,7 +283,7 @@ class OhReport {
       await SysTestKit.print(messageStack);
       await SysTestKit.print(messageCode);
       console.info(
-        `${TAG}${this.specService.currentRunningSpec.description} specDone end print success`
+        `${TAG}${this.specService.currentRunningSpec.description} specDone end print success`,
       );
     }
   }

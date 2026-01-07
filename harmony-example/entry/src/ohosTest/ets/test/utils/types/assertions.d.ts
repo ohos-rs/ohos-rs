@@ -31,10 +31,7 @@ export type ThrowsExpectation<ErrorType extends ErrorConstructor | Error> = {
   name?: string;
 };
 
-export type ThrowsAnyExpectation = Omit<
-  ThrowsExpectation<any>,
-  "any" | "instanceOf" | "is"
-> & {
+export type ThrowsAnyExpectation = Omit<ThrowsExpectation<any>, "any" | "instanceOf" | "is"> & {
   /** If true, the thrown error is not required to be a native error. */
   any: true;
 
@@ -181,7 +178,7 @@ export type DeepEqualAssertion = {
   <Actual, Expected extends Actual>(
     actual: Actual,
     expected: Expected,
-    message?: string
+    message?: string,
   ): actual is Expected;
 
   /**
@@ -191,18 +188,14 @@ export type DeepEqualAssertion = {
   <Actual extends Expected, Expected>(
     actual: Actual,
     expected: Expected,
-    message?: string
+    message?: string,
   ): expected is Actual;
 
   /**
    * Assert that `actual` is [deeply equal](https://github.com/concordancejs/concordance#comparison-details) to
    * `expected`, returning `true` if the assertion passed and throwing otherwise.
    */
-  <Actual, Expected>(
-    actual: Actual,
-    expected: Expected,
-    message?: string
-  ): boolean;
+  <Actual, Expected>(actual: Actual, expected: Expected, message?: string): boolean;
 
   /** Skip this assertion. */
   skip(actual: any, expected: any, message?: string): void;
@@ -215,7 +208,7 @@ export type LikeAssertion = {
   <Expected extends Record<string, any>>(
     value: any,
     selector: Expected,
-    message?: string
+    message?: string,
   ): value is Expected;
 
   /** Skip this assertion. */
@@ -260,7 +253,7 @@ export type IsAssertion = {
   <Actual, Expected extends Actual>(
     actual: Actual,
     expected: Expected,
-    message?: string
+    message?: string,
   ): actual is Expected;
 
   /** Skip this assertion. */
@@ -273,11 +266,7 @@ export type NotAssertion = {
    * value](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is) as `expected`,
    * returning `true` if the assertion passed and throwing otherwise.
    */
-  <Actual, Expected>(
-    actual: Actual,
-    expected: Expected,
-    message?: string
-  ): true;
+  <Actual, Expected>(actual: Actual, expected: Expected, message?: string): true;
 
   /** Skip this assertion. */
   skip(actual: any, expected: any, message?: string): void;
@@ -288,11 +277,7 @@ export type NotDeepEqualAssertion = {
    * Assert that `actual` is not [deeply equal](https://github.com/concordancejs/concordance#comparison-details) to
    * `expected`, returning `true` if the assertion passed and throwing otherwise.
    */
-  <Actual, Expected>(
-    actual: Actual,
-    expected: Expected,
-    message?: string
-  ): true;
+  <Actual, Expected>(actual: Actual, expected: Expected, message?: string): true;
 
   /** Skip this assertion. */
   skip(actual: any, expected: any, message?: string): void;
@@ -380,18 +365,14 @@ export type ThrowsAssertion = {
   <ErrorType extends ErrorConstructor | Error>(
     fn: () => any,
     expectations?: ThrowsExpectation<ErrorType>,
-    message?: string
+    message?: string,
   ): ThrownError<ErrorType>;
 
   /**
    * Assert that the function throws. The error must satisfy all expectations. Returns the error value if the assertion
    * passes and throws otherwise.
    */
-  (
-    fn: () => any,
-    expectations?: ThrowsAnyExpectation,
-    message?: string
-  ): unknown;
+  (fn: () => any, expectations?: ThrowsAnyExpectation, message?: string): unknown;
 
   /** Skip this assertion. */
   skip(fn: () => any, expectations?: any, message?: string): void;
@@ -405,7 +386,7 @@ export type ThrowsAsyncAssertion = {
   <ErrorType extends ErrorConstructor | Error>(
     fn: () => PromiseLike<any>,
     expectations?: ThrowsExpectation<ErrorType>,
-    message?: string
+    message?: string,
   ): Promise<ThrownError<ErrorType>>;
 
   /**
@@ -415,7 +396,7 @@ export type ThrowsAsyncAssertion = {
   <ErrorType extends ErrorConstructor | Error>(
     promise: PromiseLike<any>,
     expectations?: ThrowsExpectation<ErrorType>,
-    message?: string
+    message?: string,
   ): Promise<ThrownError<ErrorType>>;
 
   /**
@@ -425,7 +406,7 @@ export type ThrowsAsyncAssertion = {
   (
     fn: () => PromiseLike<any>,
     expectations?: ThrowsAnyExpectation,
-    message?: string
+    message?: string,
   ): Promise<unknown>;
 
   /**
@@ -435,7 +416,7 @@ export type ThrowsAsyncAssertion = {
   (
     promise: PromiseLike<any>,
     expectations?: ThrowsAnyExpectation,
-    message?: string
+    message?: string,
   ): Promise<unknown>;
 
   /** Skip this assertion. */

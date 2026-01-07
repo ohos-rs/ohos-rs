@@ -23,9 +23,7 @@ export default (path) => {
 
     test("should be able to execute future paralleled", async (t) => {
       const buffers = await Promise.all(
-        Array.from({ length: 50 }).map((_) =>
-          bindings.testExecuteTokioReadfile(txtPath)
-        )
+        Array.from({ length: 50 }).map((_) => bindings.testExecuteTokioReadfile(txtPath)),
       );
       for (const fileContent of buffers) {
         t.true(buffer.isBuffer(fileContent));

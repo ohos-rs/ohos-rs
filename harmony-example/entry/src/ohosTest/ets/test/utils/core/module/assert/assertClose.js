@@ -41,7 +41,7 @@ function assertClose(actualValue, expected) {
       "|/" +
       actualValue +
       " is not less than " +
-      expected[1]
+      expected[1],
   };
 }
 

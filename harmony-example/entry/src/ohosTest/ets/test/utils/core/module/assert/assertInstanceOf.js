@@ -14,22 +14,15 @@
  */
 
 function assertInstanceOf(actualValue, expected) {
-  if (
-    Object.prototype.toString.call(actualValue) ==
-    "[object " + expected[0] + "]"
-  ) {
+  if (Object.prototype.toString.call(actualValue) == "[object " + expected[0] + "]") {
     return {
-      pass: true
+      pass: true,
     };
   } else {
     return {
       pass: false,
       message:
-        actualValue +
-        " is " +
-        Object.prototype.toString.call(actualValue) +
-        "not  " +
-        expected[0]
+        actualValue + " is " + Object.prototype.toString.call(actualValue) + "not  " + expected[0],
     };
   }
 }

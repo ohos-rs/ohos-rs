@@ -21,7 +21,7 @@ import { NestFilter } from "./module/config/Filter";
 function assertTrueFun(actualValue) {
   let result = {
     pass: actualValue === true,
-    message: "expect true, actualValue is " + actualValue
+    message: "expect true, actualValue is " + actualValue,
   };
   return result;
 }
@@ -44,14 +44,14 @@ function assertEqualFun(actualValue, args) {
   let result = {
     pass: actualValue === args[0],
     expectValue: args[0],
-    message: msg
+    message: msg,
   };
   return result;
 }
 
 function assertThrowFun(actual, args) {
   const result = {
-    pass: false
+    pass: false,
   };
   if (typeof actual !== "function") {
     result.message = "toThrow's Actual should be a Function";
@@ -153,9 +153,7 @@ function processFunc(coreContext, func) {
     .replace(/((\/\/.*$)|(\/\*[\s\S]*?\*\/))/gm, "")
     .match(/^(function)?\s*[^\(]*\(\s*([^\)]*)\)/m) || ["", "", ""])[2]
     .split(",") // split parameters
-    .map((item) =>
-      item.replace(/^\s*(_?)(.+?)\1\s*$/, (name) => name.split("=")[0].trim())
-    )
+    .map((item) => item.replace(/^\s*(_?)(.+?)\1\s*$/, (name) => name.split("=")[0].trim()))
     .filter(String);
   let funcLen = func.length;
   let processedFunc;
@@ -163,8 +161,7 @@ function processFunc(coreContext, func) {
   config.setSupportAsync(true);
   const timeout = +(config.timeout === undefined ? 5000 : config.timeout);
   const isStressTest =
-    coreContext.getServices("dataDriver") !== undefined ||
-    config.getStress() > 1;
+    coreContext.getServices("dataDriver") !== undefined || config.getStress() > 1;
   switch (funcLen) {
     case 0: {
       processedFunc = function () {
@@ -241,9 +238,7 @@ class SuiteService {
       typeof this.coreContext.getServices("dataDriver") !== "undefined" &&
       configService["dryRun"] !== "true"
     ) {
-      let suiteStress = this.coreContext
-        .getServices("dataDriver")
-        .dataDriver.getSuiteStress(desc);
+      let suiteStress = this.coreContext.getServices("dataDriver").dataDriver.getSuiteStress(desc);
       for (let i = 1; i < suiteStress; i++) {
         this.currentRunningSuite.childSuites.push(suite);
       }
@@ -272,7 +267,7 @@ class SuiteService {
           console.info(
             reason == null
               ? `${TAG} skip suite: ${desc}`
-              : `${TAG} skip suite: ${desc}, and the reason is ${reason}`
+              : `${TAG} skip suite: ${desc}, and the reason is ${reason}`,
           );
           return;
         }
@@ -280,7 +275,7 @@ class SuiteService {
         console.info(
           reason == null
             ? `${TAG} skip suite: ${desc}`
-            : `${TAG} skip suite: ${desc}, and the reason is ${reason}`
+            : `${TAG} skip suite: ${desc}, and the reason is ${reason}`,
         );
         return;
       }
@@ -291,29 +286,19 @@ class SuiteService {
   }
 
   beforeAll(func) {
-    this.currentRunningSuite.beforeAll.push(
-      processFunc(this.coreContext, func)
-    );
+    this.currentRunningSuite.beforeAll.push(processFunc(this.coreContext, func));
   }
 
   beforeEach(func) {
-    this.currentRunningSuite.beforeEach.push(
-      processFunc(this.coreContext, func)
-    );
+    this.currentRunningSuite.beforeEach.push(processFunc(this.coreContext, func));
   }
 
   beforeItSpecified(itDescs, func) {
-    this.currentRunningSuite.beforeItSpecified.set(
-      itDescs,
-      processFunc(this.coreContext, func)
-    );
+    this.currentRunningSuite.beforeItSpecified.set(itDescs, processFunc(this.coreContext, func));
   }
 
   afterItSpecified(itDescs, func) {
-    this.currentRunningSuite.afterItSpecified.set(
-      itDescs,
-      processFunc(this.coreContext, func)
-    );
+    this.currentRunningSuite.afterItSpecified.set(itDescs, processFunc(this.coreContext, func));
   }
 
   afterAll(func) {
@@ -321,9 +306,7 @@ class SuiteService {
   }
 
   afterEach(func) {
-    this.currentRunningSuite.afterEach.push(
-      processFunc(this.coreContext, func)
-    );
+    this.currentRunningSuite.afterEach.push(processFunc(this.coreContext, func));
   }
 
   getCurrentRunningSuite() {
@@ -382,7 +365,7 @@ class SuiteService {
         let itInfo = {
           currentThreadName: "mainThread",
           description: suite.description + "#" + itItem.description,
-          result: -3
+          result: -3,
         };
         if (SysTestKit.workerPort !== null) {
           itInfo.currentThreadName = SysTestKit.workerPort.name;
@@ -454,7 +437,7 @@ class SuiteService {
       pass: 0,
       ignore: 0,
       duration: 0,
-      itItemList: []
+      itItemList: [],
     };
     for (const suiteItem of rootSuite.childSuites) {
       this.traversalResults(suiteItem, obj, isBreaKOnError);
@@ -474,14 +457,7 @@ class SuiteService {
     if (suite.specs.length > 0) {
       let itArray = [];
       for (const itItem of suite["specs"]) {
-        if (
-          !configService.filterDesc(
-            suite.description,
-            itItem.description,
-            itItem.fi,
-            null
-          )
-        ) {
+        if (!configService.filterDesc(suite.description, itItem.description, itItem.fi, null)) {
           itArray.push({ itName: itItem.description });
         }
       }
@@ -519,9 +495,7 @@ class SuiteService {
     let maxLen = 500;
     let maxCount = Math.floor(strLen / maxLen);
     for (let count = 0; count <= maxCount; count++) {
-      await SysTestKit.print(
-        strJson.substring(count * maxLen, (count + 1) * maxLen)
-      );
+      await SysTestKit.print(strJson.substring(count * maxLen, (count + 1) * maxLen));
     }
     console.info(`${TAG}dryRun print success`);
     abilityDelegator.finishTest("dry run finished!!!", 0, () => {});
@@ -559,9 +533,7 @@ class SuiteService {
       suite.specs.forEach((spec) => specArray.push(spec));
     }
     if (suite.childSuites != null) {
-      suite.childSuites.forEach((it) =>
-        this.getAllChildSuiteNum(it, specArray)
-      );
+      suite.childSuites.forEach((it) => this.getAllChildSuiteNum(it, specArray));
     }
   }
 
@@ -577,9 +549,7 @@ class SuiteService {
     }
     if (configService.isRandom() && this.rootSuite.childSuites.length > 0) {
       this.rootSuite.childSuites.sort(function () {
-        return +("0." + (+new Date() + "").split("").reverse().join("")) > 0.5
-          ? -1
-          : 1;
+        return +("0." + (+new Date() + "").split("").reverse().join("")) > 0.5 ? -1 : 1;
       });
       this.currentRunningSuite = this.rootSuite.childSuites[0];
     }
@@ -626,7 +596,7 @@ class SuiteService {
       },
       afterEach: function (func) {
         return _this.afterEach(func);
-      }
+      },
     };
   }
 }
@@ -682,9 +652,7 @@ SuiteService.Suite = class {
       const configService = coreContext.getDefaultService("config");
       if (configService.isRandom()) {
         this.specs.sort(function () {
-          return +("0." + (+new Date() + "").split("").reverse().join("")) > 0.5
-            ? -1
-            : 1;
+          return +("0." + (+new Date() + "").split("").reverse().join("")) > 0.5 ? -1 : 1;
         });
       }
       for (let spec in this.specs) {
@@ -745,9 +713,7 @@ SuiteService.Suite = class {
     const configService = coreContext.getDefaultService("config");
     if (configService.isRandom()) {
       this.specs.sort(function () {
-        return +("0." + (+new Date() + "").split("").reverse().join("")) > 0.5
-          ? -1
-          : 1;
+        return +("0." + (+new Date() + "").split("").reverse().join("")) > 0.5 ? -1 : 1;
       });
     }
     const specService = coreContext.getDefaultService("spec");
@@ -915,7 +881,7 @@ class SpecService {
       suiteService.targetSuiteArray,
       suiteService.targetSpecArray,
       suiteService.suitesStack,
-      desc
+      desc,
     );
     if (configService.filterWithNest(desc, filter)) {
       console.info(`${TAG}filter it :${desc}`);
@@ -927,7 +893,7 @@ class SpecService {
         suiteService.currentRunningSuite.description,
         desc,
         filter,
-        this.coreContext
+        this.coreContext,
       ) &&
       isFilter &&
       !suiteService.fullRun
@@ -939,7 +905,7 @@ class SpecService {
       const spec = new SpecService.Spec({
         description: desc,
         fi: filter,
-        fn: processedFunc
+        fn: processedFunc,
       });
       if (this.isSkipSpec) {
         spec.isSkip = true;
@@ -948,22 +914,18 @@ class SpecService {
       this.initSpecService();
       if (configService.runSkipped === "skipped" && !spec.isSkip) {
         console.info(
-          `${TAG} runSkipped is skipped , just run xit, don't run it: ${spec.description}`
+          `${TAG} runSkipped is skipped , just run xit, don't run it: ${spec.description}`,
         );
         return;
       }
       if (suiteService.getCurrentRunningSuite().isSkip && !spec.isSkip) {
-        configService.filterXdescribe.push(
-          suiteService.getCurrentRunningSuite().description
-        );
+        configService.filterXdescribe.push(suiteService.getCurrentRunningSuite().description);
       }
       if (
         typeof this.coreContext.getServices("dataDriver") !== "undefined" &&
         configService["dryRun"] !== "true"
       ) {
-        let specStress = this.coreContext
-          .getServices("dataDriver")
-          .dataDriver.getSpecStress(desc);
+        let specStress = this.coreContext.getServices("dataDriver").dataDriver.getSpecStress(desc);
         for (let i = 1; i < specStress; i++) {
           this.totalTest++;
           suiteService.getCurrentRunningSuite().pushSpec(spec);
@@ -999,7 +961,7 @@ class SpecService {
           console.info(
             reason == null
               ? `${TAG} skip spec: ${desc}`
-              : `${TAG} skip spec: ${desc}, and the reason is ${reason}`
+              : `${TAG} skip spec: ${desc}, and the reason is ${reason}`,
           );
           return;
         }
@@ -1007,7 +969,7 @@ class SpecService {
         console.info(
           reason == null
             ? `${TAG} skip spec: ${desc}`
-            : `${TAG} skip spec: ${desc}, and the reason is ${reason}`
+            : `${TAG} skip spec: ${desc}, and the reason is ${reason}`,
         );
         return;
       }
@@ -1026,7 +988,7 @@ class SpecService {
       },
       xit: function (desc, filter, func, reason) {
         return _this.xit(desc, filter, func, reason);
-      }
+      },
     };
   }
 }
@@ -1073,9 +1035,7 @@ SpecService.Spec = class {
         } else if (specParams.length === 0) {
           this.fn(suiteParams);
         } else {
-          specParams.forEach((paramItem) =>
-            this.fn(Object.assign({}, paramItem, suiteParams))
-          );
+          specParams.forEach((paramItem) => this.fn(Object.assign({}, paramItem, suiteParams)));
         }
       }
       this.setResult();
@@ -1160,7 +1120,7 @@ class ExpectService {
     return {
       assertTrue: assertTrueFun,
       assertEqual: assertEqualFun,
-      assertThrow: assertThrowFun
+      assertThrow: assertThrowFun,
     };
   }
 
@@ -1177,7 +1137,7 @@ class ExpectService {
         currentRunningSpec.expectMsg = msg;
         console.info(`${TAG} msg: ${msg}`);
         return this;
-      }
+      },
     };
   }
 
@@ -1187,25 +1147,23 @@ class ExpectService {
     matcherName,
     actualValue,
     currentRunningSpec,
-    currentRunningSuite
+    currentRunningSuite,
   ) {
     wrappedMatchers[matcherName] = async function (...args) {
-      await _this.matchers[matcherName](actualValue, args).then(
-        function (result) {
-          if (wrappedMatchers.isNot) {
-            result.pass = !result.pass;
-          }
-          result.actualValue = actualValue;
-          result.checkFunc = matcherName;
-          if (!result.pass) {
-            const assertError = new AssertException(result.message);
-            currentRunningSpec
-              ? (currentRunningSpec.fail = assertError)
-              : (currentRunningSuite.hookError = assertError);
-            throw assertError;
-          }
+      await _this.matchers[matcherName](actualValue, args).then(function (result) {
+        if (wrappedMatchers.isNot) {
+          result.pass = !result.pass;
         }
-      );
+        result.actualValue = actualValue;
+        result.checkFunc = matcherName;
+        if (!result.pass) {
+          const assertError = new AssertException(result.message);
+          currentRunningSpec
+            ? (currentRunningSpec.fail = assertError)
+            : (currentRunningSuite.hookError = assertError);
+          throw assertError;
+        }
+      });
     };
   }
 
@@ -1215,7 +1173,7 @@ class ExpectService {
     matcherName,
     actualValue,
     currentRunningSpec,
-    currentRunningSuite
+    currentRunningSuite,
   ) {
     wrappedMatchers[matcherName] = function (...args) {
       const result = _this.customMatchers.includes(matcherName)
@@ -1227,7 +1185,7 @@ class ExpectService {
           matcherName,
           actualValue,
           args[0],
-          result.message
+          result.message,
         );
       }
       result.actualValue = actualValue;
@@ -1256,7 +1214,7 @@ class ExpectService {
         matcherName,
         actualValue,
         currentRunningSpec,
-        currentRunningSuite
+        currentRunningSuite,
       );
     } else {
       this.handleWithoutAssertPromise(
@@ -1265,7 +1223,7 @@ class ExpectService {
         matcherName,
         actualValue,
         currentRunningSpec,
-        currentRunningSuite
+        currentRunningSuite,
       );
     }
   }
@@ -1279,10 +1237,7 @@ class ExpectService {
       .getDefaultService("suite")
       .getCurrentRunningSuite();
     for (const matcherName in this.matchers) {
-      let result = Object.prototype.hasOwnProperty.call(
-        this.matchers,
-        matcherName
-      );
+      let result = Object.prototype.hasOwnProperty.call(this.matchers, matcherName);
       if (!result) {
         continue;
       }
@@ -1296,7 +1251,7 @@ class ExpectService {
     return {
       expect: function (actualValue) {
         return _this.expect(actualValue);
-      }
+      },
     };
   }
 }
@@ -1318,15 +1273,11 @@ class ReportService {
   }
 
   async suiteStart() {
-    console.info(
-      `${TAG}[suite start]${this.suiteService.getCurrentRunningSuite().description}`
-    );
+    console.info(`${TAG}[suite start]${this.suiteService.getCurrentRunningSuite().description}`);
   }
 
   async specStart() {
-    console.info(
-      `${TAG}start running case '${this.specService.currentRunningSpec.description}'`
-    );
+    console.info(`${TAG}start running case '${this.specService.currentRunningSpec.description}'`);
     this.index = this.index + 1;
     let spec = this.specService.currentRunningSpec;
     spec.startTime = await SysTestKit.getRealTime();
@@ -1339,22 +1290,13 @@ class ReportService {
     spec.duration = (await SysTestKit.getRealTime()) - spec.startTime;
     suite.duration += spec.duration;
     if (spec.error) {
-      this.formatPrint(
-        "error",
-        spec.description + " ; consuming " + spec.duration + "ms"
-      );
+      this.formatPrint("error", spec.description + " ; consuming " + spec.duration + "ms");
       this.formatPrint("errorDetail", spec.error);
     } else if (spec.fail) {
-      this.formatPrint(
-        "fail",
-        spec.description + " ; consuming " + spec.duration + "ms"
-      );
+      this.formatPrint("fail", spec.description + " ; consuming " + spec.duration + "ms");
       this.formatPrint("failDetail", spec.fail?.message);
     } else {
-      this.formatPrint(
-        "pass",
-        spec.description + " ; consuming " + spec.duration + "ms"
-      );
+      this.formatPrint("pass", spec.description + " ; consuming " + spec.duration + "ms");
     }
     this.formatPrint(this.specService.currentRunningSpec.error, msg);
   }
@@ -1362,9 +1304,7 @@ class ReportService {
   suiteDone() {
     let suite = this.suiteService.currentRunningSuite;
     let message = suite.hookError ? `, ${suite.hookError?.message}` : "";
-    console.info(
-      `[suite end] ${suite.description} consuming ${suite.duration} ms${message}`
-    );
+    console.info(`[suite end] ${suite.description} consuming ${suite.duration} ms${message}`);
   }
 
   taskDone() {
@@ -1385,23 +1325,17 @@ class ReportService {
 
   incorrectFormat() {
     if (this.coreContext.getDefaultService("config").filterValid.length !== 0) {
-      this.coreContext
-        .getDefaultService("config")
-        .filterValid.forEach(function (item) {
-          console.info(`${TAG}this param ${item} is invalid`);
-        });
+      this.coreContext.getDefaultService("config").filterValid.forEach(function (item) {
+        console.info(`${TAG}this param ${item} is invalid`);
+      });
     }
   }
 
   incorrectTestSuiteFormat() {
-    if (
-      this.coreContext.getDefaultService("config").filterXdescribe.length !== 0
-    ) {
-      this.coreContext
-        .getDefaultService("config")
-        .filterXdescribe.forEach(function (item) {
-          console.info(`${TAG}xdescribe: ${item} should not contain it`);
-        });
+    if (this.coreContext.getDefaultService("config").filterXdescribe.length !== 0) {
+      this.coreContext.getDefaultService("config").filterXdescribe.forEach(function (item) {
+        console.info(`${TAG}xdescribe: ${item} should not contain it`);
+      });
     }
   }
 

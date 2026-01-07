@@ -41,10 +41,10 @@ export async function collectCoverageData() {
     const OHOS_REPORT_COVERAGE_DATA = "OHOS_REPORT_COVERAGE_DATA:";
     for (let count = 0; count <= maxCount; count++) {
       console.info(
-        `${OHOS_REPORT_COVERAGE_DATA} ${strJson.substring(count * maxLen, (count + 1) * maxLen)}`
+        `${OHOS_REPORT_COVERAGE_DATA} ${strJson.substring(count * maxLen, (count + 1) * maxLen)}`,
       );
       await SysTestKit.print(
-        `${OHOS_REPORT_COVERAGE_DATA} ${strJson.substring(count * maxLen, (count + 1) * maxLen)}`
+        `${OHOS_REPORT_COVERAGE_DATA} ${strJson.substring(count * maxLen, (count + 1) * maxLen)}`,
       );
     }
     return;
@@ -54,10 +54,7 @@ export async function collectCoverageData() {
     fs.unlinkSync(savePath);
   }
 
-  let inputPathDir = savePath.substring(
-    0,
-    savePath.length - jsCoverageFileName.length
-  );
+  let inputPathDir = savePath.substring(0, savePath.length - jsCoverageFileName.length);
   if (!fs.accessSync(inputPathDir)) {
     console.info(`${TAG} coverage data create dir: ${inputPathDir}`);
     fs.mkdirSync(inputPathDir);

@@ -7,7 +7,7 @@ export default function generatorTest() {
     for (const [index, factory] of [
       () => new Fib(),
       () => Fib2.create(0),
-      () => new Fib3(0, 1)
+      () => new Fib3(0, 1),
     ].entries()) {
       test(`should be able to stop a generator #${index}`, (t) => {
         const fib = factory();
@@ -16,7 +16,7 @@ export default function generatorTest() {
         const iterator = gen();
         t.deepEqual(iterator.next(), {
           done: false,
-          value: 1
+          value: 1,
         });
         iterator.next();
         iterator.next();
@@ -24,13 +24,13 @@ export default function generatorTest() {
         iterator.next();
         t.deepEqual(iterator.next(), {
           done: false,
-          value: 8
+          value: 8,
         });
         t.deepEqual(iterator.return?.(), {
-          done: true
+          done: true,
         });
         t.deepEqual(iterator.next(), {
-          done: true
+          done: true,
         });
       });
 
@@ -41,7 +41,7 @@ export default function generatorTest() {
         const iterator = gen();
         t.deepEqual(iterator.next(), {
           done: false,
-          value: 1
+          value: 1,
         });
         iterator.next();
         iterator.next();
@@ -49,11 +49,11 @@ export default function generatorTest() {
         iterator.next();
         t.deepEqual(iterator.next(), {
           done: false,
-          value: 8
+          value: 8,
         });
         t.throws(() => iterator.throw!(new Error()));
         t.deepEqual(iterator.next(), {
-          done: true
+          done: true,
         });
       });
     }

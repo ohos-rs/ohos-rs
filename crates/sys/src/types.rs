@@ -303,6 +303,25 @@ pub struct napi_module {
   pub reserved: [*mut c_void; 4usize],
 }
 
+#[cfg(feature = "napi10")]
+pub type node_api_basic_finalize = Option<
+  unsafe extern "C" fn(
+    env: node_api_basic_env,
+    finalize_data: *mut c_void,
+    finalize_hint: *mut c_void,
+  ),
+>;
+
+#[cfg(any(feature = "experimental", feature = "napi10"))]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct node_api_basic_env__ {
+  _unused: [u8; 0],
+}
+
+#[cfg(any(feature = "experimental", feature = "napi10"))]
+pub type node_api_basic_env = *mut node_api_basic_env__;
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub enum napi_qos_t {
@@ -331,32 +350,3 @@ pub enum napi_event_mode {
   napi_event_mode_default,
   napi_event_mode_nowait,
 }
-#[cfg(feature = "experimental")]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct node_api_basic_env__ {
-  _unused: [u8; 0],
-}
-
-#[cfg(feature = "experimental")]
-pub type node_api_basic_env = *mut node_api_basic_env__;
-
-#[cfg(feature = "experimental")]
-#[cfg(feature = "napi10")]
-pub type node_api_basic_finalize = Option<
-  unsafe extern "C" fn(
-    env: node_api_basic_env,
-    finalize_data: *mut c_void,
-    finalize_hint: *mut c_void,
-  ),
->;
-
-#[cfg(any(feature = "experimental", feature = "napi10"))]
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct node_api_basic_env__ {
-  _unused: [u8; 0],
-}
-
-#[cfg(any(feature = "experimental", feature = "napi10"))]
-pub type node_api_basic_env = *mut node_api_basic_env__;

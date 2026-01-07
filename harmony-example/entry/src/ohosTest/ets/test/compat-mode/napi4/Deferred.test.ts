@@ -13,7 +13,7 @@ export default () => {
 
     test("should reject deferred from background thread", async (t) => {
       await t.throwsAsync(() => bindings.testDeferred(true), {
-        message: "Fail"
+        message: "Fail",
       });
     });
   });

@@ -21,19 +21,19 @@ function assertPromiseIsRejectedWithError(actualPromise, expectedValue) {
       function () {},
       function () {
         return { pass: false, message: "Expected not be called on a promise." };
-      }
+      },
     );
   }
   return actualPromise.then(
     function (got) {
       return {
         pass: false,
-        message: "Expected a promise to be rejected but actualValue is resolve"
+        message: "Expected a promise to be rejected but actualValue is resolve",
       };
     },
     function (actualValue) {
       return matchError(actualValue, expectedValue);
-    }
+    },
   );
 }
 
@@ -42,12 +42,12 @@ function matchError(actualValue, expectedValue) {
     if (expectedValue[0].name === actualValue.__proto__.name) {
       return {
         pass: true,
-        message: "actual error type is " + actualValue.name + "."
+        message: "actual error type is " + actualValue.name + ".",
       };
     }
     return {
       pass: false,
-      message: `except error type is ${expectedValue[0].name},but actual is ${actualValue.name}.`
+      message: `except error type is ${expectedValue[0].name},but actual is ${actualValue.name}.`,
     };
   }
 
@@ -55,20 +55,19 @@ function matchError(actualValue, expectedValue) {
     if (expectedValue[0] === actualValue.message) {
       return {
         pass: true,
-        message: `actual error message is ${actualValue.message}.`
+        message: `actual error message is ${actualValue.message}.`,
       };
     }
     return {
       pass: false,
-      message: `except error message ${expectedValue[0]},but actual is ${actualValue.message}.`
+      message: `except error message ${expectedValue[0]},but actual is ${actualValue.message}.`,
     };
   }
 
   if (expectedValue.length == 1) {
     return {
       pass: false,
-      message:
-        "When only one parameter, it should be error type or error message."
+      message: "When only one parameter, it should be error type or error message.",
     };
   }
 
@@ -77,18 +76,15 @@ function matchError(actualValue, expectedValue) {
     typeof expectedValue[0] === "function" &&
     expectedValue[0].name === actualValue.name
   ) {
-    if (
-      typeof expectedValue[1] === "string" &&
-      actualValue.message === expectedValue[1]
-    ) {
+    if (typeof expectedValue[1] === "string" && actualValue.message === expectedValue[1]) {
       return {
         pass: true,
-        message: "actual error message is " + actualValue.message + "."
+        message: "actual error message is " + actualValue.message + ".",
       };
     }
     return {
       pass: false,
-      message: `except error message is ${expectedValue[1]},but actual is ${actualValue.message}.`
+      message: `except error message is ${expectedValue[1]},but actual is ${actualValue.message}.`,
     };
   }
 
@@ -97,18 +93,15 @@ function matchError(actualValue, expectedValue) {
     typeof expectedValue[0] === "function" &&
     expectedValue[0].name !== actualValue.name
   ) {
-    if (
-      typeof expectedValue[1] === "string" &&
-      actualValue.message === expectedValue[1]
-    ) {
+    if (typeof expectedValue[1] === "string" && actualValue.message === expectedValue[1]) {
       return {
         pass: false,
-        message: `except error type is ${expectedValue[0].name},but actual is ${actualValue.name}.`
+        message: `except error type is ${expectedValue[0].name},but actual is ${actualValue.name}.`,
       };
     }
     return {
       pass: false,
-      message: "except error type and message are incorrect."
+      message: "except error type and message are incorrect.",
     };
   }
   if (expectedValue.length > 2) {

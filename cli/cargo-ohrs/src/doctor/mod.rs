@@ -15,7 +15,7 @@ pub fn doctor() -> anyhow::Result<()> {
   let version = Version::parse(&origin_version)?;
   let ndk = env::var("OHOS_NDK_HOME").unwrap_or_default();
 
-  let msvc = Version::parse("1.78.0")?;
+  let msvc = Version::parse("1.88.0")?;
 
   let is_env_ok = !ndk.is_empty();
   println!(
@@ -24,7 +24,7 @@ pub fn doctor() -> anyhow::Result<()> {
     "OHOS_NDK_HOME".green()
   );
   println!(
-    "{}  Rust version should be >= 1.78.0.",
+    "{}  Rust version should be >= 1.88.0.",
     render(version >= msvc)
   );
   [Arch::ARM64, Arch::ARM32, Arch::X86_64]

@@ -59,11 +59,11 @@ fn read_intermediate_type_file(file_path: &str) -> Vec<TypeDefLine> {
     if let Ok(json_line) = line {
       let mut format_line = json_line.trim().to_string();
 
-      // 检查字符串是否以'{'开头
+      // Check if the string starts with '{'
       if !format_line.starts_with('{') {
-        // 找到第一个':'的位置
+        // Find the position of the first ':'
         if let Some(start) = format_line.find(':') {
-          // 从':'的下一个位置开始切片字符串
+          // Slice the string starting from the next position after ':'
           format_line = format_line[start + 1..].to_string();
         }
       }

@@ -1,7 +1,7 @@
 use crate::build::{get_hos_sdk, Context, Template};
 use crate::create_dist_dir;
 use anyhow::Error;
-use cargo_metadata::MetadataCommand;
+use cargo_metadata::{MetadataCommand, Package};
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -9,7 +9,7 @@ use std::{env, fs};
 use version_compare::compare_to;
 use version_compare::Cmp;
 
-/// 构建前初始化工作，包括获取当前运行环境等。  
+/// Pre-build initialization work, including getting the current runtime environment, etc.
 pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result<()> {
   ctx.pwd = env::current_dir()?;
 
@@ -21,12 +21,11 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.zigbuild = args.zigbuild;
   ctx.bisheng = args.bisheng;
 
-  // 判断当前构建环境以及获取metadata信息
   let cargo_file = ctx.pwd.join("./Cargo.toml");
   let cargo_file_str = cargo_file.to_str().unwrap_or_default();
   if cargo_file.try_exists().is_err() {
     return Err(Error::msg(format!(
-      "No crate found in manifest: {}.",
+      "No Rust project found in path: {}.",
       cargo_file_str
     )));
   }
@@ -36,20 +35,75 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
     .manifest_path(&cargo_file)
     .exec()?;
 
-  let pkg = metadata
-    .packages
-    .iter()
-    .find(|p| {
-      return p.manifest_path.eq(cargo_file_str);
-    })
-    .ok_or(Error::msg("Try to get package meta-info failed."))?;
+  let is_workspace = !metadata.workspace_members.is_empty();
+
+  let packages_to_build: Vec<&Package> = if is_workspace {
+    let all_candidates: Vec<&Package> = metadata
+      .workspace_members
+      .iter()
+      .filter_map(|member_id| metadata.packages.iter().find(|p| &p.id == member_id))
+      .filter(|p| {
+        p.dependencies
+          .iter()
+          .any(|dep| dep.name == "napi-derive-ohos")
+      })
+      .collect();
+
+    // Check if current directory is within a package directory
+    // If so, only build that package; otherwise build all packages
+    let current_pkg = all_candidates.iter().find(|p| {
+      if let Some(manifest_dir) = p.manifest_path.parent() {
+        // Check if current directory is the same as or a subdirectory of the package directory
+        let pwd_canonical = ctx.pwd.canonicalize().ok();
+        let manifest_dir_path = PathBuf::from(manifest_dir.as_str());
+        let manifest_dir_canonical = manifest_dir_path.canonicalize().ok();
+
+        if let (Some(pwd), Some(md)) = (pwd_canonical, manifest_dir_canonical) {
+          // Check if current directory starts with package directory (is same or subdirectory)
+          pwd.starts_with(&md) || pwd == md
+        } else {
+          // Fallback: compare string paths if canonicalize fails
+          let pwd_str = ctx.pwd.to_string_lossy();
+          let manifest_dir_str = manifest_dir.as_str();
+          pwd_str.starts_with(manifest_dir_str) || pwd_str == manifest_dir_str
+        }
+      } else {
+        false
+      }
+    });
+
+    if let Some(pkg) = current_pkg {
+      // Only build the package in the current directory
+      vec![*pkg]
+    } else {
+      // Build all packages (when running from workspace root)
+      all_candidates
+    }
+  } else {
+    let pkg = metadata
+      .packages
+      .iter()
+      .find(|p| {
+        return p.manifest_path.eq(cargo_file_str);
+      })
+      .ok_or(Error::msg("Try to get package meta-info failed."))?;
+    vec![pkg]
+  };
+
+  if packages_to_build.is_empty() {
+    return Err(Error::msg(
+      "No package found with napi-derive-ohos dependency.",
+    ));
+  }
+
+  let pkg = packages_to_build[0];
 
   let toml_content: Option<Template> = pkg
     .metadata
     .get("template")
     .and_then(|v| serde_json::from_value(v.clone()).unwrap_or(None));
 
-  // check the version of the napi-ohos and napi-backend-ohos
+  // Check the version of the napi-ohos and napi-backend-ohos
   if !ctx.skip_check {
     let full_metadata = MetadataCommand::new().manifest_path(&cargo_file).exec()?;
 
@@ -92,6 +146,7 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
   ctx.template = toml_content;
 
   ctx.package = Some((*pkg).clone());
+  ctx.workspace_packages = packages_to_build.iter().map(|p| (*p).clone()).collect();
   ctx.cargo_build_target_dir = Some(metadata.target_directory.clone());
 
   ctx.init_args = if ctx.zigbuild {
@@ -101,14 +156,55 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
   };
 
   if let Some(cargo_args) = &args.cargo_args {
-    // release mode and --release arg should be ignored
+    // Release mode and --release arg should be ignored
     if args.release && !cargo_args.contains(&String::from("--release")) {
       ctx.init_args.push("--release");
     }
   }
 
-  // 创建目标文件夹
-  ctx.dist = ctx.pwd.join(&args.dist);
+  // Create target folder
+  // In workspace mode, if current directory is in a package directory, dist should be in that package directory
+  // Otherwise, dist is in the current working directory
+  if is_workspace {
+    // Check if current directory is in a package directory
+    let current_pkg_dir = packages_to_build.iter().find_map(|p| {
+      if let Some(manifest_dir) = p.manifest_path.parent() {
+        let pwd_canonical = ctx.pwd.canonicalize().ok();
+        let manifest_dir_path = PathBuf::from(manifest_dir.as_str());
+        let manifest_dir_canonical = manifest_dir_path.canonicalize().ok();
+
+        if let (Some(pwd), Some(md)) = (pwd_canonical, manifest_dir_canonical) {
+          if pwd.starts_with(&md) || pwd == md {
+            Some(manifest_dir_path)
+          } else {
+            None
+          }
+        } else {
+          // Fallback: compare string paths if canonicalize fails
+          let pwd_str = ctx.pwd.to_string_lossy();
+          let manifest_dir_str = manifest_dir.as_str();
+          if pwd_str.starts_with(manifest_dir_str) || pwd_str == manifest_dir_str {
+            Some(manifest_dir_path)
+          } else {
+            None
+          }
+        }
+      } else {
+        None
+      }
+    });
+
+    if let Some(pkg_dir) = current_pkg_dir {
+      // Current directory is in a package directory, dist should be in that package directory
+      ctx.dist = pkg_dir.join(&args.dist);
+    } else {
+      // Current directory is in workspace root, dist is in the root directory
+      ctx.dist = ctx.pwd.join(&args.dist);
+    }
+  } else {
+    // Single package mode, dist is in the current working directory
+    ctx.dist = ctx.pwd.join(&args.dist);
+  }
   create_dist_dir!(ctx.dist.clone());
 
   let target_dir = args
@@ -168,7 +264,7 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
     }
   });
 
-  // 获取 ndk 环境变量配置
+  // Get ndk environment variable configuration
   let ohos_ndk = env::var("OHOS_NDK_HOME").map_err(|_| {
     Error::msg(
       "Failed to get the OHOS_NDK_HOME environment variable, please make sure you have set it.",

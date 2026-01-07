@@ -28,7 +28,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   let obj_copy_path = format!("{}/bin/llvm-objcopy", ndk);
   let nm_path = format!("{}/bin/llvm-nm", ndk);
   let bin_path = format!("{}/bin", ndk);
-  // for bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
+  // For bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
   let lib_path = format!("{}/lib", ndk);
   let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
   let std_lib_type = String::from("c++");
@@ -108,25 +108,38 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
     ("DEP_ATOMIC", &builtins),
   ]);
 
-  let mut args = match arch.to_arch() {
+  let mut args: Vec<String> = match arch.to_arch() {
     "loongarch64" => {
       // loongarch64 need to use nightly rust and build-std which is tier3 stage
-      let mut init_args = vec!["+nightly"];
-      init_args.extend(ctx.init_args.clone());
-      init_args.extend(["-Z", "build-std"]);
+      let mut init_args = vec!["+nightly".to_string()];
+      init_args.extend(ctx.init_args.iter().map(|s| s.to_string()));
+      init_args.extend(["-Z".to_string(), "build-std".to_string()]);
       init_args
     }
-    _ => ctx.init_args.clone(),
+    _ => ctx.init_args.iter().map(|s| s.to_string()).collect(),
   };
 
   args.extend([
-    "--target",
-    arch.rust_target(),
-    "--message-format=json-render-diagnostics",
+    "--target".to_string(),
+    arch.rust_target().to_string(),
+    "--message-format=json-render-diagnostics".to_string(),
   ]);
 
+  if let Some(ref pkg) = ctx.package {
+    let has_package_arg = cargo_args
+      .iter()
+      .any(|arg| arg == "-p" || arg == "--package");
+
+    if !has_package_arg && ctx.workspace_packages.len() > 1 {
+      // Use package@version format to avoid ambiguity when there are multiple packages with the same name
+      let package_spec = format!("{}@{}", pkg.name, pkg.version);
+      args.push("-p".to_string());
+      args.push(package_spec);
+    }
+  }
+
   // respect cli extra args
-  args.extend(cargo_args.iter().map(|s| s.as_str()));
+  args.extend(cargo_args.iter().cloned());
 
   let mut artifact_files: Vec<PathBuf> = Vec::new();
 
@@ -146,7 +159,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
             Message::CompilerMessage(msg) => {
               println!("{:?}", msg);
             }
-            // get final compiled library
+            // Get final compiled library
             Message::CompilerArtifact(artifact) => {
               if let Some(p) = resolve_artifact_library(artifact) {
                 artifact_files.extend(p);

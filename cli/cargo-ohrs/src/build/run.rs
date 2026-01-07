@@ -53,8 +53,15 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
     path = format!("{}:{}", &bin_path, &path);
   }
 
+  // Respect cargo build flags and bash environment variables
+  // 1. CARGO_RUSTFLAGS
+  // 2. CARGO_ENCODED_RUSTFLAGS
+  // 3. RUSTFLAGS
+  // 4. ENCODED_RUSTFLAGS
   let args =
-    env::var("CARGO_RUSTFLAGS").unwrap_or(env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default());
+    env::var("CARGO_RUSTFLAGS").unwrap_or(env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or(
+      env::var("RUSTFLAGS").unwrap_or(env::var("ENCODED_RUSTFLAGS").unwrap_or_default()),
+    ));
 
   if arch.to_arch() == "armeabi-v7a" {
     base_flags.push("-march=armv7-a".into());

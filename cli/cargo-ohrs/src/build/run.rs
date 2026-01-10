@@ -12,24 +12,26 @@ use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
 
-  let mut ndk = format!("{}{}", &ctx.ndk, "/native/llvm");
+  let mut ndk_path = format!("{}", &ctx.ndk);
   if ctx.bisheng {
-    ndk = format!("{}{}", &ctx.hos_ndk, "/native/BiSheng");
+    ndk_path = format!("{}/native/BiSheng", &ctx.hos_ndk);
+  } else {
+    ndk_path = format!("{}/native/llvm", &ctx.ndk);
   }
 
-  let ran_path = format!("{}/bin/llvm-ranlib", ndk);
-  let ar_path = format!("{}/bin/llvm-ar", ndk);
-  let cc_path = format!("{}/bin/clang", ndk);
-  let cxx_path = format!("{}/bin/clang++", ndk);
-  let as_path = format!("{}/bin/llvm-as", ndk);
-  let ld_path = format!("{}/bin/ld.lld", ndk);
-  let strip_path = format!("{}/bin/llvm-strip", ndk);
-  let obj_dump_path = format!("{}/bin/llvm-objdump", ndk);
-  let obj_copy_path = format!("{}/bin/llvm-objcopy", ndk);
-  let nm_path = format!("{}/bin/llvm-nm", ndk);
-  let bin_path = format!("{}/bin", ndk);
+  let ran_path = format!("{}/bin/llvm-ranlib", ndk_path);
+  let ar_path = format!("{}/bin/llvm-ar", ndk_path);
+  let cc_path = format!("{}/bin/clang", ndk_path);
+  let cxx_path = format!("{}/bin/clang++", ndk_path);
+  let as_path = format!("{}/bin/llvm-as", ndk_path);
+  let ld_path = format!("{}/bin/ld.lld", ndk_path);
+  let strip_path = format!("{}/bin/llvm-strip", ndk_path);
+  let obj_dump_path = format!("{}/bin/llvm-objdump", ndk_path);
+  let obj_copy_path = format!("{}/bin/llvm-objcopy", ndk_path);
+  let nm_path = format!("{}/bin/llvm-nm", ndk_path);
+  let bin_path = format!("{}/bin", ndk_path);
   // For bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
-  let lib_path = format!("{}/lib", ndk);
+  let lib_path = format!("{}/lib", ndk_path);
   let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
   let std_lib_type = String::from("c++");
 

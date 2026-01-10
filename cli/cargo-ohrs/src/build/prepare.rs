@@ -20,6 +20,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.skip_check = args.skip_check;
   ctx.zigbuild = args.zigbuild;
   ctx.bisheng = args.bisheng;
+  ctx.skip_napi_check = args.skip_napi_check;
 
   let cargo_file = ctx.pwd.join("./Cargo.toml");
   let cargo_file_str = cargo_file.to_str().unwrap_or_default();
@@ -43,9 +44,11 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
       .iter()
       .filter_map(|member_id| metadata.packages.iter().find(|p| &p.id == member_id))
       .filter(|p| {
-        p.dependencies
-          .iter()
-          .any(|dep| dep.name == "napi-derive-ohos")
+        ctx.skip_napi_check
+          || p
+            .dependencies
+            .iter()
+            .any(|dep| dep.name == "napi-derive-ohos")
       })
       .collect();
 
@@ -73,8 +76,16 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
     });
 
     if let Some(pkg) = current_pkg {
-      // Only build the package in the current directory
-      vec![*pkg]
+      if ctx.skip_napi_check
+        || pkg
+          .dependencies
+          .iter()
+          .any(|dep| dep.name == "napi-derive-ohos")
+      {
+        vec![*pkg]
+      } else {
+        vec![]
+      }
     } else {
       // Build all packages (when running from workspace root)
       all_candidates
@@ -87,13 +98,20 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
         return p.manifest_path.eq(cargo_file_str);
       })
       .ok_or(Error::msg("Try to get package meta-info failed."))?;
-    vec![pkg]
+    if ctx.skip_napi_check
+      || pkg
+        .dependencies
+        .iter()
+        .any(|dep| dep.name == "napi-derive-ohos")
+    {
+      vec![pkg]
+    } else {
+      vec![]
+    }
   };
 
   if packages_to_build.is_empty() {
-    return Err(Error::msg(
-      "No package found with napi-derive-ohos dependency.",
-    ));
+    return Err(Error::msg("No package need to build."));
   }
 
   let pkg = packages_to_build[0];

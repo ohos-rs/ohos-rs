@@ -41,7 +41,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     .flag(true, true);
 
   let skip_check = long("skip-check")
-    .help("Skip the check of the version of the napi-ohos, will be set to false by default.")
+    .help("Skip the check of the version of the napi-ohos, will be set to true by default.")
     .flag(true, true);
 
   let target_dir = long("target-dir")
@@ -56,6 +56,10 @@ pub fn cli_build() -> impl Parser<crate::Options> {
   let bisheng = long("bisheng")
     .help("Use bisheng to build the project, will be set to false by default.")
     .flag(true, false);
+
+  let skip_napi_check = long("skip-napi-check")
+    .help("Skip the check if the napi-ohos and napi-derive-ohos dependencies are installed, will be set to true by default.")
+    .flag(true, true);
 
   let package = long("package")
     .short('p')
@@ -77,6 +81,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     bisheng,
     target_dir,
     package,
+    skip_napi_check,
     cargo_args,
   });
   construct!(crate::Options::Build(init_parser))

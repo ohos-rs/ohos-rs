@@ -32,6 +32,7 @@ pub(crate) struct BuildArgs {
   zigbuild: bool,
   bisheng: bool,
   package: Option<String>,
+  skip_napi_check: bool,
 }
 
 #[derive(Debug, Clone)]

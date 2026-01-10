@@ -56,6 +56,7 @@ pub struct Context<'a> {
   pub skip_check: bool,
   pub zigbuild: bool,
   pub bisheng: bool,
+  pub skip_napi_check: bool,
 }
 
 /// Build logic

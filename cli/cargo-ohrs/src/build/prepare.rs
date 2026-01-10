@@ -111,9 +111,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   };
 
   if packages_to_build.is_empty() {
-    return Err(Error::msg(
-      "No package need to build.",
-    ));
+    return Err(Error::msg("No package need to build."));
   }
 
   let pkg = packages_to_build[0];

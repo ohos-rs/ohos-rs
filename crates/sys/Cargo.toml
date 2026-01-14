@@ -12,7 +12,6 @@ rust-version.workspace = true
 version                = "1.1.5"
 
 [features]
-default      = ["dyn-symbols"]
 dyn-symbols  = []
 experimental = []
 napi1        = []

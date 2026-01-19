@@ -224,6 +224,11 @@ export type MyPromise = string | Promise<string>;
 
 export type MyVec = Array<number | string>;
 
+/** Nested metadata for demonstrating object streaming with complex types */
+export interface NestedMetadata {
+  hello: string;
+}
+
 export interface NotUseNullableStruct {
   requiredNumberField: number;
   requiredStringField: string;
@@ -319,6 +324,13 @@ export declare const enum StatusInValidate {
   Poll = "Poll",
   Ready = "Ready",
   Done = "Done",
+}
+
+/** Example struct demonstrating object streaming with nested types */
+export interface StreamItem {
+  something: NestedMetadata;
+  name: string;
+  size: number;
 }
 
 export interface StrictObject {
@@ -423,6 +435,8 @@ export declare function asyncPlus100(p: Promise<number>): Promise<number>;
 export declare function asyncReduceBuffer(buf: ArrayBuffer): Promise<number>;
 
 export declare function asyncResolveArray(inner: number): Promise<unknown[]>;
+
+export declare function asyncTaskArraybuffer(data: Array<number>): Promise<ArrayBuffer>;
 
 export declare function asyncTaskFinally(inner: object): Promise<void>;
 
@@ -570,12 +584,11 @@ export declare function createExternalTypedArray(): Uint32Array;
 
 export declare function createFunction(): (arg: number) => number;
 
+export declare function createI32ArrayFromExternal(): Int32Array;
+
 export declare function createObj(): object;
 
-export declare function createObjWithProperty(): {
-  value: ArrayBuffer;
-  get getter(): number;
-};
+export declare function createObjWithProperty(): { value: ArrayBuffer; get getter(): number };
 
 export declare function createObjectRef(): object;
 
@@ -591,7 +604,17 @@ export declare function createReadableStreamFromClass(
   readableStreamClass: typeof ReadableStream,
 ): ReadableStream<ArrayBuffer>;
 
+/**
+ * Creates a ReadableStream that emits StreamItem objects.
+ * This demonstrates streaming custom Rust structs to JavaScript.
+ */
+export declare function createReadableStreamWithObject(): ReadableStream<StreamItem>;
+
 export declare function createReferenceOnFunction(cb: () => void): Promise<void>;
+
+export declare function createRejectedPromise(message: string): Promise<number>;
+
+export declare function createResolvedPromise(value: number): Promise<number>;
 
 export declare function createUint8ClampedArrayFromData(): Uint8ClampedArray;
 
@@ -731,6 +754,8 @@ export declare function mapOption(val?: number | undefined | null): number | nul
 
 export declare function mergeTupleArray(t1: TupleToArray, t2: TupleToArray): TupleToArray;
 
+export declare function mutateArraybuffer(buf: ArrayBuffer): void;
+
 export declare function mutateExternal(external: ExternalObject<number>, newVal: number): void;
 
 export declare function mutateOptionalExternal(
@@ -763,6 +788,10 @@ export declare function optionStartEnd(
     arg1: string,
     arg2?: string | undefined | null,
   ) => void,
+): void;
+
+export declare function optionalCallbackTypes(
+  callback?: ((arg: string) => unknown) | undefined | null,
 ): void;
 
 export declare function overrideIndividualArgOnFunction(
@@ -961,9 +990,9 @@ export declare function u8ArrayToArray(input: Uint8Array): Array<number>;
 
 export declare function uInit8ArrayFromString(): Promise<Uint8Array>;
 
-export declare function uint8ArrayFromData(): Uint8ArraySlice;
+export declare function uint8ArrayFromData(): Uint8Array;
 
-export declare function uint8ArrayFromExternal(): Uint8ArraySlice;
+export declare function uint8ArrayFromExternal(): Uint8Array;
 
 export declare function validateArray(arr: Array<number>): number;
 
@@ -1030,27 +1059,86 @@ export declare function withoutAbortController(a: number, b: number): Promise<nu
 
 export declare function xxh64Alias(input: ArrayBuffer): bigint;
 
-export declare class ThingList {
+/**
+ * This type implements JavaScript's async iterable protocol.
+ * It can be used with `for await...of` loops.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols
+ */
+export declare class AsyncFib {
   constructor();
-  get thing(): Thing;
+  [Symbol.asyncIterator](): AsyncGenerator<number, void, number | undefined>;
 }
 
-export declare class Bird {
-  name: string;
-  constructor(name: string);
-  getCount(): number;
-  getNameAsync(): Promise<string>;
-  acceptSliceMethod(slice: Uint8Array): number;
+export declare class ClassReturnInPromise {}
+
+export declare class CustomFinalize {
+  constructor(width: number, height: number);
 }
 
-export declare class AnotherClassForEither {
+export declare class PackageJsonReader {
   constructor();
+  read(): any;
 }
 
-export declare class AnotherCssStyleSheet {
-  get rules(): CssRuleList;
+export declare class Thing {}
+
+export declare class NotUseNullableClass {
+  requiredNumberField: number;
+  requiredStringField: string;
+  optionalNumberField?: number;
+  optionalStringField?: string;
+  constructor(
+    requiredNumberField: number,
+    requiredStringField: string,
+    optionalNumberField?: number,
+    optionalStringField?: string,
+  );
 }
-export type AnotherCSSStyleSheet = AnotherCssStyleSheet;
+
+/**
+ * This type extends JavaScript's `Iterator`, and so has the iterator helper
+ * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
+ * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
+ */
+export declare class Fib3 extends Iterator<number, void, number> {
+  current: number;
+  nextNum: number;
+  constructor(current: number, nextNum: number);
+  next(value?: number): IteratorResult<number, void>;
+}
+
+export declare class Asset {
+  constructor();
+  get filePath(): number;
+}
+export type JsAsset = Asset;
+
+export declare class CssRuleList {
+  getRules(): Array<string>;
+  get parentStyleSheet(): CSSStyleSheet;
+  get name(): string | null;
+}
+export type CSSRuleList = CssRuleList;
+
+/**
+ * This type implements JavaScript's async iterable protocol.
+ * It can be used with `for await...of` loops.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols
+ */
+export declare class DelayedCounter {
+  /** Creates a counter that yields values from 0 to max-1 with a delay between each */
+  constructor(max: number, delayMs: number);
+  [Symbol.asyncIterator](): AsyncGenerator<number, string, undefined>;
+}
+
+export declare class Reader {
+  constructor();
+  read(): ArrayBuffer;
+}
 
 /**
  * This type extends JavaScript's `Iterator`, and so has the iterator helper
@@ -1064,6 +1152,76 @@ export declare class Fib2 extends Iterator<number, void, number> {
   next(value?: number): IteratorResult<number, void>;
 }
 
+export declare class Blake2BKey {}
+export type Blake2bKey = Blake2BKey;
+
+/** Smoking test for type generation */
+export declare class Blake2BHasher {
+  static withKey(key: Blake2bKey): Blake2BHasher;
+  update(data: ArrayBuffer): void;
+}
+export type Blake2bHasher = Blake2BHasher;
+
+export declare class ClassInArray {
+  constructor(value: number);
+}
+
+export declare class CreateStringClass {
+  static new(): CreateStringClass;
+  createString(): string | null;
+  createStringResult(): string;
+}
+
+export declare class AnimalWithDefaultConstructor {
+  name: string;
+  kind: number;
+  constructor(name: string, kind: number);
+}
+
+export declare class CustomStruct {
+  static customStatusCodeForFactory(): CustomStruct;
+  constructor();
+}
+
+export declare class DefaultUseNullableClass {
+  requiredNumberField: number;
+  requiredStringField: string;
+  optionalNumberField?: number;
+  optionalStringField?: string;
+  constructor(
+    requiredNumberField: number,
+    requiredStringField: string,
+    optionalNumberField?: number,
+    optionalStringField?: string,
+  );
+}
+
+export declare class Dog {
+  name: string;
+  constructor(name: string);
+}
+
+/**
+ * This type extends JavaScript's `Iterator`, and so has the iterator helper
+ * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
+ * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
+ */
+export declare class Fib4 extends Iterator<unknown, void, number> {
+  current: number;
+  nextItem: number;
+  constructor(current: number, nextItem: number);
+  next(value?: number): IteratorResult<unknown, void>;
+}
+
+export declare class JSOnlyMethodsClass {
+  data: string;
+  processData(): string;
+  getLength(): number;
+}
+export type RustOnlyMethodsClass = JSOnlyMethodsClass;
+
 export declare class Optional {
   static optionEnd(required: string, optional?: string | undefined | null): string;
   static optionStart(optional: string | undefined | null, required: string): string;
@@ -1073,6 +1231,10 @@ export declare class Optional {
     optional2?: string | undefined | null,
   ): string;
   static optionOnly(optional?: string | undefined | null): string;
+}
+
+export declare class AnotherClassForEither {
+  constructor();
 }
 
 export declare class UseNullableClass {
@@ -1088,20 +1250,47 @@ export declare class UseNullableClass {
   );
 }
 
-export declare class Width {
-  value: number;
-  constructor(value: number);
-}
-
-export declare class CustomFinalize {
-  constructor(width: number, height: number);
-}
-
 export declare class NotWritableClass {
   name: string;
   constructor(name: string);
   setName(name: string): void;
 }
+
+export declare class Bird {
+  name: string;
+  constructor(name: string);
+  getCount(): number;
+  getNameAsync(): Promise<string>;
+  acceptSliceMethod(slice: Uint8Array): number;
+}
+
+export declare class ThingList {
+  constructor();
+  get thing(): Thing;
+}
+
+export declare class Assets {
+  constructor();
+  get(id: number): JsAsset | null;
+}
+export type JsAssets = Assets;
+
+/**
+ * This type extends JavaScript's `Iterator`, and so has the iterator helper
+ * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
+ * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
+ */
+export declare class Fib extends Iterator<number, void, number> {
+  constructor();
+  next(value?: number): IteratorResult<number, void>;
+}
+
+export declare class AnotherCssStyleSheet {
+  get rules(): CssRuleList;
+}
+export type AnotherCSSStyleSheet = AnotherCssStyleSheet;
 
 /**
  * `constructor` option for `struct` requires all fields to be public,
@@ -1119,6 +1308,12 @@ export declare class Animal {
   set name(name: string);
   get type(): Kind;
   set type(kind: Kind);
+  get optionalValue(): number | null;
+  /**
+   * This is to test that setter with optional parameter generates valid TypeScript.
+   * TypeScript does not allow optional parameters in setters (TS1051).
+   */
+  set optionalValue(value: number | undefined | null);
   /**
    * This is a
    * multi-line comment
@@ -1138,20 +1333,15 @@ export declare class Animal {
   overrideIndividualArgOnMethod(normalTy: string, overriddenTy: { n: string }): Bird;
 }
 
-export declare class Blake2BKey {}
-export type Blake2bKey = Blake2BKey;
-
-export declare class AnimalWithDefaultConstructor {
-  name: string;
-  kind: number;
-  constructor(name: string, kind: number);
+export declare class JsRepo {
+  constructor(dir: string);
+  remote(): JsRemote;
 }
 
-export declare class Assets {
+export declare class ClassWithLifetime {
   constructor();
-  get(id: number): JsAsset | null;
+  getName(): string;
 }
-export type JsAssets = Assets;
 
 export declare class ClassWithFactory {
   name: string;
@@ -1161,102 +1351,9 @@ export declare class ClassWithFactory {
   setName(name: string): this;
 }
 
-export declare class DefaultUseNullableClass {
-  requiredNumberField: number;
-  requiredStringField: string;
-  optionalNumberField?: number;
-  optionalStringField?: string;
-  constructor(
-    requiredNumberField: number,
-    requiredStringField: string,
-    optionalNumberField?: number,
-    optionalStringField?: string,
-  );
-}
-
-export declare class JsClassForEither {
+export declare class AsyncThrowClass {
   constructor();
-}
-
-export declare class Reader {
-  constructor();
-  read(): ArrayBuffer;
-}
-
-export declare class ClassInArray {
-  constructor(value: number);
-}
-
-export declare class ClassWithLifetime {
-  constructor();
-  getName(): string;
-}
-
-/**
- * This type extends JavaScript's `Iterator`, and so has the iterator helper
- * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
- *
- * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
- * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
- */
-export declare class Fib extends Iterator<number, void, number> {
-  constructor();
-  next(value?: number): IteratorResult<number, void>;
-}
-
-export declare class CssRuleList {
-  getRules(): Array<string>;
-  get parentStyleSheet(): CSSStyleSheet;
-  get name(): string | null;
-}
-export type CSSRuleList = CssRuleList;
-
-/**
- * This type extends JavaScript's `Iterator`, and so has the iterator helper
- * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
- *
- * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
- * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
- */
-export declare class Fib4 extends Iterator<unknown, void, number> {
-  current: number;
-  nextItem: number;
-  constructor(current: number, nextItem: number);
-  next(value?: number): IteratorResult<unknown, void>;
-}
-
-/** Smoking test for type generation */
-export declare class Blake2BHasher {
-  update(data: ArrayBuffer): void;
-  static withKey(key: Blake2bKey): Blake2BHasher;
-}
-export type Blake2bHasher = Blake2BHasher;
-
-export declare class NotUseNullableClass {
-  requiredNumberField: number;
-  requiredStringField: string;
-  optionalNumberField?: number;
-  optionalStringField?: string;
-  constructor(
-    requiredNumberField: number,
-    requiredStringField: string,
-    optionalNumberField?: number,
-    optionalStringField?: string,
-  );
-}
-
-export declare class GetterSetterWithClosures {
-  constructor();
-}
-
-export declare class ClassReturnInPromise {}
-
-export declare class CatchOnConstructor2 {
-  constructor();
-}
-
-export declare class CatchOnConstructor {
-  constructor();
+  asyncThrowError(): Promise<void>;
 }
 
 export declare class Selector {
@@ -1267,87 +1364,37 @@ export declare class Selector {
   constructor(orderBy: Array<string>, select: Array<string>, struct: string, where?: string);
 }
 
+export declare class Width {
+  value: number;
+  constructor(value: number);
+}
+
 export declare class JsRemote {
   constructor(repo: JsRepo);
   name(): string;
 }
 
-export declare class NinjaTurtle {
-  name: string;
-  static isInstanceOf(value: unknown): boolean;
-  /** Create your ninja turtle! 🐢 */
-  static newRaph(): NinjaTurtle;
-  getMaskColor(): string;
-  getName(): string;
-  returnThis(): this;
-}
-
-export declare class CreateStringClass {
-  static new(): CreateStringClass;
-  createString(): string | null;
-  createStringResult(): string;
-}
-
-export declare class JSOnlyMethodsClass {
-  data: string;
-  processData(): string;
-  getLength(): number;
-}
-export type RustOnlyMethodsClass = JSOnlyMethodsClass;
-
-export declare class JsRepo {
-  constructor(dir: string);
-  remote(): JsRemote;
-}
-
-export declare class Asset {
+export declare class CatchOnConstructor {
   constructor();
-  get filePath(): number;
 }
-export type JsAsset = Asset;
-
-export declare class CssStyleSheet {
-  constructor(name: string, rules: Array<string>);
-  get rules(): CssRuleList;
-  anotherCssStyleSheet(): AnotherCssStyleSheet;
-}
-export type CSSStyleSheet = CssStyleSheet;
-
-export declare class MyJsNamedClass {
-  constructor(value: string);
-  getValue(): string;
-  multiplyValue(times: number): string;
-}
-export type OriginalRustNameForJsNamedStruct = MyJsNamedClass;
-
-export declare class Dog {
-  name: string;
-  constructor(name: string);
-}
-
-export declare class PackageJsonReader {
-  constructor();
-  read(): any;
-}
-
-export declare class Thing {}
 
 /**
- * This type extends JavaScript's `Iterator`, and so has the iterator helper
- * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
+ * This type implements JavaScript's async iterable protocol.
+ * It can be used with `for await...of` loops.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
- * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols
  */
-export declare class Fib3 extends Iterator<number, void, number> {
-  current: number;
-  nextNum: number;
-  constructor(current: number, nextNum: number);
-  next(value?: number): IteratorResult<number, void>;
+export declare class AsyncDataSource {
+  [Symbol.asyncIterator](): AsyncGenerator<string, void, undefined>;
+  /** Creates an async data source that yields each item with a simulated I/O delay */
+  static fromData(data: Array<string>, delayMs: number): AsyncDataSource;
 }
 
-export declare class CustomStruct {
-  static customStatusCodeForFactory(): CustomStruct;
+export declare class CatchOnConstructor2 {
+  constructor();
+}
+
+export declare class JsClassForEither {
   constructor();
 }
 
@@ -1359,6 +1406,34 @@ export declare class Context {
   static withBuffer(buf: Uint8Array): Context;
   method(): string;
 }
+
+export declare class MyJsNamedClass {
+  constructor(value: string);
+  getValue(): string;
+  multiplyValue(times: number): string;
+}
+export type OriginalRustNameForJsNamedStruct = MyJsNamedClass;
+
+export declare class NinjaTurtle {
+  name: string;
+  static isInstanceOf(value: unknown): boolean;
+  /** Create your ninja turtle! 🐢 */
+  static newRaph(): NinjaTurtle;
+  getMaskColor(): string;
+  getName(): string;
+  returnThis(): this;
+}
+
+export declare class GetterSetterWithClosures {
+  constructor();
+}
+
+export declare class CssStyleSheet {
+  constructor(name: string, rules: Array<string>);
+  get rules(): CssRuleList;
+  anotherCssStyleSheet(): AnotherCssStyleSheet;
+}
+export type CSSStyleSheet = CssStyleSheet;
 
 export namespace xxh2 {
   export function xxh2Plus(a: number, b: number): number;

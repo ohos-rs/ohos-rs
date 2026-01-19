@@ -165,10 +165,11 @@ impl TryToTokens for NapiFn {
         quote! { Ok::<#ret_type, napi_ohos::Error>(#receiver(#(#arg_names),*).await) }
       };
       quote! {
-        napi_ohos::bindgen_prelude::execute_tokio_future(env, async move { #call }, move |env, #receiver_ret_name| {
-          _args_ref.drop(env);
+        napi_ohos::bindgen_prelude::execute_tokio_future_with_finalize_callback(env, async move { #call }, move |env, #receiver_ret_name| {
           #ret
-        })
+        }, Some(Box::new(move |env| {
+          _args_ref.drop(env);
+        })))
       }
     };
 
@@ -683,6 +684,8 @@ impl NapiFn {
         if self.is_ret_result {
           if self.parent_is_generator {
             Ok(quote! { cb.construct_generator::<false, _>(#js_name, #ret?) })
+          } else if self.parent_is_async_generator {
+            Ok(quote! { cb.construct_async_generator::<false, _>(#js_name, #ret?) })
           } else {
             Ok(quote! {
               match #ret {
@@ -698,6 +701,8 @@ impl NapiFn {
           }
         } else if self.parent_is_generator {
           Ok(quote! { cb.construct_generator::<false, #parent>(#js_name, #ret) })
+        } else if self.parent_is_async_generator {
+          Ok(quote! { cb.construct_async_generator::<false, #parent>(#js_name, #ret) })
         } else {
           Ok(quote! { cb.construct::<false, #parent>(#js_name, #ret) })
         }
@@ -705,6 +710,8 @@ impl NapiFn {
         if self.is_ret_result {
           if self.parent_is_generator {
             Ok(quote! { cb.generator_factory(#js_name, #ret?) })
+          } else if self.parent_is_async_generator {
+            Ok(quote! { cb.async_generator_factory(#js_name, #ret?) })
           } else if self.is_async {
             Ok(quote! { cb.factory(#js_name, #ret) })
           } else {
@@ -722,6 +729,8 @@ impl NapiFn {
           }
         } else if self.parent_is_generator {
           Ok(quote! { cb.generator_factory(#js_name, #ret) })
+        } else if self.parent_is_async_generator {
+          Ok(quote! { cb.async_generator_factory(#js_name, #ret) })
         } else {
           Ok(quote! { cb.factory(#js_name, #ret) })
         }

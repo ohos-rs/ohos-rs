@@ -4,7 +4,7 @@ _default:
     @just --list -u
 
 init:
-    cargo install typos-cli taplo-cli -y
+    cargo install typos-cli taplo-cli
     cargo install oxk --git https://github.com/ohos-rs/oxc-ark.git
 
 ready:

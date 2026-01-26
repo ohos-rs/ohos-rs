@@ -26,11 +26,17 @@ pub fn cli_artifact() -> impl Parser<crate::Options> {
     .argument::<String>("PACKAGE")
     .optional();
 
+  let no_workspace = long("no-workspace")
+    .help("Ignore workspace mode and try to package in the current execution directory")
+    .switch()
+    .fallback(false);
+
   let artifact_parser = construct!(crate::ArtifactArgs {
     name,
     dist,
     skip_libs,
     package,
+    no_workspace,
   });
   construct!(crate::Options::Artifact(artifact_parser))
 }

@@ -41,6 +41,7 @@ pub(crate) struct ArtifactArgs {
   name: String,
   skip_libs: bool,
   package: Option<String>,
+  no_workspace: bool,
 }
 
 #[derive(Debug, Clone)]

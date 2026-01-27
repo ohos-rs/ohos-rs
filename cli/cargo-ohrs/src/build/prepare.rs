@@ -9,6 +9,47 @@ use std::{env, fs};
 use version_compare::compare_to;
 use version_compare::Cmp;
 
+/// Validate SONAME: check if it contains version number (e.g., ".so.1")
+fn validate_soname(soname: &str) -> anyhow::Result<()> {
+  // Check if SONAME contains version number pattern: .so. followed by digits
+  if soname.contains(".so.") {
+    // Extract the part after ".so."
+    if let Some(part_after_so) = soname.split(".so.").nth(1) {
+      // Check if it starts with a digit (version number)
+      if part_after_so
+        .chars()
+        .next()
+        .map_or(false, |c| c.is_ascii_digit())
+      {
+        return Err(Error::msg(format!(
+          "SONAME format with version number is not supported: '{}'. Please use format like 'libxx.so' or 'xx'.",
+          soname
+        )));
+      }
+    }
+  }
+  Ok(())
+}
+
+/// Normalize SONAME: if only base name is provided (e.g., "xx"), convert to "libxx.so"
+/// If already in full format (e.g., "libxx.so"), keep as is
+/// Version numbers (e.g., "libxx.so.1") are not supported
+fn normalize_soname(soname: &str) -> anyhow::Result<String> {
+  // Validate SONAME format first
+  validate_soname(soname)?;
+
+  // If it already starts with "lib" and contains ".so", return as is
+  if soname.starts_with("lib") && soname.contains(".so") {
+    return Ok(soname.to_string());
+  }
+  // If it ends with ".so" but doesn't start with "lib", add "lib" prefix
+  if soname.ends_with(".so") {
+    return Ok(format!("lib{}", soname));
+  }
+  // Otherwise, add "lib" prefix and ".so" suffix
+  Ok(format!("lib{}.so", soname))
+}
+
 /// Pre-build initialization work, including getting the current runtime environment, etc.
 pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result<()> {
   ctx.pwd = env::current_dir()?;
@@ -21,6 +62,11 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.zigbuild = args.zigbuild;
   ctx.bisheng = args.bisheng;
   ctx.skip_napi_check = args.skip_napi_check;
+  ctx.soname = if let Some(ref s) = args.soname {
+    Some(normalize_soname(s)?)
+  } else {
+    None
+  };
 
   let cargo_file = ctx.pwd.join("./Cargo.toml");
   let cargo_file_str = cargo_file.to_str().unwrap_or_default();

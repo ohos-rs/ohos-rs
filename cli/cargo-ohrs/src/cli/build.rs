@@ -69,6 +69,11 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     .argument::<String>("PACKAGE")
     .optional();
 
+  let soname = long("soname")
+    .help("Set the SONAME for the generated shared library (e.g., libexample.so.1).")
+    .argument::<String>("SONAME")
+    .optional();
+
   let init_parser = construct!(crate::BuildArgs {
     dist,
     arch,
@@ -82,6 +87,7 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     target_dir,
     package,
     skip_napi_check,
+    soname,
     cargo_args,
   });
   construct!(crate::Options::Build(init_parser))

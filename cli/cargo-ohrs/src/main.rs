@@ -33,6 +33,7 @@ pub(crate) struct BuildArgs {
   bisheng: bool,
   package: Option<String>,
   skip_napi_check: bool,
+  soname: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +52,7 @@ pub(crate) struct CargoArgs {
   disable_target: bool,
   args: Vec<String>,
   package: Option<String>,
+  soname: Option<String>,
 }
 
 #[derive(Debug, Clone)]

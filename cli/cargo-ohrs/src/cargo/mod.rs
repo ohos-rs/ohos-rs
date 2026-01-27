@@ -5,6 +5,47 @@ use std::{env, str::FromStr};
 
 mod run;
 
+/// Validate SONAME: check if it contains version number (e.g., ".so.1")
+fn validate_soname(soname: &str) -> anyhow::Result<()> {
+  // Check if SONAME contains version number pattern: .so. followed by digits
+  if soname.contains(".so.") {
+    // Extract the part after ".so."
+    if let Some(part_after_so) = soname.split(".so.").nth(1) {
+      // Check if it starts with a digit (version number)
+      if part_after_so
+        .chars()
+        .next()
+        .map_or(false, |c| c.is_ascii_digit())
+      {
+        return Err(Error::msg(format!(
+          "SONAME format with version number is not supported: '{}'. Please use format like 'libxx.so' or 'xx'.",
+          soname
+        )));
+      }
+    }
+  }
+  Ok(())
+}
+
+/// Normalize SONAME: if only base name is provided (e.g., "xx"), convert to "libxx.so"
+/// If already in full format (e.g., "libxx.so"), keep as is
+/// Version numbers (e.g., "libxx.so.1") are not supported
+fn normalize_soname(soname: &str) -> anyhow::Result<String> {
+  // Validate SONAME format first
+  validate_soname(soname)?;
+
+  // If it already starts with "lib" and contains ".so", return as is
+  if soname.starts_with("lib") && soname.contains(".so") {
+    return Ok(soname.to_string());
+  }
+  // If it ends with ".so" but doesn't start with "lib", add "lib" prefix
+  if soname.ends_with(".so") {
+    return Ok(format!("lib{}", soname));
+  }
+  // Otherwise, add "lib" prefix and ".so" suffix
+  Ok(format!("lib{}.so", soname))
+}
+
 fn get_workspace_packages() -> anyhow::Result<Vec<Package>> {
   let pwd = env::current_dir()?;
   let cargo_file = pwd.join("./Cargo.toml");
@@ -180,7 +221,18 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
 
           all_args.extend(rest_args.iter().cloned());
 
-          run::run(arch, ohos_ndk.clone(), all_args, args.bisheng)?;
+          let normalized_soname = if let Some(ref s) = args.soname {
+            Some(normalize_soname(s)?)
+          } else {
+            None
+          };
+          run::run(
+            arch,
+            ohos_ndk.clone(),
+            all_args,
+            args.bisheng,
+            normalized_soname,
+          )?;
           Ok(())
         })
         .collect::<anyhow::Result<Vec<_>>>()?;
@@ -206,7 +258,18 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
 
         all_args.extend(rest_args.iter().cloned());
 
-        run::run(arch, ohos_ndk.clone(), all_args, args.bisheng)?;
+        let normalized_soname = if let Some(ref s) = args.soname {
+          Some(normalize_soname(s)?)
+        } else {
+          None
+        };
+        run::run(
+          arch,
+          ohos_ndk.clone(),
+          all_args,
+          args.bisheng,
+          normalized_soname,
+        )?;
         Ok(())
       })
       .collect::<anyhow::Result<Vec<_>>>()?;

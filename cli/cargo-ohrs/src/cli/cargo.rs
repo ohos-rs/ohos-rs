@@ -30,11 +30,17 @@ pub fn cli_cargo() -> impl Parser<crate::Options> {
     .argument::<String>("PACKAGE")
     .optional();
 
+  let soname = long("soname")
+    .help("Set the SONAME for the generated shared library (e.g., libexample.so.1).")
+    .argument::<String>("SONAME")
+    .optional();
+
   let cargo_parser = construct!(crate::CargoArgs {
     arch,
     bisheng,
     disable_target,
     package,
+    soname,
     args
   });
   construct!(crate::Options::Cargo(cargo_parser))

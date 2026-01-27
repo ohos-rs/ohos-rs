@@ -72,6 +72,11 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
     base_flags.push("-mthumb".into());
   }
 
+  // Add SONAME linker flag if specified
+  if let Some(ref soname) = ctx.soname {
+    base_flags.push(format!("-Wl,-soname,{}", soname));
+  }
+
   let tmp_path_str = ctx.tmp_ts_file_path.to_str().ok_or(Error::msg(
     "Try to set TYPE_DEF_TMP_PATH before build failed.",
   ))?;

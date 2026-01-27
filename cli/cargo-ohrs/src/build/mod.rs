@@ -57,6 +57,7 @@ pub struct Context<'a> {
   pub zigbuild: bool,
   pub bisheng: bool,
   pub skip_napi_check: bool,
+  pub soname: Option<String>,
 }
 
 /// Build logic

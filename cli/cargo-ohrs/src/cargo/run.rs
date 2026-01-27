@@ -5,7 +5,13 @@ use std::env;
 use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
-pub fn run(arch: &Arch, ndk: String, args: Vec<String>, bisheng: bool) -> anyhow::Result<()> {
+pub fn run(
+  arch: &Arch,
+  ndk: String,
+  args: Vec<String>,
+  bisheng: bool,
+  soname: Option<String>,
+) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
 
   let mut ndk_path = format!("{}", &ndk);
@@ -58,6 +64,11 @@ pub fn run(arch: &Arch, ndk: String, args: Vec<String>, bisheng: bool) -> anyhow
     base_flags.push("-mfloat-abi=softfp".into());
     base_flags.push("-mtune=generic-armv7-a".into());
     base_flags.push("-mthumb".into());
+  }
+
+  // Add SONAME linker flag if specified
+  if let Some(ref soname) = soname {
+    base_flags.push(format!("-Wl,-soname,{}", soname));
   }
 
   let mut rust_flags = base_flags

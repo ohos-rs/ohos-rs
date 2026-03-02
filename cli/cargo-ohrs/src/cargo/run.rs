@@ -11,6 +11,7 @@ pub fn run(
   args: Vec<String>,
   bisheng: bool,
   soname: Option<String>,
+  build_target_name: Option<String>,
 ) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
 
@@ -83,6 +84,7 @@ pub fn run(
 
   // for some package deps on atomic
   let builtins = String::from("clang_rt.builtins");
+  let build_target_name = build_target_name.unwrap_or_else(|| String::from("entry"));
 
   let base_flags = base_flags.join(" ");
 
@@ -103,6 +105,7 @@ pub fn run(
     ("TARGET_NM", &nm_path),
     ("CARGO_ENCODED_RUSTFLAGS", &rust_flags),
     ("PATH", &path),
+    ("NAPI_BUILD_TARGET_NAME", &build_target_name),
     // support opencv-rust
     ("OPENCV_CLANG_ARGS", &base_flags),
     ("DEP_ATOMIC", &builtins),

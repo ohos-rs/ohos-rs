@@ -15,6 +15,7 @@ pub fn setup() {
 
   println!("cargo::rerun-if-env-changed=NAPI_DEBUG_GENERATED_CODE");
   println!("cargo::rerun-if-env-changed=NAPI_TYPE_DEF_TMP_FOLDER");
+  println!("cargo::rerun-if-env-changed=NAPI_BUILD_TARGET_NAME");
   println!(
     "cargo::rerun-if-env-changed=NAPI_FORCE_BUILD_{}",
     env::var("CARGO_PKG_NAME")

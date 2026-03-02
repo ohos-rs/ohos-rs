@@ -46,6 +46,21 @@ fn normalize_soname(soname: &str) -> anyhow::Result<String> {
   Ok(format!("lib{}.so", soname))
 }
 
+fn resolve_build_target_name(pkg: &Package) -> String {
+  pkg
+    .targets
+    .iter()
+    .find(|target| target.kind.iter().any(|kind| kind == "cdylib"))
+    .or_else(|| {
+      pkg
+        .targets
+        .iter()
+        .find(|target| target.kind.iter().any(|kind| kind == "lib"))
+    })
+    .map(|target| target.name.clone())
+    .unwrap_or_else(|| pkg.name.replace('-', "_"))
+}
+
 fn get_workspace_packages() -> anyhow::Result<Vec<Package>> {
   let pwd = env::current_dir()?;
   let cargo_file = pwd.join("./Cargo.toml");
@@ -103,7 +118,13 @@ fn get_workspace_packages() -> anyhow::Result<Vec<Package>> {
       Ok(all_packages)
     }
   } else {
-    Ok(vec![])
+    let cargo_file_str = cargo_file.to_str().unwrap_or_default();
+    let current_package = metadata
+      .packages
+      .iter()
+      .find(|p| p.manifest_path.eq(cargo_file_str))
+      .cloned();
+    Ok(current_package.into_iter().collect())
   }
 }
 
@@ -232,12 +253,14 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
             all_args,
             args.bisheng,
             normalized_soname,
+            Some(resolve_build_target_name(pkg)),
           )?;
           Ok(())
         })
         .collect::<anyhow::Result<Vec<_>>>()?;
     }
   } else {
+    let build_target_name = workspace_packages.first().map(resolve_build_target_name);
     target_arch
       .iter()
       .map(|arch| {
@@ -269,6 +292,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
           all_args,
           args.bisheng,
           normalized_soname,
+          build_target_name.clone(),
         )?;
         Ok(())
       })

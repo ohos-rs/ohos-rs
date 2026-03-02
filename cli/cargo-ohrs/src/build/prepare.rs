@@ -50,6 +50,21 @@ fn normalize_soname(soname: &str) -> anyhow::Result<String> {
   Ok(format!("lib{}.so", soname))
 }
 
+fn resolve_build_target_name(pkg: &Package) -> String {
+  pkg
+    .targets
+    .iter()
+    .find(|target| target.kind.iter().any(|kind| kind == "cdylib"))
+    .or_else(|| {
+      pkg
+        .targets
+        .iter()
+        .find(|target| target.kind.iter().any(|kind| kind == "lib"))
+    })
+    .map(|target| target.name.clone())
+    .unwrap_or_else(|| pkg.name.replace('-', "_"))
+}
+
 /// Pre-build initialization work, including getting the current runtime environment, etc.
 pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result<()> {
   ctx.pwd = env::current_dir()?;
@@ -210,6 +225,7 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
   ctx.template = toml_content;
 
   ctx.package = Some((*pkg).clone());
+  ctx.build_target_name = Some(resolve_build_target_name(pkg));
   ctx.workspace_packages = packages_to_build.iter().map(|p| (*p).clone()).collect();
   ctx.cargo_build_target_dir = Some(metadata.target_directory.clone());
 

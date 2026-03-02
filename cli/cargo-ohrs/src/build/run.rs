@@ -84,6 +84,11 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
 
   // for some package deps on atomic
   let builtins = String::from("clang_rt.builtins");
+  let build_target_name = ctx
+    .build_target_name
+    .as_deref()
+    .unwrap_or("entry")
+    .to_string();
 
   //let mut rust_flags = base_flags.join("\x1f");
 
@@ -117,6 +122,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
     ("CARGO_ENCODED_RUSTFLAGS", &rust_flags),
     ("PATH", &path),
     ("TYPE_DEF_TMP_PATH", &tmp_path),
+    ("NAPI_BUILD_TARGET_NAME", &build_target_name),
     // support opencv-rust
     ("OPENCV_CLANG_ARGS", &base_flags),
     ("DEP_ATOMIC", &builtins),

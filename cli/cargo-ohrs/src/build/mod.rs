@@ -58,6 +58,7 @@ pub struct Context<'a> {
   pub bisheng: bool,
   pub skip_napi_check: bool,
   pub soname: Option<String>,
+  pub build_target_name: Option<String>,
 }
 
 /// Build logic

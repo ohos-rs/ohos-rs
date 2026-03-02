@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use cargo_metadata::{camino::Utf8PathBuf, Artifact, BuildScript};
 
@@ -7,8 +7,21 @@ fn is_rust_intermediate_lib(path: &Utf8PathBuf) -> bool {
   path_str.contains("/target/") && path_str.contains("/deps/")
 }
 
-pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Vec<PathBuf>> {
-  let sysroot = format!("{ndk}/native/sysroot/usr/lib");
+pub fn resolve_dependence_library(
+  script: BuildScript,
+  ndk: String,
+  hos_ndk: String,
+) -> Option<Vec<PathBuf>> {
+  let ohos_sysroot = Path::new(&ndk)
+    .join("native")
+    .join("sysroot")
+    .join("usr")
+    .join("lib");
+  let hms_sysroot = Path::new(&hos_ndk)
+    .join("native")
+    .join("sysroot")
+    .join("usr")
+    .join("lib");
 
   if !script.linked_libs.is_empty() && !script.linked_paths.is_empty() {
     let libs = script
@@ -28,8 +41,13 @@ pub fn resolve_dependence_library(script: BuildScript, ndk: String) -> Option<Ve
       .iter()
       .filter_map(|i| {
         let item_path = i.as_str();
+        let normalized_path = item_path.strip_prefix("native=").unwrap_or(item_path);
+        let path = Path::new(normalized_path);
         // Ignore sysroot lib
-        if item_path.starts_with(&sysroot) {
+        if path.starts_with(&ohos_sysroot) {
+          return None;
+        }
+        if !hos_ndk.is_empty() && path.starts_with(&hms_sysroot) {
           return None;
         }
         if item_path.starts_with("native=") {

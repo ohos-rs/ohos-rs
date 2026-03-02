@@ -9,7 +9,14 @@ on:
 # Jobs section
 jobs:
   simple-test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
@@ -35,11 +42,17 @@ jobs:
       - name: Setup just
         uses: extractions/setup-just@v3
 
-      - name: Install ohrs
-        run: cargo install ohrs
+      - name: Build local ohrs
+        run: cargo build -p ohrs
+
+      - name: Add local ohrs to PATH
+        run: echo "$PWD/target/debug" >> "$GITHUB_PATH"
+
+      - name: Verify local ohrs
+        run: ohrs --version
 
       - name: Cli test
-        run: cd cli/cargo-ohrs && cargo test
+        run: cargo test -p ohrs
 
       - name: Lint
         run: just check

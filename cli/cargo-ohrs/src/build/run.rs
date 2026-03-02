@@ -1,4 +1,10 @@
-use crate::{build::Context, util::Arch, *};
+use crate::{
+  build::Context,
+  util::{
+    append_hms_link_flags, apply_hms_include_env, resolve_hms_paths, resolve_toolchain_paths, Arch,
+  },
+  *,
+};
 use anyhow::Error;
 use cargo_metadata::Message;
 use std::collections::HashMap;
@@ -12,47 +18,55 @@ use super::artifact::{resolve_artifact_library, resolve_dependence_library};
 pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
 
-  let mut ndk_path = format!("{}", &ctx.ndk);
-  if ctx.bisheng {
-    ndk_path = format!("{}/native/BiSheng", &ctx.hos_ndk);
+  let ndk_path = if ctx.bisheng {
+    if ctx.hos_ndk.is_empty() || !std::path::Path::new(&ctx.hos_ndk).exists() {
+      return Err(anyhow::Error::msg(
+        "Failed to get HarmonyOS NDK path while --bisheng is enabled.",
+      ));
+    }
+    std::path::Path::new(&ctx.hos_ndk)
+      .join("native")
+      .join("BiSheng")
+      .to_string_lossy()
+      .to_string()
   } else {
-    ndk_path = format!("{}/native/llvm", &ctx.ndk);
-  }
+    std::path::Path::new(&ctx.ndk)
+      .join("native")
+      .join("llvm")
+      .to_string_lossy()
+      .to_string()
+  };
 
-  let ran_path = format!("{}/bin/llvm-ranlib", ndk_path);
-  let ar_path = format!("{}/bin/llvm-ar", ndk_path);
-  let cc_path = format!("{}/bin/clang", ndk_path);
-  let cxx_path = format!("{}/bin/clang++", ndk_path);
-  let as_path = format!("{}/bin/llvm-as", ndk_path);
-  let ld_path = format!("{}/bin/ld.lld", ndk_path);
-  let strip_path = format!("{}/bin/llvm-strip", ndk_path);
-  let obj_dump_path = format!("{}/bin/llvm-objdump", ndk_path);
-  let obj_copy_path = format!("{}/bin/llvm-objcopy", ndk_path);
-  let nm_path = format!("{}/bin/llvm-nm", ndk_path);
-  let bin_path = format!("{}/bin", ndk_path);
-  // For bindgen, you may need to change to builtin clang or clang++ etc. You can set LIBCLANG_PATH and CLANG_PATH
-  let lib_path = format!("{}/lib", ndk_path);
+  let toolchain = resolve_toolchain_paths(&ndk_path);
   let std_lib = format!("CXXSTDLIB_{}", &arch.rust_link_target());
   let std_lib_type = String::from("c++");
+  let sysroot_path = std::path::Path::new(&ctx.ndk)
+    .join("native")
+    .join("sysroot")
+    .to_string_lossy()
+    .to_string();
 
   // The ctx.ndk path typically has spaces on Windows which `link-args` doesn't support.
   // Therefore we collect the args in an array and set them via multiple `link-arg` uses.
   let mut base_flags = vec![
     format!("--target={}", &arch.c_target()),
-    format!("--sysroot={}/native/sysroot", &ctx.ndk),
+    format!("--sysroot={}", sysroot_path),
     "-D__MUSL__".into(),
   ];
+
+  let hms_paths = resolve_hms_paths(&ctx.hos_ndk, arch);
+  append_hms_link_flags(&mut base_flags, &hms_paths);
 
   let mut path = env::var("PATH").unwrap_or_default();
   // for windows, path need to use ; as split symbol
   // for unix, should use :
   #[cfg(target_os = "windows")]
   {
-    path = format!("{};{}", &bin_path, &path);
+    path = format!("{};{}", &toolchain.bin_dir, &path);
   }
   #[cfg(not(target_os = "windows"))]
   {
-    path = format!("{}:{}", &bin_path, &path);
+    path = format!("{}:{}", &toolchain.bin_dir, &path);
   }
 
   // Respect cargo build flags and bash environment variables
@@ -104,29 +118,33 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
 
   let base_flags = base_flags.join(" ");
 
-  let prepare_env = HashMap::from([
-    (linker_name.as_str(), &cc_path),
-    ("LIBCLANG_PATH", &lib_path),
-    ("CLANG_PATH", &cxx_path),
-    (std_lib.as_str(), &std_lib_type),
-    ("TARGET_CC", &cc_path),
-    ("TARGET_CXX", &cxx_path),
-    ("TARGET_RANLIB", &ran_path),
-    ("TARGET_AR", &ar_path),
-    ("TARGET_AS", &as_path),
-    ("TARGET_LD", &ld_path),
-    ("TARGET_STRIP", &strip_path),
-    ("TARGET_OBJDUMP", &obj_dump_path),
-    ("TARGET_OBJCOPY", &obj_copy_path),
-    ("TARGET_NM", &nm_path),
-    ("CARGO_ENCODED_RUSTFLAGS", &rust_flags),
-    ("PATH", &path),
-    ("TYPE_DEF_TMP_PATH", &tmp_path),
-    ("NAPI_BUILD_TARGET_NAME", &build_target_name),
-    // support opencv-rust
-    ("OPENCV_CLANG_ARGS", &base_flags),
-    ("DEP_ATOMIC", &builtins),
+  let mut prepare_env = HashMap::from([
+    (linker_name.clone(), toolchain.cc.clone()),
+    ("LIBCLANG_PATH".to_string(), toolchain.lib_dir.clone()),
+    ("CLANG_PATH".to_string(), toolchain.cxx.clone()),
+    (std_lib.clone(), std_lib_type.clone()),
+    ("TARGET_CC".to_string(), toolchain.cc.clone()),
+    ("TARGET_CXX".to_string(), toolchain.cxx.clone()),
+    ("TARGET_RANLIB".to_string(), toolchain.ranlib.clone()),
+    ("TARGET_AR".to_string(), toolchain.ar.clone()),
+    ("TARGET_AS".to_string(), toolchain.llvm_as.clone()),
+    ("TARGET_LD".to_string(), toolchain.ld.clone()),
+    ("TARGET_STRIP".to_string(), toolchain.strip.clone()),
+    ("TARGET_OBJDUMP".to_string(), toolchain.objdump.clone()),
+    ("TARGET_OBJCOPY".to_string(), toolchain.objcopy.clone()),
+    ("TARGET_NM".to_string(), toolchain.nm.clone()),
+    ("CARGO_ENCODED_RUSTFLAGS".to_string(), rust_flags.clone()),
+    ("PATH".to_string(), path.clone()),
+    ("TYPE_DEF_TMP_PATH".to_string(), tmp_path.clone()),
+    (
+      "NAPI_BUILD_TARGET_NAME".to_string(),
+      build_target_name.clone(),
+    ),
+    ("OPENCV_CLANG_ARGS".to_string(), base_flags.clone()),
+    ("DEP_ATOMIC".to_string(), builtins.clone()),
   ]);
+
+  apply_hms_include_env(&mut prepare_env, &hms_paths, arch.rust_target());
 
   let mut args: Vec<String> = match arch.to_arch() {
     "loongarch64" => {
@@ -186,7 +204,9 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
               }
             }
             Message::BuildScriptExecuted(script) => {
-              if let Some(lib) = resolve_dependence_library(script, ctx.ndk.clone()) {
+              if let Some(lib) =
+                resolve_dependence_library(script, ctx.ndk.clone(), ctx.hos_ndk.clone())
+              {
                 artifact_files.extend(lib);
               }
             }

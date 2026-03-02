@@ -1,6 +1,8 @@
 mod arch;
+mod ohos;
 
 pub use arch::*;
+pub use ohos::*;
 
 #[macro_export]
 macro_rules! create_dist_dir {

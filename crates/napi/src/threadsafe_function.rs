@@ -530,6 +530,37 @@ impl<
       )
     })?
   }
+
+  /// Call the ThreadsafeFunction with priority, insert it at the end of queue.
+  #[cfg(target_env = "ohos")]
+  pub fn call_with_priority(
+    &self,
+    value: Result<T, ErrorStatus>,
+    priority: ThreadsafeFunctionPriority,
+  ) -> Status {
+    self.handle.with_read_aborted(|aborted| {
+      if aborted {
+        return Status::Closing;
+      }
+
+      unsafe {
+        sys::napi_call_threadsafe_function_with_priority(
+          self.handle.get_raw(),
+          Box::into_raw(Box::new(value.map(|data| {
+            ThreadsafeFunctionCallJsBackData {
+              data,
+              call_variant: ThreadsafeFunctionCallVariant::Direct,
+              callback: Box::new(|_d: Result<Return>, _| Ok(())),
+            }
+          })))
+          .cast(),
+          priority.into(),
+          true,
+        )
+      }
+      .into()
+    })
+  }
 }
 
 impl<
@@ -593,57 +624,6 @@ impl<
     })
   }
 
-  /// Call the ThreadsafeFunction with priority, insert it at the end of queue.
-  #[cfg(target_env = "ohos")]
-  pub fn call_with_priority(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
-    self.handle.with_read_aborted(|aborted| {
-      if aborted {
-        return Status::Closing;
-      }
-
-      unsafe {
-        sys::napi_call_threadsafe_function_with_priority(
-          self.handle.get_raw(),
-          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
-            data: value,
-            call_variant: ThreadsafeFunctionCallVariant::Direct,
-            callback: Box::new(|_d: Result<Return>, _: Env| Ok(())),
-          }))
-          .cast(),
-          priority.into(),
-          true,
-        )
-      }
-      .into()
-    })
-  }
-
-  /// Call the ThreadsafeFunction with priority, insert it at the start of queue.
-  #[cfg(target_env = "ohos")]
-  pub fn call_with_priority_first(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
-    self.handle.with_read_aborted(|aborted| {
-      if aborted {
-        return Status::Closing;
-      }
-
-      unsafe {
-        sys::napi_call_threadsafe_function_with_priority(
-          self.handle.get_raw(),
-          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
-            data: value,
-            call_variant: ThreadsafeFunctionCallVariant::Direct,
-            callback: Box::new(|_d: Result<Return>, _: Env| Ok(())),
-          }))
-          .cast(),
-          priority.into(),
-          false,
-        )
-      }
-      .into()
-    })
-  }
-
-  #[cfg(feature = "tokio_rt")]
   /// Call the ThreadsafeFunction, and handle the return value with in `async` way
   pub async fn call_async(&self, value: T) -> Result<Return> {
     let (sender, receiver) = channel::<Return>();
@@ -674,10 +654,34 @@ impl<
         )
       })
     })?;
-
     receiver
       .await
       .map_err(|err| crate::Error::new(Status::GenericFailure, format!("{err}")))
+  }
+
+  /// Call the ThreadsafeFunction with priority, insert it at the end of queue.
+  #[cfg(target_env = "ohos")]
+  pub fn call_with_priority(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
+    self.handle.with_read_aborted(|aborted| {
+      if aborted {
+        return Status::Closing;
+      }
+
+      unsafe {
+        sys::napi_call_threadsafe_function_with_priority(
+          self.handle.get_raw(),
+          Box::into_raw(Box::new(ThreadsafeFunctionCallJsBackData {
+            data: value,
+            call_variant: ThreadsafeFunctionCallVariant::Direct,
+            callback: Box::new(|_d: Result<Return>, _: Env| Ok(())),
+          }))
+          .cast(),
+          priority.into(),
+          true,
+        )
+      }
+      .into()
+    })
   }
 }
 

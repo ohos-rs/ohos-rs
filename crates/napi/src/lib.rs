@@ -109,7 +109,7 @@ mod version;
 
 pub use napi_sys_ohos as sys;
 #[allow(unused_imports)]
-#[cfg(target_env = "ohos")]
+#[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
 pub use ohos::*;
 
 pub use async_work::{AsyncWorkPromise, AsyncWorkQos};
@@ -129,6 +129,18 @@ pub use version::NodeVersion;
 extern crate serde;
 
 pub type ContextlessResult<T> = Result<Option<T>>;
+
+#[doc(hidden)]
+#[inline]
+pub fn __private_prepare_for_module_register() {
+  #[cfg(any(
+    target_env = "msvc",
+    all(not(target_family = "wasm"), feature = "dyn-symbols")
+  ))]
+  unsafe {
+    let _ = sys::setup();
+  }
+}
 
 #[doc(hidden)]
 #[macro_export(local_inner_macros)]

@@ -47,6 +47,7 @@ fn auto_add_register_code() -> proc_macro2::TokenStream {
             nm_register_func: Some(napi_ohos::bindgen_prelude::napi_register_module_v1),
             reserved: [std::ptr::null_mut() as *mut _; 4],
           };
+          napi_ohos::__private_prepare_for_module_register();
           unsafe {
             napi_ohos::sys::napi_module_register(&mut modules);
           }

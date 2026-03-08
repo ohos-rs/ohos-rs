@@ -45,7 +45,7 @@ mod napi1 {
         result: *mut napi_value,
       ) -> napi_status;
       // harmony not support symbol
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       fn napi_create_symbol(
         env: napi_env,
         description: napi_value,
@@ -408,10 +408,10 @@ mod napi1 {
         rejection: napi_value,
       ) -> napi_status;
       fn napi_is_promise(env: napi_env, value: napi_value, is_promise: *mut bool) -> napi_status;
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       fn napi_run_script(env: napi_env, script: napi_value, result: *mut napi_value)
         -> napi_status;
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       fn napi_adjust_external_memory(
         env: napi_env,
         change_in_bytes: i64,
@@ -490,7 +490,7 @@ mod napi1 {
 
 #[cfg(feature = "napi2")]
 mod napi2 {
-  #[cfg(not(target_env = "ohos"))]
+  #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
   use std::os::raw::c_int;
 
   use super::super::types::*;
@@ -500,7 +500,7 @@ mod napi2 {
       fn napi_get_uv_event_loop(env: napi_env, loop_: *mut *mut uv_loop_s) -> napi_status;
 
       // uv_run should be removed, which is provided by libuv. If you need to use it, please add ffi and link libuv.so
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       fn uv_run(loop_: *mut uv_loop_s, mode: uv_run_mode) -> c_int;
     }
   );
@@ -846,7 +846,7 @@ pub use napi8::*;
 #[cfg(feature = "napi9")]
 pub use napi9::*;
 
-#[cfg(target_env = "ohos")]
+#[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
 mod ohos {
   use std::os::raw::{c_char, c_void};
 
@@ -896,7 +896,7 @@ mod ohos {
   );
 }
 
-#[cfg(target_env = "ohos")]
+#[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
 pub use ohos::*;
 
 #[cfg(windows)]

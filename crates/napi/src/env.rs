@@ -19,7 +19,7 @@ use serde::Serialize;
 
 #[cfg(feature = "napi8")]
 use crate::async_cleanup_hook::AsyncCleanupHook;
-#[cfg(target_env = "ohos")]
+#[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
 use crate::async_work::AsyncWorkQos;
 #[cfg(all(feature = "napi6", feature = "compat-mode"))]
 use crate::bindgen_runtime::u128_with_sign_to_napi_value;
@@ -36,7 +36,7 @@ use crate::bindgen_runtime::{
 use crate::cleanup_env::{CleanupEnvHook, CleanupEnvHookData};
 #[cfg(feature = "serde-json")]
 use crate::js_values::{De, Ser};
-#[cfg(target_env = "ohos")]
+#[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
 use crate::module::Module;
 #[cfg(all(feature = "napi4", feature = "compat-mode"))]
 use crate::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction};
@@ -238,7 +238,7 @@ impl Env {
     unsafe { JsString::from_napi_value(self.0, raw_value) }
   }
 
-  #[cfg(not(target_env = "ohos"))]
+  #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
   /// This API creates a new JavaScript symbol from a optional description
   pub fn create_symbol(&self, description: Option<&str>) -> Result<JsSymbol<'_>> {
     let mut result = ptr::null_mut();
@@ -434,7 +434,7 @@ impl Env {
     ))
   }
 
-  #[cfg(not(any(target_family = "wasm", target_env = "ohos")))]
+  #[cfg(not(any(target_family = "wasm", target_env = "ohos", feature = "arkvm-test")))]
   /// This function gives V8 an indication of the amount of externally allocated memory that is kept alive by JavaScript objects (i.e. a JavaScript object that points to its own memory allocated by a native module).
   ///
   /// Registering externally allocated memory will trigger global garbage collections more often than it would otherwise.
@@ -446,7 +446,7 @@ impl Env {
     Ok(changed)
   }
 
-  #[cfg(any(target_family = "wasm", target_env = "ohos"))]
+  #[cfg(any(target_family = "wasm", target_env = "ohos", feature = "arkvm-test"))]
   #[allow(unused_variables)]
   pub fn adjust_external_memory(&self, size: i64) -> Result<i64> {
     Ok(0)
@@ -990,7 +990,7 @@ impl Env {
         &mut object_value,
       )
     })?;
-    #[cfg(not(target_env = "ohos"))]
+    #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
     if let Some(changed) = size_hint {
       if changed != 0 {
         let mut adjusted_value = 0i64;
@@ -1057,10 +1057,10 @@ impl Env {
     &self,
     task: T,
   ) -> Result<AsyncWorkPromise<T::JsValue>> {
-    #[cfg(target_env = "ohos")]
+    #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
     return async_work::run(self.0, task, None, None);
 
-    #[cfg(not(target_env = "ohos"))]
+    #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
     return async_work::run(self.0, task, None);
   }
 
@@ -1078,7 +1078,7 @@ impl Env {
   }
 
   /// Run [Task](./trait.Task.html) in libuv thread pool with qos, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
-  #[cfg(target_env = "ohos")]
+  #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
   pub fn spawn_with_qos<'env, T: 'env + ScopedTask<'env>>(
     &self,
     task: T,
@@ -1096,7 +1096,7 @@ impl Env {
   ///   Ok(())
   /// }
   /// ```
-  #[cfg(target_env = "ohos")]
+  #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
   pub fn load<T: AsRef<str>>(&self, path: T) -> Result<Module> {
     use crate::check_pending_exception;
 
@@ -1116,7 +1116,7 @@ impl Env {
   ///   Ok(())
   /// }
   /// ```
-  #[cfg(target_env = "ohos")]
+  #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
   pub fn load_with_info<T: AsRef<str>>(&self, path: T, info: T) -> Result<Module> {
     use crate::check_pending_exception;
 
@@ -1142,9 +1142,9 @@ impl Env {
   pub fn run_script<S: AsRef<str>, V: FromNapiValue>(&self, script: S) -> Result<V> {
     let s = self.create_string(script.as_ref())?;
     let mut raw_value = ptr::null_mut();
-    #[cfg(target_env = "ohos")]
+    #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
     check_status!(unsafe { sys::napi_run_script_path(self.0, s.raw(), &mut raw_value) })?;
-    #[cfg(not(target_env = "ohos"))]
+    #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
     check_status!(unsafe { sys::napi_run_script(self.0, s.raw(), &mut raw_value) })?;
     unsafe { V::from_napi_value(self.0, raw_value) }
   }
@@ -1461,7 +1461,7 @@ impl Env {
     ))
   }
 
-  #[cfg(any(feature = "napi9", target_env = "ohos"))]
+  #[cfg(any(feature = "napi9", target_env = "ohos", feature = "arkvm-test"))]
   /// This API retrieves the file path of the currently running JS module as a URL. For a file on
   /// the local file system it will start with `file://`.
   ///
@@ -1583,7 +1583,7 @@ unsafe extern "C" fn drop_buffer(
 }
 
 #[cfg_attr(
-  any(target_family = "wasm", target_env = "ohos"),
+  any(target_family = "wasm", target_env = "ohos", feature = "arkvm-test"),
   allow(unused_variables)
 )]
 pub(crate) unsafe extern "C" fn raw_finalize<T>(
@@ -1593,7 +1593,7 @@ pub(crate) unsafe extern "C" fn raw_finalize<T>(
 ) {
   let tagged_object = finalize_data as *mut T;
   drop(unsafe { Box::from_raw(tagged_object) });
-  #[cfg(not(any(target_family = "wasm", target_env = "ohos")))]
+  #[cfg(not(any(target_family = "wasm", target_env = "ohos", feature = "arkvm-test")))]
   if !finalize_hint.is_null() {
     let size_hint = unsafe { *Box::from_raw(finalize_hint as *mut i64) };
     if size_hint != 0 {

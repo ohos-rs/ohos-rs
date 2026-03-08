@@ -27,5 +27,12 @@ fmt:
 test:
     bash ./scripts/test.sh
 
+unit-test:
+    bash ./scripts/ci/run_ets_napi_host_tests.sh
+
+unit-test-docker:
+    bash ./scripts/ohos/run_split_tests_arkvm.sh
+
 zig-build:
     bash ./scripts/zig-build.sh
+

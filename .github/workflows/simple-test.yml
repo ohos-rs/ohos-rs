@@ -1,62 +1,32 @@
-# Action name
-name: Simple Test Action
+name: Unit Tests
 
-# Here, this action will be enabled on all pushes.
-# Modify this to fit your needs.
 on:
-  push
+  pull_request:
+  push:
+  workflow_dispatch:
 
-# Jobs section
 jobs:
-  simple-test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    defaults:
-      run:
-        shell: bash
+  unit-tests:
+    runs-on: ubuntu-latest
+    env:
+      REQUIRE_ARK_HOST_TOOLS: "1"
+      ARK_HOST_TOOLS_DIR: ${{ github.workspace }}/.ark-host/x64_linux_static
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup OpenHarmony SDK
-        uses: openharmony-rs/setup-ohos-sdk@v0.1
-        id: setup-ohos
-        with:
-          version: '5.0.0'
-
-      - name: Setup Rust environment
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          target: 'aarch64-unknown-linux-ohos,armv7-unknown-linux-ohos,x86_64-unknown-linux-ohos'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
 
-      - name: Install oxk
-        run: npm install @ohos-rs/oxk -g
+      - name: Validate Ark host bundle
+        run: |
+          set -euo pipefail
+          echo "Expect host bundle at: ${ARK_HOST_TOOLS_DIR}"
+          test -x "${ARK_HOST_TOOLS_DIR}/ark_js_napi_cli"
+          test -x "${ARK_HOST_TOOLS_DIR}/es2abc"
+          test -f "${ARK_HOST_TOOLS_DIR}/libace_napi.so"
 
-      - name: Setup just
-        uses: extractions/setup-just@v3
-
-      - name: Build local ohrs
-        run: cargo build -p ohrs
-
-      - name: Add local ohrs to PATH
-        run: echo "$PWD/target/debug" >> "$GITHUB_PATH"
-
-      - name: Verify local ohrs
-        run: ohrs --version
-
-      - name: Cli test
-        run: cargo test -p ohrs
-
-      - name: Lint
-        run: just check
-
-      - name: Run examples
-        run: just test
+      - name: Run ArkTS + N-API Tests
+        run: bash ./scripts/ci/run_ets_napi_host_tests.sh

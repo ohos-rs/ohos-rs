@@ -76,12 +76,12 @@ impl<'x> serde::de::Deserializer<'x> for &mut De<'_> {
           (false, false) => visitor.visit_u128(js_bigint.get_u128().1),
         }
       }
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       ValueType::External | ValueType::Function | ValueType::Symbol => Err(Error::new(
         Status::InvalidArg,
         format!("typeof {js_value_type:?} value could not be deserialized"),
       )),
-      #[cfg(target_env = "ohos")]
+      #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
       ValueType::External | ValueType::Function => Err(Error::new(
         Status::InvalidArg,
         format!("typeof {js_value_type:?} value could not be deserialized"),

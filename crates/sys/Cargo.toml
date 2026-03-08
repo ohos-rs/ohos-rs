@@ -13,6 +13,7 @@ version                = "1.1.6"
 
 [features]
 dyn-symbols  = []
+arkvm-test = []
 experimental = []
 napi1        = []
 napi2        = ["napi1"]

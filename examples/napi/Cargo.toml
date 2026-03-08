@@ -13,6 +13,7 @@ crate-type = ["cdylib"]
 snmalloc         = ["snmalloc-rs"]
 mimalloc         = ["mimalloc-safe"]
 dyn-symbols      = ["napi-ohos/dyn-symbols"]
+arkvm-test       = ["dyn-symbols", "napi-ohos/arkvm-test"]
 error_try_builds = []
 noop             = ["napi-ohos/noop"]
 cfg_attr_napi    = []                        # for testing cfg_attr(not(feature = "noop"), napi_derive::napi) attribute

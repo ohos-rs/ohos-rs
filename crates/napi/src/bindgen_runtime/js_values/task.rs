@@ -239,18 +239,18 @@ fn on_abort_impl(
 impl<T: for<'task> ScopedTask<'task>> ToNapiValue for AsyncTask<T> {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> crate::Result<sys::napi_value> {
     if let Some(abort_signal) = val.abort_signal {
-      #[cfg(target_env = "ohos")]
+      #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
       let async_promise =
         async_work::run(env, val.inner, Some(abort_signal.status.clone()), val.qos)?;
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       let async_promise = async_work::run(env, val.inner, Some(abort_signal.status.clone()))?;
       abort_signal.raw_work.set(async_promise.napi_async_work);
       Ok(async_promise.promise_object().inner)
     } else {
-      #[cfg(target_env = "ohos")]
+      #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
       let async_promise = async_work::run(env, val.inner, None, val.qos)?;
 
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       let async_promise = async_work::run(env, val.inner, None)?;
       Ok(async_promise.promise_object().inner)
     }

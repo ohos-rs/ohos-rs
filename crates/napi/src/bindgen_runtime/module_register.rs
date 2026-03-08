@@ -8,7 +8,7 @@ use std::ffi::CStr;
 #[cfg(all(
   not(feature = "noop"),
   feature = "node_version_detect",
-  not(target_env = "ohos")
+  not(any(target_env = "ohos", feature = "arkvm-test"))
 ))]
 use std::mem::MaybeUninit;
 #[cfg(not(feature = "noop"))]
@@ -16,7 +16,7 @@ use std::ptr;
 #[cfg(all(
   not(feature = "noop"),
   feature = "node_version_detect",
-  not(target_env = "ohos")
+  not(any(target_env = "ohos", feature = "arkvm-test"))
 ))]
 use std::sync::OnceLock;
 #[cfg(not(feature = "noop"))]
@@ -31,7 +31,7 @@ use rustc_hash::FxBuildHasher;
 #[cfg(all(
   not(feature = "noop"),
   feature = "node_version_detect",
-  not(target_env = "ohos")
+  not(any(target_env = "ohos", feature = "arkvm-test"))
 ))]
 use crate::NodeVersion;
 #[cfg(not(feature = "noop"))]
@@ -49,15 +49,15 @@ pub type ModuleExportsCallback =
 #[cfg(all(
   not(feature = "noop"),
   feature = "node_version_detect",
-  not(target_env = "ohos")
+  not(any(target_env = "ohos", feature = "arkvm-test"))
 ))]
 pub static NODE_VERSION: OnceLock<NodeVersion> = OnceLock::new();
 
-#[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
+#[cfg(all(feature = "node_version_detect", not(any(target_env = "ohos", feature = "arkvm-test"))))]
 pub static mut NODE_VERSION_MAJOR: u32 = 0;
-#[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
+#[cfg(all(feature = "node_version_detect", not(any(target_env = "ohos", feature = "arkvm-test"))))]
 pub static mut NODE_VERSION_MINOR: u32 = 0;
-#[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
+#[cfg(all(feature = "node_version_detect", not(any(target_env = "ohos", feature = "arkvm-test"))))]
 pub static mut NODE_VERSION_PATCH: u32 = 0;
 
 #[repr(transparent)]
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn napi_register_module_v1(
   unsafe {
     sys::setup();
   }
-  #[cfg(all(feature = "node_version_detect", not(target_env = "ohos")))]
+  #[cfg(all(feature = "node_version_detect", not(any(target_env = "ohos", feature = "arkvm-test"))))]
   {
     NODE_VERSION.get_or_init(|| {
       let mut node_version = MaybeUninit::uninit();

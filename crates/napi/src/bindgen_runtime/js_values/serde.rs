@@ -86,7 +86,7 @@ impl FromNapiValue for Value {
           "undefined cannot be represented as a serde_json::Value".to_owned(),
         ))
       }
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       ValueType::Symbol => {
         return Err(Error::new(
           Status::InvalidArg,

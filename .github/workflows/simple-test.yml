@@ -8,9 +8,6 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    env:
-      REQUIRE_ARK_HOST_TOOLS: "1"
-      ARK_HOST_TOOLS_DIR: ${{ github.workspace }}/.ark-host/x64_linux_static
     steps:
       - uses: actions/checkout@v4
 
@@ -20,13 +17,25 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      - name: Setup arkvm
+        id: setup-arkvm
+        uses: harmony-contrib/arkts-vm@v2.0.0
+        with:
+          cache: true
+
       - name: Validate Ark host bundle
+        env:
+          ARK_HOST_TOOLS_DIR: ${{ steps.setup-arkvm.outputs.arkvm-path }}
         run: |
           set -euo pipefail
           echo "Expect host bundle at: ${ARK_HOST_TOOLS_DIR}"
           test -x "${ARK_HOST_TOOLS_DIR}/ark_js_napi_cli"
           test -x "${ARK_HOST_TOOLS_DIR}/es2abc"
           test -f "${ARK_HOST_TOOLS_DIR}/libace_napi.so"
+          test -f "${ARK_HOST_TOOLS_DIR}/libets_interop_js_napi.so"
 
       - name: Run ArkTS + N-API Tests
-        run: bash ./scripts/ci/run_ets_napi_host_tests.sh
+        env:
+          ARK_HOST_TOOLS_DIR: ${{ steps.setup-arkvm.outputs.arkvm-path }}
+          ARKVM_USE_DOCKER: "0"
+        run: bash ./scripts/ohos/run_split_tests_arkvm.sh

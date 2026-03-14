@@ -87,9 +87,7 @@ function getFuncWithArgsZero(func, timeout, isStressTest) {
   return new Promise(async (resolve, reject) => {
     let timer = null;
     if (!isStressTest) {
-      timer = setTimeout(() => {
-        reject(new Error("execute timeout " + timeout + "ms"));
-      }, timeout);
+      // split runner: timeout handled by outer harness
     }
     try {
       await func();
@@ -105,9 +103,7 @@ function getFuncWithArgsOne(func, timeout, isStressTest) {
   return new Promise(async (resolve, reject) => {
     let timer = null;
     if (!isStressTest) {
-      timer = setTimeout(() => {
-        reject(new Error("execute timeout " + timeout + "ms"));
-      }, timeout);
+      // split runner: timeout handled by outer harness
     }
 
     function done() {
@@ -128,9 +124,7 @@ function getFuncWithArgsTwo(func, timeout, paramItem, isStressTest) {
   return new Promise(async (resolve, reject) => {
     let timer = null;
     if (!isStressTest) {
-      timer = setTimeout(() => {
-        reject(new Error("execute timeout " + timeout + "ms"));
-      }, timeout);
+      // split runner: timeout handled by outer harness
     }
 
     function done() {
@@ -1091,6 +1085,7 @@ SpecService.Spec = class {
   }
 
   async asyncRun(coreContext) {
+    this.isExecuted = true;
     const dataDriver = coreContext.getServices("dataDriver");
     if (typeof dataDriver === "undefined") {
       await this.fn();

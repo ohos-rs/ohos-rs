@@ -31,8 +31,14 @@ pub fn setup_arkvm_test() {
   let ace_napi_lib = env::var("ARK_ACE_NAPI_LIB")
     .ok()
     .map(Into::into)
-    .or_else(|| env::var("ARK_HOST_BUNDLE_DIR").ok().map(|dir| Path::new(&dir).join("libace_napi.so")))
-    .expect("ARK_HOST_BUNDLE_DIR or ARK_ACE_NAPI_LIB must be set when feature `arkvm-test` is enabled");
+    .or_else(|| {
+      env::var("ARK_HOST_BUNDLE_DIR")
+        .ok()
+        .map(|dir| Path::new(&dir).join("libace_napi.so"))
+    })
+    .expect(
+      "ARK_HOST_BUNDLE_DIR or ARK_ACE_NAPI_LIB must be set when feature `arkvm-test` is enabled",
+    );
   let link_dir = ace_napi_lib
     .parent()
     .expect("ARK_ACE_NAPI_LIB must point to a file inside a directory");

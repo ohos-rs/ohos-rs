@@ -214,7 +214,7 @@ fn complete_impl<'task, T: ScopedTask<'task>>(
   let mut work = unsafe { Box::from_raw(data as *mut AsyncWork<T>) };
   let napi_async_work = mem::replace(&mut work.napi_async_work, ptr::null_mut());
   let deferred = mem::replace(&mut work.deferred, ptr::null_mut());
-  if status == sys::Status::napi_cancelled {
+  if status == sys::Status::napi_cancelled || work.status.get() == 2 {
     const ABORT_ERROR_NAME: &str = "AbortError";
     let wrapped_env = Env::from_raw(env);
     let mut error =

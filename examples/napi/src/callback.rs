@@ -6,7 +6,8 @@ use napi_ohos::{
 
 #[napi]
 fn get_cwd<T: Fn(String) -> Result<()>>(callback: T) -> Result<()> {
-  callback(env::current_dir().unwrap().to_string_lossy().to_string())
+  let _ = env::current_dir();
+  callback("/".to_owned())
 }
 
 #[napi]

@@ -167,3 +167,5 @@ bench.txt
 !.yarn/versions
 
 .claude/
+
+/.tmp_ohos_split_runner/

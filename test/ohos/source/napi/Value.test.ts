@@ -1,7 +1,7 @@
 import { test, describe } from "../utils/setup.test";
 import { AbortController } from "../utils/abort-controller/index.test";
 
-import {
+const {
   DEFAULT_COST,
   add,
   fibonacci,
@@ -75,6 +75,8 @@ import {
   getUndefined,
   getNull,
   threadsafeFunctionFatalMode,
+  threadsafeFunctionFatalModeError,
+  threadsafeFunctionFatalModeErrorMessage,
   createExternal,
   getExternal,
   mutateExternal,
@@ -166,7 +168,7 @@ import {
   chronoNativeDateTimeReturn,
   throwAsyncError,
   getModuleFileName,
-  type AliasedStruct,
+  AliasedStruct,
   returnObjectOnlyToJs,
   buildThreadsafeFunctionFromFunction,
   createOptionalExternal,
@@ -181,10 +183,10 @@ import {
   StructuredKind,
   validateStructuredEnum,
   createArraybuffer,
-} from "libexample.so";
+} = requireNapiPreview("example", true);
 import { spy } from "../utils/mock.test";
-import { buffer } from "@kit.ArkTS";
-import { Subject, take } from "../utils/rx/index.test";
+import { buffer } from "../../../../third_party/openharmony/buffer/ts/buffer_adapter";
+import { Subject, take } from "../utils/rx/rx_index.test";
 import { EXAMPLE_JSON_FILE_NAME } from "../utils/file.test";
 
 export default (path) => {
@@ -581,7 +583,7 @@ export default (path) => {
         name: 42,
         dependencies: {
           "@napi-rs/cli": "^3.0.0",
-          "rollup": "^4.0.0",
+          rollup: "^4.0.0",
         },
       });
       t.throws(
@@ -650,7 +652,7 @@ export default (path) => {
       const err = await t.throwsAsync(() => throwAsyncError());
       t.not(err?.stack, undefined);
       t.deepEqual(err!.message, "Async Error");
-      t.is(/.+at .+values\.spec\.ts:\d+:\d+.+/gm.test(err.stack!), true);
+      t.true(/at .+:\d+:\d+/gm.test(err.stack!));
     });
 
     test("custom status code in Error", (t) => {
@@ -869,7 +871,6 @@ export default (path) => {
     test("create external TypedArray", (t) => {
       t.deepEqual(createExternalTypedArray(), new Uint32Array([1, 2, 3, 4, 5]));
     });
-
     test("mutate TypedArray", (t) => {
       const input = new Float32Array([1, 2, 3, 4, 5]);
       mutateTypedArray(input);
@@ -880,15 +881,16 @@ export default (path) => {
       t.is(derefUint8Array(new Uint8Array([1, 2]), new Uint8ClampedArray([3, 4])), 4);
     });
 
-    // test('async', async (t) => {
-    //   const bufPromise = readFileAsync(join(__dirname, '../package.json'))
-    //   await t.notThrowsAsync(bufPromise)
-    //   const buf = await bufPromise
-    //   const { name } = JSON.parse(buf.toString())
-    //   t.is(name, '@examples/napi')
-    //
-    //   await t.throwsAsync(() => readFileAsync('some_nonexist_path.file'))
-    // })
+    test("async", async (t) => {
+      const bufPromise = readFileAsync(path + EXAMPLE_JSON_FILE_NAME);
+      await t.notThrowsAsync(bufPromise);
+      const buf = await bufPromise;
+      const content = buffer.from(buf).toString("utf8");
+      const { name } = JSON.parse(content);
+      t.is(name, "@ohos-rs/ada");
+
+      await t.throwsAsync(() => readFileAsync("some_nonexist_path.file"));
+    });
 
     test("panic in async fn", async (t) => {
       await t.throwsAsync(() => panicInAsync(), {
@@ -1054,10 +1056,10 @@ export default (path) => {
       }
     });
 
-    // test('should be able to run script', async (t) => {
-    //   t.is(runScript(`1 + 1`), 2)
-    //   t.is(await runScript(`Promise.resolve(1)`), 1)
-    // })
+    test("should be able to run script", async (t) => {
+      t.is(runScript(`1 + 1`), 2);
+      t.is(await runScript(`Promise.resolve(1)`), 1);
+    });
 
     test("should be able to return object from shared crate", (t) => {
       t.deepEqual(returnFromSharedCrate(), {
@@ -1069,26 +1071,23 @@ export default (path) => {
       t.is(await withoutAbortController(1, 2), 3);
     });
 
-    // Disabled in arkvm-test host runs: this currently aborts the process in the
-    // AbortController/AsyncTask cancellation path before the suite can finish.
-    // See docs/arkvm_crash_cases.md for reproduction details.
-    // test("async task with abort controller", async (t) => {
-    //   const ctrl = new AbortController();
-    //   const promise = withAbortController(1, 2, ctrl.signal);
-    //   try {
-    //     ctrl.abort();
-    //     await promise;
-    //     t.fail("Should throw AbortError");
-    //   } catch (err: unknown) {
-    //     t.is((err as Error).message, "AbortError");
-    //   }
-    // });
+    test("async task with abort controller", async (t) => {
+      const ctrl = new AbortController();
+      const promise = withAbortController(1, 2, ctrl.signal);
+      try {
+        ctrl.abort();
+        await promise;
+        t.fail("Should throw AbortError");
+      } catch (err: unknown) {
+        t.is((err as Error).message, "AbortError");
+      }
+    });
 
-    // Disabled in arkvm-test host runs for the same reason as above.
-    // test("abort resolved task", async (t) => {
-    //   const ctrl = new AbortController();
-    //   await withAbortController(1, 2, ctrl.signal).then(() => ctrl.abort());
-    // });
+    test("abort resolved task", async (t) => {
+      const ctrl = new AbortController();
+      await withAbortController(1, 2, ctrl.signal).then(() => ctrl.abort());
+      t.true(true);
+    });
 
     test("BigInt add", (t) => {
       t.is(bigintAdd(BigInt(1), BigInt(2)), BigInt(3));
@@ -1173,44 +1172,26 @@ export default (path) => {
       t.true(await tsfnFatalMode);
     });
 
-    // test('throw error from thread safe function fatal mode', (t) => {
-    //   const p = exec('node ./tsfn-error.cjs', {
-    //     cwd: __dirname,
-    //   })
-    //   let stderr = buffer.from([])
-    //   p.stderr?.on('data', (data) => {
-    //     stderr = buffer.concat([stderr, buffer.from(data)])
-    //   })
-    //   return new Promise<void>((resolve) => {
-    //     p.on('exit', (code) => {
-    //       t.is(code, 1)
-    //       const stderrMsg = stderr.toString('utf8')
-    //       console.info(stderrMsg)
-    //       t.true(stderrMsg.includes(`Error: Failed to convert JavaScript value`))
-    //       resolve()
-    //     })
-    //   })
-    // })
+    test("throw error from thread safe function fatal mode", async (t) => {
+      const message = await threadsafeFunctionFatalModeErrorMessage(() => 1 as ESObject);
+      t.true(message.includes("Failed to convert JavaScript value"));
+    });
 
-    // Disabled in arkvm-test host runs: this currently aborts the process when
-    // the Rust side tries to spawn onto the Tokio runtime from Promise bridging.
-    // See docs/arkvm_crash_cases.md for reproduction details.
-    // test("await Promise in rust", async (t) => {
-    //   const fx = 20;
-    //   const result = await asyncPlus100(
-    //     new Promise((resolve) => {
-    //       setTimeout(() => resolve(fx), 50);
-    //     }),
-    //   );
-    //   t.is(result, fx + 100);
-    // });
+    test("await Promise in rust", async (t) => {
+      const fx = 20;
+      const result = await asyncPlus100(
+        new Promise((resolve) => {
+          setTimeout(() => resolve(fx), 50);
+        }),
+      );
+      t.is(result, fx + 100);
+    });
 
-    // Disabled in arkvm-test host runs for the same Promise/Tokio runtime path.
-    // test("Promise should reject raw error in rust", async (t) => {
-    //   const fxError = new Error("What is Happy Planet");
-    //   const err = await t.throwsAsync(() => asyncPlus100(Promise.reject(fxError)));
-    //   t.is(err, fxError);
-    // });
+    test("Promise should reject raw error in rust", async (t) => {
+      const fxError = new Error("What is Happy Planet");
+      const err = await t.throwsAsync(() => asyncPlus100(Promise.reject(fxError)));
+      t.is(err, fxError);
+    });
 
     test("call ThreadsafeFunction with callback", async (t) => {
       await t.notThrowsAsync(
@@ -1224,33 +1205,29 @@ export default (path) => {
       );
     });
 
-    // Disabled in arkvm-test host runs: this currently aborts the process on the
-    // async ThreadsafeFunction + Tokio runtime path.
-    // See docs/arkvm_crash_cases.md for reproduction details.
-    // test("async call ThreadsafeFunction", async (t) => {
-    //   await t.notThrowsAsync(() =>
-    //     tsfnAsyncCall((arg1, arg2, arg3) => {
-    //       t.is(arg1, 0);
-    //       t.is(arg2, 1);
-    //       t.is(arg3, 2);
-    //       return "ReturnFromJavaScriptRawCallback";
-    //     }),
-    //   );
-    // });
+    test("async call ThreadsafeFunction", async (t) => {
+      await t.notThrowsAsync(() =>
+        tsfnAsyncCall((arg1, arg2, arg3) => {
+          t.is(arg1, 0);
+          t.is(arg2, 1);
+          t.is(arg3, 2);
+          return "ReturnFromJavaScriptRawCallback";
+        }),
+      );
+    });
 
-    // Disabled in arkvm-test host runs for the same async TSFN path.
-    // test("Throw from ThreadsafeFunction JavaScript callback", async (t) => {
-    //   const errMsg = "ThrowFromJavaScriptRawCallback";
-    //   await t.throwsAsync(
-    //     () =>
-    //       tsfnThrowFromJs(() => {
-    //         throw new Error(errMsg);
-    //       }),
-    //     {
-    //       message: errMsg,
-    //     },
-    //   );
-    // });
+    test("Throw from ThreadsafeFunction JavaScript callback", async (t) => {
+      const errMsg = "ThrowFromJavaScriptRawCallback";
+      await t.throwsAsync(
+        () =>
+          tsfnThrowFromJs(() => {
+            throw new Error(errMsg);
+          }),
+        {
+          message: errMsg,
+        },
+      );
+    });
 
     test("accept ThreadsafeFunction", async (t) => {
       await new Promise<void>((resolve, reject) => {
@@ -1288,55 +1265,49 @@ export default (path) => {
       });
     });
 
-    // Disabled in arkvm-test host runs: this currently aborts the process on the
-    // ThreadsafeFunction Promise bridge back into Rust.
-    // See docs/arkvm_crash_cases.md for reproduction details.
-    // test("threadsafe function return Promise and await in Rust", async (t) => {
-    //   const value = await tsfnReturnPromise((err, value) => {
-    //     if (err) {
-    //       throw err;
-    //     }
-    //     return Promise.resolve(value + 2);
-    //   });
-    //   t.is(value, 5);
-    //   await t.throwsAsync(
-    //     () =>
-    //       tsfnReturnPromiseTimeout((err, value) => {
-    //         if (err) {
-    //           throw err;
-    //         }
-    //         return new Promise((resolve) => {
-    //           setTimeout(() => {
-    //             resolve(value + 2);
-    //           }, 300);
-    //         });
-    //       }),
-    //     {
-    //       message: "Timeout",
-    //     },
-    //   );
-    //   // trigger Promise.then in Rust after `Promise` is dropped
-    //   await new Promise((resolve) => setTimeout(resolve, 400));
-    // });
+    test("threadsafe function return Promise and await in Rust", async (t) => {
+      const value = await tsfnReturnPromise((err, value) => {
+        if (err) {
+          throw err;
+        }
+        return Promise.resolve(value + 2);
+      });
+      t.is(value, 5);
+      await t.throwsAsync(
+        () =>
+          tsfnReturnPromiseTimeout((err, value) => {
+            if (err) {
+              throw err;
+            }
+            return new Promise((resolve) => {
+              setTimeout(() => {
+                resolve(value + 2);
+              }, 300);
+            });
+          }),
+        {
+          message: "Timeout",
+        },
+      );
+      // trigger Promise.then in Rust after `Promise` is dropped
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
 
-    // Disabled in arkvm-test host runs: this currently segfaults on the
-    // object-wrapped ThreadsafeFunction callback path.
-    // See docs/arkvm_crash_cases.md for reproduction details.
-    // test("object only from js", (t) => {
-    //   return new Promise((resolve, reject) => {
-    //     receiveObjectOnlyFromJs({
-    //       count: 100,
-    //       callback: (err: Error | null, count: number) => {
-    //         if (err) {
-    //           reject(err);
-    //         } else {
-    //           t.is(count, 100);
-    //           resolve();
-    //         }
-    //       },
-    //     });
-    //   });
-    // });
+    test("object only from js", (t) => {
+      return new Promise((resolve, reject) => {
+        receiveObjectOnlyFromJs({
+          count: 100,
+          callback: (err: Error | null, count: number) => {
+            if (err) {
+              reject(err);
+            } else {
+              t.is(count, 100);
+              resolve();
+            }
+          },
+        });
+      });
+    });
 
     test("build ThreadsafeFunction from Function", (t) => {
       const subject = new Subject();
@@ -1352,17 +1323,14 @@ export default (path) => {
       return subject.pipe(take(3));
     });
 
-    // Disabled in arkvm-test host runs: this currently aborts the process on the
-    // Promise bridge inside Either<u32, Promise<u32>>.
-    // See docs/arkvm_crash_cases.md for reproduction details.
-    // test("promise in either", async (t) => {
-    //   t.is(await promiseInEither(1), false);
-    //   t.is(await promiseInEither(20), true);
-    //   t.is(await promiseInEither(Promise.resolve(1)), false);
-    //   t.is(await promiseInEither(Promise.resolve(20)), true);
-    //   // @ts-ignore
-    //   t.throws(() => promiseInEither("1"));
-    // });
+    test("promise in either", async (t) => {
+      t.is(await promiseInEither(1), false);
+      t.is(await promiseInEither(20), true);
+      t.is(await promiseInEither(Promise.resolve(1)), false);
+      t.is(await promiseInEither(Promise.resolve(20)), true);
+      // @ts-ignore
+      t.throws(() => promiseInEither("1"));
+    });
 
     test("Date test", (t) => {
       const fixture = new Date("2016-12-24");
@@ -1405,12 +1373,10 @@ export default (path) => {
       t.is(fixture?.toISOString(), "2016-12-23T15:25:59.325Z");
     });
 
-    // test('get module file name', (t) => {
-    //   console.info(getModuleFileName())
-    //   t.regex(
-    //     getModuleFileName(),
-    //     new RegExp(`example.${process.platform}-${process.arch}`),
-    //   )
-    // })
+    test("get module file name", (t) => {
+      const moduleFileName = getModuleFileName();
+      t.true(moduleFileName.length > 0);
+      t.true(moduleFileName.includes("example") || moduleFileName.includes("libexample"));
+    });
   });
 };

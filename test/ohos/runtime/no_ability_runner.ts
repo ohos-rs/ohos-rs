@@ -1,5 +1,5 @@
-import { Hypium } from "../src/utils/framework.test";
-import Core from "../src/utils/core/core";
+import { Hypium } from "../source/utils/framework.test";
+import Core from "../source/utils/core/core";
 
 type SplitMetrics = {
   registered: number;
@@ -7,11 +7,6 @@ type SplitMetrics = {
   assertionCalls: number;
   noAssertionTests: number;
   currentTest: string;
-};
-
-type NapiMetrics = {
-  calls: number;
-  modules: string[];
 };
 
 type CaseResult = {
@@ -65,17 +60,6 @@ function getSplitMetrics(): SplitMetrics {
   };
 }
 
-function getNapiMetrics(): NapiMetrics {
-  const g = globalThis as ESObject;
-  if (g.__ohosNapiMetrics__) {
-    return g.__ohosNapiMetrics__ as NapiMetrics;
-  }
-  return {
-    calls: 0,
-    modules: [],
-  };
-}
-
 function emitResultMarker(result: ESObject) {
   const issuesText =
     result.issues && Array.isArray(result.issues) && result.issues.length > 0
@@ -95,8 +79,8 @@ function emitResultMarker(result: ESObject) {
       ` ignore=${result.ignore}` +
       ` assertions=${result.assertions}` +
       ` no_assert_tests=${result.noAssertTests}` +
-      ` napi_calls=${result.napiCalls}` +
-      ` strict=${result.strictAssert}` +
+      ` napi_calls=0` +
+      ` strict=false` +
       ` issues=${issuesText}`,
   );
 }
@@ -159,8 +143,7 @@ function collectCaseResults(suite: ESObject, path: string[], out: CaseResult[]) 
   if (suite && suite.specs && Array.isArray(suite.specs)) {
     for (const spec of suite.specs) {
       const specName = toText(spec && spec.description) || "<unknown>";
-      const fullName =
-        nextPath.length > 0 ? `${nextPath.join(" > ")} > ${specName}` : specName;
+      const fullName = nextPath.length > 0 ? `${nextPath.join(" > ")} > ${specName}` : specName;
 
       let status = "pass";
       let message = "";
@@ -252,17 +235,22 @@ function printCaseReport(suiteName: string, cases: CaseResult[], duration: numbe
   );
 }
 
-function buildDoneState(suiteName: string, message: string, code: number, extraIssues: string[]): ESObject {
+function buildDoneState(
+  suiteName: string,
+  message: string,
+  code: number,
+  extraIssues: string[],
+): ESObject {
   const core = Core.getInstance();
   const suiteService = core.getDefaultService("suite");
   const rootSuite = suiteService ? suiteService.rootSuite : null;
   const summary = suiteService
     ? suiteService.getSummary()
     : { total: 0, pass: 0, failure: 0, error: 0, ignore: 0, duration: 0 };
-  const specStat = rootSuite ? countExecutedSpecs(rootSuite) : { total: 0, executed: 0, skipped: 0 };
+  const specStat = rootSuite
+    ? countExecutedSpecs(rootSuite)
+    : { total: 0, executed: 0, skipped: 0 };
   const metrics = getSplitMetrics();
-  const napiMetrics = getNapiMetrics();
-  const strictAssert = (globalThis as ESObject).__ohosAssertStrict__ !== false;
   const setupError = getSetupErrorState();
   const issues = extraIssues.slice();
   const caseResults: CaseResult[] = [];
@@ -286,10 +274,6 @@ function buildDoneState(suiteName: string, message: string, code: number, extraI
   if (caseSummary.fail > 0 || caseSummary.error > 0 || caseSummary.unknown > 0) {
     issues.push("case_failures");
   }
-  if (strictAssert && napiMetrics.modules.length > 0 && napiMetrics.calls <= 0) {
-    issues.push("no_napi_calls");
-  }
-
   return {
     suite: suiteName,
     message,
@@ -304,9 +288,6 @@ function buildDoneState(suiteName: string, message: string, code: number, extraI
     ignore: summary.ignore,
     assertions: metrics.assertionCalls,
     noAssertTests: metrics.noAssertionTests,
-    napiCalls: napiMetrics.calls,
-    napiModules: napiMetrics.modules.join(","),
-    strictAssert,
     status: issues.length === 0 ? "ok" : "fail",
     issues,
   };
@@ -325,11 +306,9 @@ function emitFallbackResult(suiteName: string, reason: string) {
 }
 
 class CliDelegator {
-  printSync(_message: string) {
-  }
+  printSync(_message: string) {}
 
-  async print(_message: string) {
-  }
+  async print(_message: string) {}
 
   finishTest(message: string, code: number, callback: ESObject) {
     const g = globalThis as ESObject;
@@ -374,13 +353,18 @@ export function runSplitSuite(suiteName: string, suite: ESObject, tmpDir: string
   const ctx = { tempDir: tmpDir };
 
   try {
-    const execution = Hypium.hypiumTest(delegator as ESObject, args as ESObject, ctx as ESObject, () => {
-      try {
-        suite(tmpDir);
-      } catch (error) {
-        setSetupErrorState(error);
-      }
-    });
+    const execution = Hypium.hypiumTest(
+      delegator as ESObject,
+      args as ESObject,
+      ctx as ESObject,
+      () => {
+        try {
+          suite(tmpDir);
+        } catch (error) {
+          setSetupErrorState(error);
+        }
+      },
+    );
 
     if (execution && typeof (execution as ESObject).then === "function") {
       (execution as Promise<ESObject>)

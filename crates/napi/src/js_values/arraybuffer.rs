@@ -10,6 +10,48 @@ use crate::{
 
 use super::JsValue;
 
+fn typed_array_element_size(typed_array_type: TypedArrayType) -> usize {
+  match typed_array_type {
+    TypedArrayType::Int8 | TypedArrayType::Uint8 | TypedArrayType::Uint8Clamped => 1,
+    TypedArrayType::Int16 | TypedArrayType::Uint16 => 2,
+    TypedArrayType::Int32 | TypedArrayType::Uint32 | TypedArrayType::Float32 => 4,
+    TypedArrayType::Float64 => 8,
+    #[cfg(feature = "napi6")]
+    TypedArrayType::BigInt64 | TypedArrayType::BigUint64 => 8,
+    TypedArrayType::Unknown => 1,
+  }
+}
+
+fn normalize_typed_array_length(
+  env: sys::napi_env,
+  arraybuffer: sys::napi_value,
+  byte_offset: usize,
+  reported_length: usize,
+  typed_array_type: TypedArrayType,
+) -> Result<usize> {
+  let mut arraybuffer_len = 0;
+  check_status!(unsafe {
+    sys::napi_get_arraybuffer_info(env, arraybuffer, ptr::null_mut(), &mut arraybuffer_len)
+  })?;
+
+  let available_byte_length = arraybuffer_len.saturating_sub(byte_offset);
+  let element_size = typed_array_element_size(typed_array_type);
+  if reported_length == 0 || element_size == 1 {
+    return Ok(reported_length.min(available_byte_length));
+  }
+
+  let reported_byte_length = reported_length.saturating_mul(element_size);
+  if reported_byte_length <= available_byte_length {
+    return Ok(reported_length);
+  }
+
+  if reported_length <= available_byte_length && reported_length % element_size == 0 {
+    return Ok(reported_length / element_size);
+  }
+
+  Ok(available_byte_length / element_size)
+}
+
 #[deprecated(
   since = "1.1.0",
   note = "Use `napi_ohos::bindgen_prelude::ArrayBuffer` instead"
@@ -273,11 +315,20 @@ impl JsTypedArray {
       )
     })?;
 
+    let typedarray_type = TypedArrayType::from(typedarray_type);
+    let len = normalize_typed_array_length(
+      self.0.env,
+      arraybuffer_value,
+      byte_offset,
+      len,
+      typedarray_type,
+    )?;
+
     Ok(JsTypedArrayValue {
       data,
       length: len,
       byte_offset,
-      typedarray_type: typedarray_type.into(),
+      typedarray_type,
       arraybuffer: unsafe { JsArrayBuffer::from_raw_unchecked(self.0.env, arraybuffer_value) },
     })
   }

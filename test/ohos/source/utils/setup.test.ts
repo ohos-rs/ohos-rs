@@ -28,6 +28,76 @@ function markAssertionCall() {
   metrics.assertionCalls += 1;
 }
 
+function isArrayBufferLike(value: ESObject): boolean {
+  return value instanceof ArrayBuffer || ArrayBuffer.isView(value);
+}
+
+function toUint8Bytes(value: ESObject): Uint8Array {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  return new Uint8Array(value as ArrayBuffer);
+}
+
+function deepEqualValue(actual: ESObject, expected: ESObject): boolean {
+  if (Object.is(actual, expected)) {
+    return true;
+  }
+
+  if (isArrayBufferLike(actual) && isArrayBufferLike(expected)) {
+    const left = toUint8Bytes(actual);
+    const right = toUint8Bytes(expected);
+    if (left.length !== right.length) {
+      return false;
+    }
+    for (let i = 0; i < left.length; i++) {
+      if (left[i] !== right[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (Array.isArray(actual) && Array.isArray(expected)) {
+    if (actual.length !== expected.length) {
+      return false;
+    }
+    for (let i = 0; i < actual.length; i++) {
+      if (!deepEqualValue(actual[i], expected[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (
+    actual !== null &&
+    expected !== null &&
+    typeof actual === "object" &&
+    typeof expected === "object"
+  ) {
+    const actualKeys = Object.keys(actual as ESObject);
+    const expectedKeys = Object.keys(expected as ESObject);
+    if (actualKeys.length !== expectedKeys.length) {
+      return false;
+    }
+    for (const key of actualKeys) {
+      if (!Object.prototype.hasOwnProperty.call(expected, key)) {
+        return false;
+      }
+      if (!deepEqualValue((actual as ESObject)[key], (expected as ESObject)[key])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return false;
+}
+
 function toPromise(fnOrPromise: ESObject): Promise<ESObject> {
   if (fnOrPromise instanceof Promise) {
     return fnOrPromise;
@@ -47,11 +117,11 @@ function toPromise(fnOrPromise: ESObject): Promise<ESObject> {
 const testContext: ESObject = {
   is: (actual: ESObject, expected: ESObject) => {
     markAssertionCall();
-    expect(actual).assertEqual(expected);
+    expect(Object.is(actual, expected)).assertEqual(true);
   },
   deepEqual: (actual: ESObject, expected: ESObject) => {
     markAssertionCall();
-    expect(actual).assertDeepEquals(expected);
+    expect(deepEqualValue(actual, expected)).assertEqual(true);
   },
   assert: (actual: ESObject, _message?: ESObject) => {
     markAssertionCall();
@@ -67,12 +137,17 @@ const testContext: ESObject = {
   },
   throwsAsync: async (fn: ESObject, expected: ESObject) => {
     markAssertionCall();
-    const ret = toPromise(fn);
+    let capturedError: ESObject = undefined;
+    const ret = toPromise(fn).catch((err) => {
+      capturedError = err;
+      throw err;
+    });
     if (expected) {
       await expect(ret).assertPromiseIsRejectedWith(expected);
     } else {
       await expect(ret).assertPromiseIsRejected();
     }
+    return capturedError;
   },
   notThrowsAsync: async (fn: ESObject, expected: ESObject) => {
     markAssertionCall();
@@ -93,7 +168,7 @@ const testContext: ESObject = {
   },
   not: (actual: ESObject, expected: ESObject) => {
     markAssertionCall();
-    expect(actual).not().assertDeepEquals(expected);
+    expect(Object.is(actual, expected)).assertEqual(false);
   },
   regex: (actual: ESObject, expected: ESObject) => {
     markAssertionCall();

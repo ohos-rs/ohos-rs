@@ -1,6 +1,6 @@
 import { describe, test } from "../utils/setup.test";
 
-import { NotWritableClass } from "libexample.so";
+const { NotWritableClass } = requireNapiPreview("example", true);
 
 export default function objectAttrTest() {
   describe("ObjectAttrTest", () => {

@@ -854,6 +854,8 @@ mod ohos {
 
   generate!(
     extern "C" {
+      fn napi_run_script(env: napi_env, script: napi_value, result: *mut napi_value)
+        -> napi_status;
       // same with napi_run_script but script should be `abc` file
       fn napi_run_script_path(
         env: napi_env,

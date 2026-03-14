@@ -1,4 +1,4 @@
-import emitter from "@ohos.events.emitter";
+import emitter from "../shims/emitter.test";
 
 export class AbortSignal {
   onabort: null | ((this: AbortSignal, event: ESObject) => void);

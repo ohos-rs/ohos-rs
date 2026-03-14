@@ -321,10 +321,18 @@ impl Env {
     let data_ptr = data.as_mut_ptr();
     check_status!(unsafe {
       if length == 0 {
-        // Rust uses 0x1 as the data pointer for empty buffers,
-        // but NAPI/V8 only allows multiple buffers to have
-        // the same data pointer if it's 0x0.
-        sys::napi_create_buffer(self.0, length, ptr::null_mut(), &mut raw_value)
+        // Some ArkVM hosts reject napi_create_buffer(0, ...); use the copy path with a dummy source pointer.
+        let mut dest_data_ptr = ptr::null_mut();
+        let empty_ptr = ptr::NonNull::<u8>::dangling().as_ptr();
+        let status = sys::napi_create_buffer_copy(
+          self.0,
+          length,
+          empty_ptr.cast(),
+          &mut dest_data_ptr,
+          &mut raw_value,
+        );
+        data = Vec::from_raw_parts(dest_data_ptr.cast(), length, length);
+        status
       } else {
         let hint_ptr = Box::into_raw(Box::new((length, data.capacity())));
         let status = sys::napi_create_external_buffer(
@@ -1142,9 +1150,9 @@ impl Env {
   pub fn run_script<S: AsRef<str>, V: FromNapiValue>(&self, script: S) -> Result<V> {
     let s = self.create_string(script.as_ref())?;
     let mut raw_value = ptr::null_mut();
-    #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
+    #[cfg(target_env = "ohos")]
     check_status!(unsafe { sys::napi_run_script_path(self.0, s.raw(), &mut raw_value) })?;
-    #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
+    #[cfg(not(target_env = "ohos"))]
     check_status!(unsafe { sys::napi_run_script(self.0, s.raw(), &mut raw_value) })?;
     unsafe { V::from_napi_value(self.0, raw_value) }
   }

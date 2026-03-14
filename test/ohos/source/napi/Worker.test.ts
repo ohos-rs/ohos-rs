@@ -1,50 +1,10 @@
-const { Animal, Kind, DEFAULT_COST, bufferPassThrough, arrayBufferPassThrough } = requireNapiPreview(
-  "example",
-  true,
-);
+const { Animal, Kind, DEFAULT_COST, bufferPassThrough, arrayBufferPassThrough } =
+  requireNapiPreview("example", true);
 import { describe, test } from "../utils/setup.test";
-import { worker, buffer } from "../utils/shims/arkts.test";
+import worker from "../../../../third_party/openharmony/worker/ts/worker_adapter";
+import { buffer } from "../../../../third_party/openharmony/buffer/ts/buffer_adapter";
 
-const isSplitMode = Boolean((globalThis as ESObject).__ohosSplitImmediateExecute__);
-
-function runSplitModeSuite() {
-  describe("WorkerTest", () => {
-    test("should be able to require in worker thread", (t) => {
-      const expected = Animal.withKind(Kind.Cat).whoami() + DEFAULT_COST;
-      for (let i = 0; i < 20; i++) {
-        t.is(Animal.withKind(Kind.Cat).whoami() + DEFAULT_COST, expected);
-      }
-    });
-
-    test("custom GC works on worker_threads", async (t) => {
-      for (let i = 0; i < 20; i++) {
-        const [bufferResult, arrayBufferResult] = await Promise.all([
-          Promise.all(
-            Array.from({
-              length: 100,
-            }).map(() => bufferPassThrough(buffer.from([1, 2, 3]).buffer)),
-          ).then(() => "done"),
-          Promise.all(
-            Array.from({
-              length: 100,
-            }).map(() => arrayBufferPassThrough(Uint8Array.from([1, 2, 3]))),
-          ).then(() => "done"),
-        ]);
-        t.is(bufferResult, "done");
-        t.is(arrayBufferResult, "done");
-      }
-    });
-
-    test("should be able to new Class in worker thread concurrently", (t) => {
-      for (let i = 0; i < 20; i++) {
-        const ellie = new Animal(Kind.Cat, "Ellie");
-        t.is(ellie.name, "Ellie");
-      }
-    });
-  });
-}
-
-function runOhosWorkerSuite() {
+export default () => {
   describe("WorkerTest", () => {
     test("should be able to require in worker thread", async (t) => {
       await Promise.all(
@@ -131,12 +91,4 @@ function runOhosWorkerSuite() {
       );
     });
   });
-}
-
-export default () => {
-  if (isSplitMode) {
-    runSplitModeSuite();
-    return;
-  }
-  runOhosWorkerSuite();
 };

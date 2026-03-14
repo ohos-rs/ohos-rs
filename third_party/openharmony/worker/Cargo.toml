@@ -1,0 +1,24 @@
+[package]
+name = "ohos-worker-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "worker"
+crate-type = ["cdylib"]
+
+[features]
+arkvm-test = ["napi-ohos/arkvm-test", "napi-ohos/dyn-symbols"]
+
+[dependencies]
+napi-ohos = { path = "../../../crates/napi", default-features = false, features = ["serde-json", "tokio_rt", "async", "tokio_process", "dyn-symbols"] }
+napi-derive-ohos = { path = "../../../crates/macro", features = ["type-def"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "sync"] }
+
+[build-dependencies]
+napi-build-ohos = { path = "../../../crates/build" }
+
+[workspace]

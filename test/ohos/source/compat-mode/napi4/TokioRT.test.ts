@@ -1,6 +1,6 @@
 import { describe, test } from "../../utils/setup.test";
 import bindings from "../../utils/compat.test";
-import { buffer } from "@kit.ArkTS";
+import { buffer } from "../../../../../third_party/openharmony/buffer/ts/buffer_adapter";
 import { EXAMPLE_STRING, EXAMPLE_TXT_FILE_NAME } from "../../utils/file.test";
 
 export default (path) => {

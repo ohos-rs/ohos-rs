@@ -34,6 +34,8 @@ function assertPromiseIsRejectedWith(actualPromise, expectedValue) {
     );
   }
 
+  const expected = expectedValue?.[0];
+
   return actualPromise.then(
     function (got) {
       return {
@@ -42,23 +44,43 @@ function assertPromiseIsRejectedWith(actualPromise, expectedValue) {
       };
     },
     function (actualValue) {
-      if (actualValue?.message === expectedValue?.message) {
+      if (
+        expected &&
+        typeof expected === "object" &&
+        (expected.message === undefined || actualValue?.message === expected.message) &&
+        (expected.code === undefined || actualValue?.code === expected.code)
+      ) {
+        return {
+          pass: true,
+          message:
+            "actualValue was rejected with " +
+            JSON.stringify({ message: actualValue?.message, code: actualValue?.code }) +
+            ".",
+        };
+      }
+
+      if (typeof expected === "string" && actualValue?.message === expected) {
         return {
           pass: true,
           message: "actualValue was rejected with " + actualValue.message + ".",
         };
       }
-      if (JSON.stringify(actualValue) == JSON.stringify(expectedValue[0])) {
+
+      if (JSON.stringify(actualValue) == JSON.stringify(expected)) {
         return {
           pass: true,
           message: "actualValue was rejected with " + JSON.stringify(actualValue) + ".",
         };
-      } else {
-        return {
-          pass: false,
-          message: tips(false) + " but it was rejected with " + JSON.stringify(actualValue) + ".",
-        };
       }
+
+      return {
+        pass: false,
+        message:
+          tips(false) +
+          " but it was rejected with " +
+          JSON.stringify({ message: actualValue?.message, code: actualValue?.code }) +
+          ".",
+      };
     },
   );
 }

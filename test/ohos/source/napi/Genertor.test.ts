@@ -1,6 +1,21 @@
 import { describe, test } from "../utils/setup.test";
 
-import { Fib, Fib2, Fib3 } from "libexample.so";
+const { Fib, Fib2, Fib3 } = requireNapiPreview("example", true);
+
+function getIterator(target: ESObject): ESObject {
+  const symbolIterator = (target as ESObject)[Symbol.iterator];
+  if (typeof symbolIterator === "function") {
+    return symbolIterator.call(target);
+  }
+  if (typeof (target as ESObject).next === "function") {
+    return target;
+  }
+  const legacyIterator = (target as ESObject).$_iterator;
+  if (typeof legacyIterator === "function") {
+    return legacyIterator.call(target);
+  }
+  return undefined;
+}
 
 export default function generatorTest() {
   describe("GeneratorTest", () => {
@@ -11,9 +26,8 @@ export default function generatorTest() {
     ].entries()) {
       test(`should be able to stop a generator #${index}`, (t) => {
         const fib = factory();
-        const gen = fib[Symbol.iterator];
-        t.is(typeof gen, "function");
-        const iterator = gen();
+        const iterator = getIterator(fib);
+        t.is(typeof iterator?.next, "function");
         t.deepEqual(iterator.next(), {
           done: false,
           value: 1,
@@ -36,9 +50,8 @@ export default function generatorTest() {
 
       test(`should be able to throw to generator #${index}`, (t) => {
         const fib = factory();
-        const gen = fib[Symbol.iterator];
-        t.is(typeof gen, "function");
-        const iterator = gen();
+        const iterator = getIterator(fib);
+        t.is(typeof iterator?.next, "function");
         t.deepEqual(iterator.next(), {
           done: false,
           value: 1,

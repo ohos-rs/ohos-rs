@@ -20,7 +20,7 @@ fn append_buffer(buf: Buffer) -> Buffer {
 }
 
 #[napi]
-fn get_empty_buffer() -> Buffer {
+fn get_empty_buffer() -> Uint8Array {
   vec![].into()
 }
 
@@ -59,7 +59,7 @@ fn create_external_typed_array() -> Uint32Array {
 }
 
 #[napi]
-fn mutate_typed_array(mut input: Float32Array) {
+fn mutate_typed_array(mut input: Float32ArraySlice) {
   for item in unsafe { input.as_mut() } {
     *item *= 2.0;
   }

@@ -1,5 +1,5 @@
 import { describe, test } from "../utils/setup.test";
-import { receiveString } from "libexample.so";
+const { receiveString } = requireNapiPreview("example", true);
 
 export default function errorMessage() {
   describe("ActsErrorMessageTest", () => {
@@ -30,10 +30,16 @@ export default function errorMessage() {
             'Failed to convert JavaScript value `Object {"a":1,"b":{"foo":"bar","s":false}}` into rust type `String`',
         },
       );
-      // t.throws(() => receiveString(Symbol('1') as ESObject), {
-      //   message:
-      //   'Failed to convert JavaScript value `Symbol` into rust type `String`',
-      // })
+      try {
+        receiveString(Symbol("1") as ESObject);
+        t.fail("should throw for Symbol");
+      } catch (e) {
+        const message = (e as Error).message;
+        t.true(
+          message == "Failed to convert JavaScript value `Symbol` into rust type `String`" ||
+            message == "Failed to convert JavaScript value `Unknown` into rust type `String`",
+        );
+      }
 
       t.throws(() => receiveString(undefined as ESObject), {
         message: "Failed to convert JavaScript value `Undefined` into rust type `String`",

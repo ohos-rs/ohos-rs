@@ -53,11 +53,20 @@ pub type ModuleExportsCallback =
 ))]
 pub static NODE_VERSION: OnceLock<NodeVersion> = OnceLock::new();
 
-#[cfg(all(feature = "node_version_detect", not(any(target_env = "ohos", feature = "arkvm-test"))))]
+#[cfg(all(
+  feature = "node_version_detect",
+  not(any(target_env = "ohos", feature = "arkvm-test"))
+))]
 pub static mut NODE_VERSION_MAJOR: u32 = 0;
-#[cfg(all(feature = "node_version_detect", not(any(target_env = "ohos", feature = "arkvm-test"))))]
+#[cfg(all(
+  feature = "node_version_detect",
+  not(any(target_env = "ohos", feature = "arkvm-test"))
+))]
 pub static mut NODE_VERSION_MINOR: u32 = 0;
-#[cfg(all(feature = "node_version_detect", not(any(target_env = "ohos", feature = "arkvm-test"))))]
+#[cfg(all(
+  feature = "node_version_detect",
+  not(any(target_env = "ohos", feature = "arkvm-test"))
+))]
 pub static mut NODE_VERSION_PATCH: u32 = 0;
 
 #[repr(transparent)]
@@ -281,7 +290,10 @@ pub unsafe extern "C" fn napi_register_module_v1(
   unsafe {
     sys::setup();
   }
-  #[cfg(all(feature = "node_version_detect", not(any(target_env = "ohos", feature = "arkvm-test"))))]
+  #[cfg(all(
+    feature = "node_version_detect",
+    not(any(target_env = "ohos", feature = "arkvm-test"))
+  ))]
   {
     NODE_VERSION.get_or_init(|| {
       let mut node_version = MaybeUninit::uninit();

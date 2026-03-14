@@ -19,7 +19,7 @@ import {
 } from "./core/interface";
 import { MockKit, when } from "./core/module/mock/MockKit";
 import ArgumentMatchers from "./core/module/mock/ArgumentMatchers";
-import worker from "@ohos.worker";
+import worker from "../../../../third_party/openharmony/worker/ts/worker_adapter";
 
 class Hypium {
   static context = new Map();

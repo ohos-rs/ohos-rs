@@ -1,6 +1,6 @@
 import { describe, test } from "../utils/setup.test";
 
-import {
+const {
   validateArray,
   validateTypedArray,
   validateTypedArraySlice,
@@ -25,8 +25,8 @@ import {
   returnUndefinedIfInvalid,
   returnUndefinedIfInvalidPromise,
   validateOptional,
-} from "libexample.so";
-import { buffer } from "@kit.ArkTS";
+} = requireNapiPreview("example", true);
+import { buffer } from "../../../../third_party/openharmony/buffer/ts/buffer_adapter";
 
 export default () => {
   describe("StrictsTest", () => {

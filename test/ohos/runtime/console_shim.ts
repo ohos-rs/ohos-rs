@@ -1,28 +1,104 @@
 if (!(globalThis as ESObject).console) {
   (globalThis as ESObject).console = {
-    log: (_msg: ESObject) => {},
-    info: (_msg: ESObject) => {},
-    warn: (_msg: ESObject) => {},
-    error: (_msg: ESObject) => {},
+    log: (msg: ESObject) => print(String(msg)),
+    info: (msg: ESObject) => print(String(msg)),
+    warn: (msg: ESObject) => print(String(msg)),
+    error: (msg: ESObject) => print(String(msg)),
   };
 }
 
-if (!(globalThis as ESObject).setTimeout) {
-  let nextTimerId = 1;
-  const timers = new Map<number, boolean>();
-  (globalThis as ESObject).setTimeout = (handler: ESObject, timeoutMs: number = 0) => {
-    const id = nextTimerId++;
-    timers.set(id, true);
-    if (typeof handler === "function") {
-      Promise.resolve().then(() => {
-        if (!timers.has(id)) {
-          return;
-        }
-        timers.delete(id);
-        handler();
-      });
+function tryInstallNativeTimers() {
+  if (typeof (globalThis as ESObject).setTimeout === "function") {
+    return;
+  }
+
+  try {
+    const loader = (globalThis as ESObject).requireNapiPreview;
+    if (typeof loader !== "function") {
+      return;
     }
+    const etsVm = loader("ets_interop_js_napi", true);
+    if (!etsVm || typeof etsVm.createRuntime !== "function") {
+      return;
+    }
+
+    etsVm.createRuntime({
+      "log-level": "debug",
+      "panda-files": "/ark-host/hello.abc",
+      "boot-panda-files": "/ark-host/etsstdlib.abc:/ark-host/hello.abc",
+    });
+  } catch (_err) {
+    // Fall back to the JS timer shim below.
+  }
+}
+
+tryInstallNativeTimers();
+
+if (!(globalThis as ESObject).setTimeout) {
+  type TimerRecord = {
+    dueAt: number;
+    handler: ESObject;
+    repeat: boolean;
+    timeoutMs: number;
+    args: Array<ESObject>;
+  };
+
+  let nextTimerId = 1;
+  const timers = new Map<number, TimerRecord>();
+
+  const runTimer = (id: number) => {
+    Promise.resolve().then(() => {
+      const timer = timers.get(id);
+      if (!timer) {
+        return;
+      }
+      if (Date.now() < timer.dueAt) {
+        runTimer(id);
+        return;
+      }
+
+      if (!timer.repeat) {
+        timers.delete(id);
+      } else {
+        timer.dueAt = Date.now() + timer.timeoutMs;
+      }
+
+      if (typeof timer.handler === "function") {
+        (timer.handler as (...args: Array<ESObject>) => void)(...timer.args);
+      }
+
+      if (timer.repeat && timers.has(id)) {
+        runTimer(id);
+      }
+    });
+  };
+
+  const registerTimer = (
+    handler: ESObject,
+    timeoutMs: number = 0,
+    repeat: boolean = false,
+    ...args: Array<ESObject>
+  ) => {
+    const id = nextTimerId++;
+    const delay = typeof timeoutMs === "number" && timeoutMs > 0 ? timeoutMs : 0;
+    timers.set(id, {
+      dueAt: Date.now() + delay,
+      handler,
+      repeat,
+      timeoutMs: delay,
+      args,
+    });
+    runTimer(id);
     return id;
+  };
+
+  (globalThis as ESObject).setTimeout = registerTimer;
+  (globalThis as ESObject).setInterval = (
+    handler: ESObject,
+    timeoutMs: number = 0,
+    ...args: Array<ESObject>
+  ) => {
+    return registerTimer(handler, timeoutMs, true, ...args);
   };
   (globalThis as ESObject).__ohosTimerMap__ = timers;
 }
@@ -36,82 +112,8 @@ if (!(globalThis as ESObject).clearTimeout) {
   };
 }
 
-function getOrInitNapiMetrics(): ESObject {
-  const g = globalThis as ESObject;
-  if (!g.__ohosNapiMetrics__) {
-    g.__ohosNapiMetrics__ = {
-      calls: 0,
-      modules: [],
-    };
-  }
-  return g.__ohosNapiMetrics__;
-}
-
-const originalRequireNapiPreview = (globalThis as ESObject).requireNapiPreview;
-if (typeof originalRequireNapiPreview === "function") {
-  const proxyCache = new WeakMap();
-  const rawValueCache = new WeakMap();
-
-  const unwrapValue = (value: ESObject): ESObject => {
-    if (value === null || value === undefined) {
-      return value;
-    }
-    const valueType = typeof value;
-    if ((valueType === "object" || valueType === "function") && rawValueCache.has(value)) {
-      return rawValueCache.get(value);
-    }
-    return value;
-  };
-
-  const wrapValue = (value: ESObject): ESObject => {
-
-    if (value === null || value === undefined) {
-      return value;
-    }
-    const valueType = typeof value;
-    if (valueType !== "object" && valueType !== "function") {
-      return value;
-    }
-    if (proxyCache.has(value)) {
-      return proxyCache.get(value);
-    }
-
-    const proxy = new Proxy(value as ESObject, {
-      get(target: ESObject, prop: ESObject, receiver: ESObject) {
-        const inner = Reflect.get(target, prop, target);
-        return wrapValue(inner);
-      },
-      set(target: ESObject, prop: ESObject, value: ESObject, receiver: ESObject) {
-        return Reflect.set(target, prop, unwrapValue(value), target);
-      },
-      apply(target: ESObject, thisArg: ESObject, argArray: ESObject[]) {
-        const metrics = getOrInitNapiMetrics();
-        metrics.calls += 1;
-        const rawThisArg = unwrapValue(thisArg);
-        const rawArgArray = argArray.map((item) => unwrapValue(item));
-        const ret = Reflect.apply(target as ESObject, rawThisArg, rawArgArray);
-        return wrapValue(ret);
-      },
-      construct(target: ESObject, argArray: ESObject[], newTarget: ESObject) {
-        const metrics = getOrInitNapiMetrics();
-        metrics.calls += 1;
-        const rawArgArray = argArray.map((item) => unwrapValue(item));
-        const ret = Reflect.construct(target as ESObject, rawArgArray, target as ESObject);
-        return wrapValue(ret);
-      },
-    });
-
-    proxyCache.set(value, proxy);
-    rawValueCache.set(proxy, value);
-    return proxy;
-  };
-
-  (globalThis as ESObject).requireNapiPreview = (moduleName: string, isAppModule: boolean) => {
-    const metrics = getOrInitNapiMetrics();
-    if (!metrics.modules.includes(moduleName)) {
-      metrics.modules.push(moduleName);
-    }
-    const loaded = originalRequireNapiPreview(moduleName, isAppModule);
-    return wrapValue(loaded);
+if (!(globalThis as ESObject).clearInterval) {
+  (globalThis as ESObject).clearInterval = (id: number) => {
+    (globalThis as ESObject).clearTimeout(id);
   };
 }

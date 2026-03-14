@@ -217,14 +217,14 @@ fn on_abort_impl(
       if abort_controller.status.get() == 1 {
         return Ok(ptr::null_mut());
       }
+      // Mark aborted first so completion can reject even if the platform cancel API is unreliable.
+      abort_controller.status.set(2);
       let raw_async_work = abort_controller.raw_work.get();
-      let status = sys::napi_cancel_async_work(env, raw_async_work);
-      // async work is already started, so we can't cancel it
-      if status != sys::Status::napi_ok {
-        abort_controller.status.set(0);
-      } else {
-        // abort function must be called from JavaScript main thread, so Relaxed Ordering is ok.
-        abort_controller.status.set(2);
+      if !raw_async_work.is_null() {
+        #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
+        {
+          let _ = sys::napi_cancel_async_work(env, raw_async_work);
+        }
       }
     }
     let mut undefined = ptr::null_mut();

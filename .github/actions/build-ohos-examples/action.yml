@@ -26,7 +26,7 @@ runs:
 
     - name: Build local ohrs
       shell: bash
-      run: cargo build -p ohrs --locked
+      run: cargo build -p ohrs
 
     - name: Verify local ohrs
       shell: bash

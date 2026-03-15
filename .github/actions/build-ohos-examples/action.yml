@@ -34,12 +34,12 @@ runs:
 
     - name: Build hello example
       shell: bash
-      run: cd examples/hello && ${{ inputs.ohrs-bin }} build
+      run: ${{ inputs.ohrs-bin }} build -p hello
 
     - name: Build napi example
       shell: bash
-      run: cd examples/napi && ${{ inputs.ohrs-bin }} build
+      run: ${{ inputs.ohrs-bin }} build -p example
 
     - name: Build napi-compact example
       shell: bash
-      run: cd examples/napi-compact-mode && ${{ inputs.ohrs-bin }} build
+      run: ${{ inputs.ohrs-bin }} build -p compact

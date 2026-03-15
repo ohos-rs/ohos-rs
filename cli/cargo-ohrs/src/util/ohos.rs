@@ -110,6 +110,26 @@ pub fn apply_hms_include_env(
   );
 }
 
+#[cfg(target_os = "windows")]
+pub fn apply_windows_ohos_cmake_env(
+  prepare_env: &mut HashMap<String, String>,
+  rust_target: &str,
+) {
+  let target_key = format!("CMAKE_GENERATOR_{}", rust_target);
+  let target_key_alt = format!("CMAKE_GENERATOR_{}", rust_target.replace('-', "_"));
+  let has_generator = env::var(&target_key).is_ok()
+    || env::var(&target_key_alt).is_ok()
+    || env::var("TARGET_CMAKE_GENERATOR").is_ok()
+    || env::var("CMAKE_GENERATOR").is_ok();
+
+  if !has_generator {
+    prepare_env.insert(String::from("TARGET_CMAKE_GENERATOR"), String::from("Ninja"));
+  }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn apply_windows_ohos_cmake_env(_: &mut HashMap<String, String>, _: &str) {}
+
 fn append_env_with_flag(prepare_env: &mut HashMap<String, String>, key: &str, append: &str) {
   let current = env::var(key).unwrap_or_default();
   let merged = if current.is_empty() {

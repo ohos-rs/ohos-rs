@@ -1,6 +1,7 @@
 use crate::build::get_hos_sdk;
 use crate::util::{
-  append_hms_link_flags, apply_hms_include_env, resolve_hms_paths, resolve_toolchain_paths, Arch,
+  append_hms_link_flags, apply_hms_include_env, apply_windows_ohos_cmake_env,
+  resolve_hms_paths, resolve_toolchain_paths, Arch,
 };
 use std::collections::HashMap;
 use std::env;
@@ -124,6 +125,7 @@ pub fn run(
   ]);
 
   apply_hms_include_env(&mut prepare_env, &hms_paths, arch.rust_target());
+  apply_windows_ohos_cmake_env(&mut prepare_env, arch.rust_target());
 
   let mut child = Command::new("cargo")
     .args(args)

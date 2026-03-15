@@ -1,3 +1,5 @@
+import { ARK_HOST_BUNDLE_DIR } from "./ark_host_config";
+
 if (!(globalThis as ESObject).console) {
   (globalThis as ESObject).console = {
     log: (msg: ESObject) => print(String(msg)),
@@ -24,8 +26,8 @@ function tryInstallNativeTimers() {
 
     etsVm.createRuntime({
       "log-level": "debug",
-      "panda-files": "/ark-host/hello.abc",
-      "boot-panda-files": "/ark-host/etsstdlib.abc:/ark-host/hello.abc",
+      "panda-files": `${ARK_HOST_BUNDLE_DIR}/hello.abc`,
+      "boot-panda-files": `${ARK_HOST_BUNDLE_DIR}/etsstdlib.abc:${ARK_HOST_BUNDLE_DIR}/hello.abc`,
     });
   } catch (_err) {
     // Fall back to the JS timer shim below.

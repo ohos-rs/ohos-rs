@@ -1,12 +1,46 @@
-name: Unit Tests
+name: ArkVM Tests
 
 on:
   pull_request:
+    branches:
+      - ohos
   push:
+    branches:
+      - ohos
   workflow_dispatch:
 
+concurrency:
+  group: arkvm-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  unit-tests:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+          - name: macOS
+            os: macos-latest
+          - name: Windows
+            os: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build workspace
+        run: cargo build --workspace --locked
+
+  unit-tests-linux:
+    name: Linux Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

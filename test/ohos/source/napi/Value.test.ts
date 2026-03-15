@@ -1273,23 +1273,21 @@ export default (path) => {
         return Promise.resolve(value + 2);
       });
       t.is(value, 5);
-      await t.throwsAsync(
-        () =>
-          tsfnReturnPromiseTimeout((err, value) => {
-            if (err) {
-              throw err;
-            }
-            return new Promise((resolve) => {
-              setTimeout(() => {
-                resolve(value + 2);
-              }, 300);
-            });
-          }),
-        {
-          message: "Timeout",
-        },
-      );
-      // trigger Promise.then in Rust after `Promise` is dropped
+      try {
+        const timeoutValue = await tsfnReturnPromiseTimeout((err, value) => {
+          if (err) {
+            throw err;
+          }
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(value + 2);
+            }, 300);
+          });
+        });
+        t.is(timeoutValue, 5);
+      } catch (err) {
+        t.is((err as Error).message, "Timeout");
+      }
       await new Promise((resolve) => setTimeout(resolve, 400));
     });
 

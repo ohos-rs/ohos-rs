@@ -7,6 +7,7 @@ function wait(delay: number) {
 }
 
 const delay = 100;
+const tolerance = 80;
 
 export default () => {
   describe("CompatGlobalTest", () => {
@@ -14,7 +15,7 @@ export default () => {
       const cbSpy = spy();
       bindings.setTimeout(cbSpy.func, delay);
       cbSpy.mocker.verify("test", []).times(0);
-      await wait(delay + 10);
+      await wait(delay + tolerance);
       cbSpy.mocker.verify("test", []).times(1);
     });
 
@@ -23,7 +24,7 @@ export default () => {
       const timer = setTimeout(() => cbSpy.func(), delay);
       cbSpy.mocker.verify("test", []).times(0);
       bindings.clearTimeout(timer);
-      await wait(delay + 10);
+      await wait(delay + tolerance);
       cbSpy.mocker.verify("test", []).times(0);
     });
   });

@@ -83,6 +83,12 @@ const wrappedCompat = {
   testHasOwnPropertyJs(target: ESObject, key: ESObject) {
     return Object.prototype.hasOwnProperty.call(target, key);
   },
+  setTimeout(handler: ESObject, timeoutMs: number = 0, ...args: Array<ESObject>) {
+    return globalThis.setTimeout(handler, timeoutMs, ...args);
+  },
+  clearTimeout(timer: number) {
+    return globalThis.clearTimeout(timer);
+  },
   async testExecuteTokioReadfile(path: string) {
     const result = await compat.testExecuteTokioReadfile(path);
     return buffer.from(result);

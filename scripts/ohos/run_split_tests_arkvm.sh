@@ -118,6 +118,9 @@ prepare_workspace() {
   mkdir -p "${WORKSPACE_DIR}" "${WORK_ROOT}/logs"
   cp -R "${REPO_ROOT}/test" "${WORKSPACE_DIR}/"
   [[ -d "${REPO_ROOT}/third_party" ]] && cp -R "${REPO_ROOT}/third_party" "${WORKSPACE_DIR}/"
+  cat > "${TEST_ROOT}/runtime/ark_host_config.ts" <<EOF
+export const ARK_HOST_BUNDLE_DIR = "${ARK_HOST_CONTAINER_MOUNT}";
+EOF
   rm -rf "${TEST_ROOT}/suites" "${TEST_ROOT}/suites.list"
 }
 

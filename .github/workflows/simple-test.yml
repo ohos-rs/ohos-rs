@@ -14,34 +14,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build (${{ matrix.name }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux
-            os: ubuntu-latest
-          - name: macOS
-            os: macos-latest
-          - name: Windows
-            os: windows-latest
+  build-linux:
+    name: Build Examples (Linux)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-ohos-examples
+        with:
+          ohrs-bin: ./target/debug/ohrs
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+  build-macos:
+    name: Build Examples (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-ohos-examples
+        with:
+          ohrs-bin: ./target/debug/ohrs
 
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build workspace
-        run: cargo build --workspace --locked
+  build-windows:
+    name: Build Examples (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-ohos-examples
+        with:
+          ohrs-bin: ./target/debug/ohrs.exe
 
   unit-tests-linux:
     name: Linux Unit Tests
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 

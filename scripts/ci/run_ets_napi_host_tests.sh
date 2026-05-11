@@ -26,5 +26,10 @@ if [[ ! -d "${ARK_HOST_TOOLS_DIR}" ]]; then
   exit 0
 fi
 
+export ARK_HOST_TOOLS_DIR
+
+echo "==> Build ArkVM host test libraries"
+"${REPO_ROOT}/scripts/arkvm/build_host_libs.sh"
+
 echo "==> Run ArkTS + N-API tests"
-"${REPO_ROOT}/scripts/ohos/run_split_tests_arkvm.sh"
+"${REPO_ROOT}/scripts/arkvm/run_tests.sh"

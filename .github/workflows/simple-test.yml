@@ -73,8 +73,10 @@ jobs:
           test -f "${ARK_HOST_TOOLS_DIR}/libace_napi.so"
           test -f "${ARK_HOST_TOOLS_DIR}/libets_interop_js_napi.so"
 
+      - name: Build ArkVM host libs
+        run: bash ./scripts/arkvm/build_host_libs.sh
+
       - name: Run ArkTS + N-API Tests
         env:
           ARK_HOST_TOOLS_DIR: ${{ steps.setup-arkvm.outputs.arkvm-path }}
-          ARKVM_USE_DOCKER: "0"
-        run: bash ./scripts/ohos/run_split_tests_arkvm.sh
+        run: bash ./scripts/arkvm/run_tests.sh

@@ -30,9 +30,8 @@ test:
 unit-test:
     bash ./scripts/ci/run_ets_napi_host_tests.sh
 
-unit-test-docker:
-    bash ./scripts/ohos/run_split_tests_arkvm.sh
+unit-test-arkvm:
+    bash ./scripts/arkvm/run_tests.sh
 
 zig-build:
     bash ./scripts/zig-build.sh
-

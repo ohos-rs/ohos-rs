@@ -67,7 +67,7 @@ reqwest = { version = "0.13", default-features = false, features = [
 ] }
 
 [dependencies.snmalloc-rs]
-version  = "0.3"
+version  = "0.7"
 features = ["build_cc", "local_dynamic_tls"]
 optional = true
 

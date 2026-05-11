@@ -102,13 +102,16 @@ impl<'env> BufferSlice<'env> {
     })
   }
 
-  /// ## Safety
-  ///
   /// Mostly the same with `from_data`
   ///
   /// Provided `finalize_callback` will be called when `BufferSlice` got dropped.
-  ///
   /// You can pass in `noop_finalize` if you have nothing to do in finalize phase.
+  ///
+  /// ## Safety
+  ///
+  /// The caller must ensure that:
+  /// - The data pointer is valid for the lifetime of the buffer and points to a memory region of at least `len` bytes
+  /// - The finalize callback properly cleans up the data
   ///
   /// ### Notes
   ///
@@ -302,7 +305,7 @@ impl DerefMut for BufferSlice<'_> {
 
 /// Zero copy u8 vector shared between rust and napi.
 /// It's designed to be used in `async` context, so it contains overhead to ensure the underlying data is not dropped.
-/// For non-async context, use `BufferRef` instead.
+/// For non-async context, use `BufferSlice` instead.
 ///
 /// Auto reference the raw JavaScript value, and release it when dropped.
 /// So it is safe to use it in `async fn`, the `&[u8]` under the hood will not be dropped until the `drop` called.

@@ -23,6 +23,8 @@ export ARK_HOST_TOOLS_DIR=/path/to/x64_linux_static
 - `libace_napi.so`
 - `libets_interop_js_napi.so`
 
+`build_host_libs.sh` 会基于 `ARK_HOST_TOOLS_DIR` 自动导出构建所需的 `ARK_HOST_BUNDLE_DIR` 和 `ARK_ACE_NAPI_LIB`。
+
 ### 2. Host 测试动态库
 
 `run_tests.sh` 只编译 ArkTS/TS/JS 测试源码并执行 suite，不构建 native `.so`。

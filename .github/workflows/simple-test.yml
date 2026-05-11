@@ -74,6 +74,8 @@ jobs:
           test -f "${ARK_HOST_TOOLS_DIR}/libets_interop_js_napi.so"
 
       - name: Build ArkVM host libs
+        env:
+          ARK_HOST_TOOLS_DIR: ${{ steps.setup-arkvm.outputs.arkvm-path }}
         run: bash ./scripts/arkvm/build_host_libs.sh
 
       - name: Run ArkTS + N-API Tests

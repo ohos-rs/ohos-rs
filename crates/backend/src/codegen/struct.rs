@@ -919,6 +919,7 @@ impl NapiStruct {
     let name = &self.name;
     let struct_register_name = &self.register_name;
     let js_name = format!("{}\0", self.js_name);
+    let implement_iterator = class.implement_iterator;
     let mut props = vec![];
 
     if class.ctor {
@@ -973,12 +974,14 @@ impl NapiStruct {
     }
     let js_mod_ident = js_mod_to_token_stream(self.js_mod.as_ref());
     quote! {
-      #[allow(non_snake_case)]
-      #[allow(clippy::all)]
       #[cfg(all(not(test), not(target_family = "wasm")))]
-      #[napi_ohos::ctor::ctor(crate_path=napi_ohos::ctor)]
-      fn #struct_register_name() {
-        napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*]);
+      napi_ohos::ctor::declarative::ctor! {
+        #[allow(non_snake_case)]
+        #[allow(clippy::all)]
+        #[ctor(unsafe)]
+        fn #struct_register_name() {
+          napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*], #implement_iterator);
+        }
       }
 
       #[allow(non_snake_case)]
@@ -986,7 +989,7 @@ impl NapiStruct {
       #[cfg(all(not(test), target_family = "wasm"))]
       #[no_mangle]
       extern "C" fn #struct_register_name() {
-        napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*]);
+        napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*], #implement_iterator);
       }
     }
   }
@@ -1624,15 +1627,17 @@ impl NapiImpl {
         #(#methods)*
 
         #[cfg(all(not(test), not(target_family = "wasm")))]
-        #[napi_ohos::ctor::ctor(crate_path=napi_ohos::ctor)]
-        fn #register_name() {
-          napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*]);
+        napi_ohos::ctor::declarative::ctor! {
+          #[ctor(unsafe)]
+          fn #register_name() {
+            napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props),*], false);
+          }
         }
 
         #[cfg(all(not(test), target_family = "wasm"))]
         #[no_mangle]
         extern "C" fn #register_name() {
-          napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props_wasm),*]);
+          napi_ohos::__private::register_class(std::any::TypeId::of::<#name>(), #js_mod_ident, #js_name, vec![#(#props_wasm),*], false);
         }
       }
     })

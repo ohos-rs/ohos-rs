@@ -37,12 +37,14 @@ impl NapiConst {
       unsafe fn #cb_name(env: napi_ohos::sys::napi_env) -> napi_ohos::Result<napi_ohos::sys::napi_value> {
         <#type_name as napi_ohos::bindgen_prelude::ToNapiValue>::to_napi_value(env, #name_ident)
       }
-      #[allow(non_snake_case)]
-      #[allow(clippy::all)]
       #[cfg(all(not(test), not(target_family = "wasm")))]
-      #[napi_ohos::ctor::ctor(crate_path=::napi_ohos::ctor)]
-      fn #register_name() {
-        napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name_lit, #cb_name);
+      napi_ohos::ctor::declarative::ctor! {
+        #[allow(non_snake_case)]
+        #[allow(clippy::all)]
+        #[ctor(unsafe)]
+        fn #register_name() {
+          napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name_lit, #cb_name);
+        }
       }
 
       #[allow(non_snake_case)]

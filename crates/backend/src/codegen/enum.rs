@@ -283,12 +283,14 @@ impl NapiEnum {
 
         Ok(obj_ptr)
       }
-      #[allow(non_snake_case)]
-      #[allow(clippy::all)]
       #[cfg(all(not(test), not(target_family = "wasm")))]
-      #[napi_ohos::ctor::ctor(crate_path=napi_ohos::ctor)]
-      fn #register_name() {
-        napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name_lit, #callback_name);
+      napi_ohos::ctor::declarative::ctor! {
+        #[allow(non_snake_case)]
+        #[allow(clippy::all)]
+        #[ctor(unsafe)]
+        fn #register_name() {
+          napi_ohos::bindgen_prelude::register_module_export(#js_mod_ident, #js_name_lit, #callback_name);
+        }
       }
       #[allow(non_snake_case)]
       #[allow(clippy::all)]

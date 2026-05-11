@@ -84,11 +84,15 @@ type ModuleRegisterCallback =
   RwLock<Vec<(Option<&'static str>, (&'static str, ExportRegisterCallback))>>;
 
 #[cfg(not(feature = "noop"))]
-type ClassPropertyRegistry = HashMap<
-  TypeId,
-  HashMap<Option<&'static str>, (&'static str, Vec<Property>), FxBuildHasher>,
-  FxBuildHasher,
->;
+type ClassPropertyRegistry =
+  HashMap<TypeId, HashMap<Option<&'static str>, ClassRegistration, FxBuildHasher>, FxBuildHasher>;
+
+#[cfg(not(feature = "noop"))]
+struct ClassRegistration {
+  js_name: &'static str,
+  props: Vec<Property>,
+  implement_iterator: bool,
+}
 
 // Stores class metadata registered by napi macros.
 // Since class properties do not contain any napi_value, ModuleClassProperty is thread-safe.
@@ -232,12 +236,18 @@ pub fn register_class(
   js_mod: Option<&'static str>,
   js_name: &'static str,
   props: Vec<Property>,
+  implement_iterator: bool,
 ) {
   MODULE_CLASS_PROPERTIES.borrow_mut(|inner| {
     let val = inner.entry(rust_type_id).or_default();
-    let val = val.entry(js_mod).or_default();
-    val.0 = js_name;
-    val.1.extend(props);
+    let val = val.entry(js_mod).or_insert_with(|| ClassRegistration {
+      js_name,
+      props: Vec::new(),
+      implement_iterator,
+    });
+    val.js_name = js_name;
+    val.implement_iterator |= implement_iterator;
+    val.props.extend(props);
   });
 }
 
@@ -249,6 +259,7 @@ pub fn register_class(
   js_mod: Option<&'static str>,
   js_name: &'static str,
   props: Vec<Property>,
+  implement_iterator: bool,
 ) {
 }
 
@@ -392,9 +403,11 @@ pub unsafe extern "C" fn napi_register_module_v1(
 
   MODULE_CLASS_PROPERTIES.borrow(|inner| {
     inner.iter().for_each(|(_, js_mods)| {
-      for (js_mod, (js_name, props)) in js_mods {
+      for (js_mod, class_registration) in js_mods {
         let mut exports_js_mod = ptr::null_mut();
         unsafe {
+          let js_name = class_registration.js_name;
+          let props = &class_registration.props;
           if let Some(js_mod_str) = js_mod {
             let mod_name_c_str = CStr::from_bytes_with_nul_unchecked(js_mod_str.as_bytes());
             if exports_objects.contains(*js_mod_str) {
@@ -451,6 +464,10 @@ pub unsafe extern "C" fn napi_register_module_v1(
             "Failed to register class `{}`",
             &js_name,
           );
+
+          if class_registration.implement_iterator {
+            crate::bindgen_runtime::iterator::setup_iterator_class(env, class_ptr);
+          }
 
           let mut ctor_ref = ptr::null_mut();
           sys::napi_create_reference(env, class_ptr, 1, &mut ctor_ref);

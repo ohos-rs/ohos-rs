@@ -129,7 +129,10 @@ pub fn apply_windows_ohos_cmake_env(
     || env::var("CMAKE_GENERATOR").is_ok();
 
   if !has_generator {
-    prepare_env.insert(String::from("TARGET_CMAKE_GENERATOR"), String::from("Ninja"));
+    prepare_env.insert(
+      String::from("TARGET_CMAKE_GENERATOR"),
+      String::from("Ninja"),
+    );
   }
 
   if env::var("CC").is_err() {

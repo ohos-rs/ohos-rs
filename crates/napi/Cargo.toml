@@ -64,7 +64,7 @@ tokio_test_util    = ["tokio/test-util"]
 tokio_time         = ["tokio/time"]
 tokio_tracing      = ["tokio/tracing"]
 dyn-symbols        = ["napi-sys-ohos/dyn-symbols"]
-arkvm-test        = ["napi-sys-ohos/arkvm-test"]
+arkvm-test         = ["napi-sys-ohos/arkvm-test"]
 # Add a runtime Node version detection
 node_version_detect = []
 tracing             = ["dep:tracing"]

@@ -1,8 +1,8 @@
 use crate::{
   build::Context,
   util::{
-    append_hms_link_flags, apply_hms_include_env, apply_windows_ohos_cmake_env,
-    resolve_hms_paths, resolve_toolchain_paths, Arch,
+    append_hms_link_flags, apply_hms_include_env, apply_windows_ohos_cmake_env, resolve_hms_paths,
+    resolve_toolchain_paths, Arch,
   },
   *,
 };

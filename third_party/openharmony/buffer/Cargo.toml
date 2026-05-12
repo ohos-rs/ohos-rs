@@ -17,5 +17,3 @@ napi-derive-ohos = { path = "../../../crates/macro", features = ["type-def"] }
 
 [build-dependencies]
 napi-build-ohos = { path = "../../../crates/build" }
-
-[workspace]

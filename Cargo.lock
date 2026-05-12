@@ -1066,6 +1066,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohos-buffer-host"
+version = "0.1.0"
+dependencies = [
+ "napi-build-ohos",
+ "napi-derive-ohos",
+ "napi-ohos",
+]
+
+[[package]]
 name = "ohos-hilog-binding"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1079,6 +1088,18 @@ name = "ohos-hilogs-sys"
 version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed07615005d0f8d7bcf901f89c8ff4870666a9bdb00382f588af383f40c160b7"
+
+[[package]]
+name = "ohos-worker-host"
+version = "0.1.0"
+dependencies = [
+ "napi-build-ohos",
+ "napi-derive-ohos",
+ "napi-ohos",
+ "serde",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "ohrs"

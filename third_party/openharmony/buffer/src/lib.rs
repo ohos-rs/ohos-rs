@@ -1,8 +1,10 @@
-use napi_ohos::bindgen_prelude::*;
 use napi_derive_ohos::napi;
+use napi_ohos::bindgen_prelude::*;
 
 fn normalize_encoding(encoding: Option<String>) -> String {
-  encoding.unwrap_or_else(|| "utf8".to_owned()).to_ascii_lowercase()
+  encoding
+    .unwrap_or_else(|| "utf8".to_owned())
+    .to_ascii_lowercase()
 }
 
 fn encode_string(input: String, encoding: Option<String>) -> Result<Vec<u8>> {
@@ -17,7 +19,11 @@ fn encode_string(input: String, encoding: Option<String>) -> Result<Vec<u8>> {
 }
 
 #[napi]
-pub fn from_string<'env>(env: &'env Env, input: String, encoding: Option<String>) -> Result<ArrayBuffer<'env>> {
+pub fn from_string<'env>(
+  env: &'env Env,
+  input: String,
+  encoding: Option<String>,
+) -> Result<ArrayBuffer<'env>> {
   ArrayBuffer::from_data(env, encode_string(input, encoding)?)
 }
 

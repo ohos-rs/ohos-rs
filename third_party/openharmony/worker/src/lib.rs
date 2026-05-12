@@ -26,7 +26,10 @@ fn worker_error(message: impl Into<String>) -> Error {
 #[napi]
 pub fn create_thread_worker(script_url: String, name: Option<String>) -> u32 {
   let id = NEXT_WORKER_ID.fetch_add(1, Ordering::Relaxed);
-  workers().lock().unwrap().insert(id, WorkerRecord { script_url, name });
+  workers()
+    .lock()
+    .unwrap()
+    .insert(id, WorkerRecord { script_url, name });
   id
 }
 

@@ -25,6 +25,7 @@ fmt:
     oxk format "**/*.{ts,js,ets,json5}"
 
 test:
+    just third-party-build
     bash ./scripts/test.sh
 
 unit-test:
@@ -35,3 +36,7 @@ unit-test-arkvm:
 
 zig-build:
     bash ./scripts/zig-build.sh
+
+third-party-build:
+    ohrs build -p ohos-buffer-host
+    ohrs build -p ohos-worker-host

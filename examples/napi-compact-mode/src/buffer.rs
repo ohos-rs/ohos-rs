@@ -2,8 +2,9 @@ use std::mem::ManuallyDrop;
 use std::str;
 
 use napi_ohos::{
-  bindgen_prelude::BufferSlice, noop_finalize, CallContext, ContextlessResult, Env, Error,
-  JsNumber, JsObject, JsString, Result, Status,
+  bindgen_prelude::{BufferSlice, Uint8Array},
+  noop_finalize, CallContext, ContextlessResult, Env, Error, JsNumber, JsObject, JsString, Result,
+  Status,
 };
 
 #[js_function(1)]
@@ -88,12 +89,8 @@ pub fn create_empty_borrowed_buffer_with_finalize(
 }
 
 #[contextless_function]
-pub fn create_empty_buffer(env: Env) -> ContextlessResult<BufferSlice<'static>> {
-  let data = vec![];
-
-  let ret = BufferSlice::from_data(&env, data)?;
-
-  Ok(Some(ret))
+pub fn create_empty_buffer(_env: Env) -> ContextlessResult<Uint8Array> {
+  Ok(Some(Uint8Array::new(vec![])))
 }
 
 #[js_function(1)]

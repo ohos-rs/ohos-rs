@@ -30,8 +30,13 @@ pub fn resolve_toolchain_paths(root: &str) -> ToolchainPaths {
   let bin_dir = Path::new(root).join("bin");
   let lib_dir = Path::new(root).join("lib");
 
+  #[cfg(target_os = "windows")]
+  let exe_suffix = ".exe";
+  #[cfg(not(target_os = "windows"))]
+  let exe_suffix = "";
+
   let to_string = |p: std::path::PathBuf| p.to_string_lossy().to_string();
-  let tool = |name: &str| to_string(bin_dir.join(name));
+  let tool = |name: &str| to_string(bin_dir.join(format!("{}{}", name, exe_suffix)));
 
   ToolchainPaths {
     ranlib: tool("llvm-ranlib"),
@@ -109,6 +114,40 @@ pub fn apply_hms_include_env(
     &include_flag,
   );
 }
+
+#[cfg(target_os = "windows")]
+pub fn apply_windows_ohos_cmake_env(
+  prepare_env: &mut HashMap<String, String>,
+  rust_target: &str,
+  toolchain: &ToolchainPaths,
+) {
+  let target_key = format!("CMAKE_GENERATOR_{}", rust_target);
+  let target_key_alt = format!("CMAKE_GENERATOR_{}", rust_target.replace('-', "_"));
+  let has_generator = env::var(&target_key).is_ok()
+    || env::var(&target_key_alt).is_ok()
+    || env::var("TARGET_CMAKE_GENERATOR").is_ok()
+    || env::var("CMAKE_GENERATOR").is_ok();
+
+  if !has_generator {
+    prepare_env.insert(
+      String::from("TARGET_CMAKE_GENERATOR"),
+      String::from("Ninja"),
+    );
+  }
+
+  if env::var("CC").is_err() {
+    prepare_env.insert(String::from("CC"), toolchain.cc.clone());
+  }
+  if env::var("CXX").is_err() {
+    prepare_env.insert(String::from("CXX"), toolchain.cxx.clone());
+  }
+  if env::var("ASM").is_err() {
+    prepare_env.insert(String::from("ASM"), toolchain.cc.clone());
+  }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn apply_windows_ohos_cmake_env(_: &mut HashMap<String, String>, _: &str, _: &ToolchainPaths) {}
 
 fn append_env_with_flag(prepare_env: &mut HashMap<String, String>, key: &str, append: &str) {
   let current = env::var(key).unwrap_or_default();

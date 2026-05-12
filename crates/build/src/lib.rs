@@ -56,5 +56,7 @@ pub fn setup() {
 
   if target_env == "ohos" {
     ohos::setup();
+  } else if env::var_os("CARGO_FEATURE_ARKVM_TEST").is_some() {
+    ohos::setup_arkvm_test();
   }
 }

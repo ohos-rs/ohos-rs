@@ -1,0 +1,21 @@
+[package]
+name = "ohos-buffer-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "buffer"
+crate-type = ["cdylib"]
+
+[features]
+arkvm-test = ["napi-ohos/arkvm-test", "napi-ohos/dyn-symbols"]
+
+[dependencies]
+napi-ohos = { path = "../../../crates/napi", default-features = false, features = ["serde-json", "tokio_rt", "async", "dyn-symbols"] }
+napi-derive-ohos = { path = "../../../crates/macro", features = ["type-def"] }
+
+[build-dependencies]
+napi-build-ohos = { path = "../../../crates/build" }
+
+[workspace]

@@ -69,7 +69,7 @@ mod r#enum;
 mod env;
 mod error;
 mod external;
-#[cfg(not(any(target_family = "wasm", target_env = "ohos")))]
+#[cfg(not(any(target_family = "wasm", target_env = "ohos", feature = "arkvm-test")))]
 mod fetch;
 mod fn_return_if_invalid;
 mod fn_strict;

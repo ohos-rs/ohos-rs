@@ -533,7 +533,7 @@ impl<
   }
 
   /// Call the ThreadsafeFunction with priority, insert it at the end of queue.
-  #[cfg(target_env = "ohos")]
+  #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
   pub fn call_with_priority(
     &self,
     value: Result<T, ErrorStatus>,
@@ -661,7 +661,7 @@ impl<
   }
 
   /// Call the ThreadsafeFunction with priority, insert it at the end of queue.
-  #[cfg(target_env = "ohos")]
+  #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
   pub fn call_with_priority(&self, value: T, priority: ThreadsafeFunctionPriority) -> Status {
     self.handle.with_read_aborted(|aborted| {
       if aborted {

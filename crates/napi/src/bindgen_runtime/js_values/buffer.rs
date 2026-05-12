@@ -51,34 +51,45 @@ impl<'env> BufferSlice<'env> {
     }
     let len = data.len();
     let cap = data.capacity();
-    let finalize_hint = Box::into_raw(Box::new((len, cap)));
-    let mut status = unsafe {
-      sys::napi_create_external_buffer(
-        env.0,
-        len,
-        inner_ptr.cast(),
-        Some(drop_buffer_slice),
-        finalize_hint.cast(),
-        &mut buf,
-      )
-    };
-    if status == sys::Status::napi_no_external_buffers_allowed {
-      unsafe {
-        let _ = Box::from_raw(finalize_hint);
-      }
-      status = unsafe {
-        sys::napi_create_buffer_copy(
+    if len == 0 {
+      let mut underlying_data = ptr::null_mut();
+      let empty_ptr = NonNull::<u8>::dangling().as_ptr();
+      check_status!(
+        unsafe {
+          sys::napi_create_buffer_copy(env.0, 0, empty_ptr.cast(), &mut underlying_data, &mut buf)
+        },
+        "Failed to create buffer slice from data"
+      )?;
+    } else {
+      let finalize_hint = Box::into_raw(Box::new((len, cap)));
+      let mut status = unsafe {
+        sys::napi_create_external_buffer(
           env.0,
           len,
-          data.as_mut_ptr().cast(),
-          ptr::null_mut(),
+          inner_ptr.cast(),
+          Some(drop_buffer_slice),
+          finalize_hint.cast(),
           &mut buf,
         )
       };
-    } else {
-      mem::forget(data);
+      if status == sys::Status::napi_no_external_buffers_allowed {
+        unsafe {
+          let _ = Box::from_raw(finalize_hint);
+        }
+        status = unsafe {
+          sys::napi_create_buffer_copy(
+            env.0,
+            len,
+            data.as_mut_ptr().cast(),
+            ptr::null_mut(),
+            &mut buf,
+          )
+        };
+      } else {
+        mem::forget(data);
+      }
+      check_status!(status, "Failed to create buffer slice from data")?;
     }
-    check_status!(status, "Failed to create buffer slice from data")?;
 
     Ok(Self {
       inner: if len == 0 {
@@ -513,10 +524,12 @@ impl ToNapiValue for Buffer {
     let mut ret = ptr::null_mut();
     check_status!(
       if len == 0 {
-        // Rust uses 0x1 as the data pointer for empty buffers,
-        // but NAPI/V8 only allows multiple buffers to have
-        // the same data pointer if it's 0x0.
-        unsafe { sys::napi_create_buffer(env, len, ptr::null_mut(), &mut ret) }
+        // Some ArkVM hosts reject napi_create_buffer(0, ...); use the copy path with a dummy source pointer.
+        let mut underlying_data = ptr::null_mut();
+        let empty_ptr = NonNull::<u8>::dangling().as_ptr();
+        unsafe {
+          sys::napi_create_buffer_copy(env, len, empty_ptr.cast(), &mut underlying_data, &mut ret)
+        }
       } else {
         let value_ptr = val.inner.as_ptr();
         let val_box_ptr = Box::into_raw(Box::new(val));

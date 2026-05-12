@@ -1,6 +1,6 @@
 use napi_ohos::{bindgen_prelude::*, JsString, JsStringUtf8};
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 use napi_ohos::{JsStringLatin1, JsStringUtf16};
 
 #[napi(object)]
@@ -57,21 +57,21 @@ pub fn test_escaped_quotes_in_comments(input: String) -> String {
   format!("Processed: {}", input)
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_zero_copy_utf16_string<'env>(env: &'env Env) -> Result<JsStringUtf16<'env>> {
   let data = vec![0x0061, 0x0062, 0x0063];
   JsStringUtf16::from_data(env, data)
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_zero_copy_latin1_string<'env>(env: &'env Env) -> Result<JsStringLatin1<'env>> {
   let data = vec![0x48, 0x65, 0x6C, 0x6C, 0x6F]; // "Hello"
   JsStringLatin1::from_data(env, data)
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_external_utf16_string<'env>(env: &'env Env) -> Result<JsStringUtf16<'env>> {
   // Create UTF-16 data for "External UTF16"
@@ -87,7 +87,7 @@ pub fn create_external_utf16_string<'env>(env: &'env Env) -> Result<JsStringUtf1
   }
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_external_latin1_string<'env>(env: &'env Env) -> Result<JsStringLatin1<'env>> {
   // Create Latin1 data for "External Latin1"
@@ -110,7 +110,7 @@ pub fn create_external_latin1_empty<'env>(env: &'env Env) -> Result<JsString<'en
   env.create_string("")
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_external_latin1_short<'env>(env: &'env Env) -> Result<JsStringLatin1<'env>> {
   // Test with short string (likely to be copied by V8)
@@ -126,7 +126,7 @@ pub fn create_external_latin1_short<'env>(env: &'env Env) -> Result<JsStringLati
   }
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_external_latin1_long<'env>(env: &'env Env) -> Result<JsStringLatin1<'env>> {
   // Test with long string (more likely to remain external)
@@ -142,7 +142,7 @@ pub fn create_external_latin1_long<'env>(env: &'env Env) -> Result<JsStringLatin
   }
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_external_latin1_with_latin1_chars<'env>(
   env: &'env Env,
@@ -166,7 +166,7 @@ pub fn create_external_latin1_with_latin1_chars<'env>(
   }
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_external_latin1_custom_finalize<'env>(
   env: &'env Env,
@@ -188,7 +188,7 @@ pub fn create_external_latin1_custom_finalize<'env>(
   }
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn test_latin1_methods(env: &Env, input: String) -> Result<Latin1MethodsResult> {
   let data = input.as_bytes().to_vec();
@@ -206,14 +206,14 @@ pub fn test_latin1_methods(env: &Env, input: String) -> Result<Latin1MethodsResu
   })
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_static_latin1_string<'env>(env: &'env Env) -> Result<JsStringLatin1<'env>> {
   // Test from_static with a static Latin-1 string
   JsStringLatin1::from_static(env, "Static Latin1 string")
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 #[napi]
 pub fn create_static_utf16_string<'env>(env: &'env Env) -> Result<JsStringUtf16<'env>> {
   // Test from_static with a static UTF-16 buffer

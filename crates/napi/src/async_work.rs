@@ -70,7 +70,7 @@ impl<T> AsyncWorkPromise<T> {
   }
 }
 
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 pub fn run<'task, T: ScopedTask<'task>>(
   env: sys::napi_env,
   task: T,
@@ -122,7 +122,7 @@ pub fn run<'task, T: ScopedTask<'task>>(
   })
 }
 
-#[cfg(target_env = "ohos")]
+#[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
 pub fn run<'task, T: ScopedTask<'task>>(
   env: sys::napi_env,
   task: T,
@@ -214,7 +214,7 @@ fn complete_impl<'task, T: ScopedTask<'task>>(
   let mut work = unsafe { Box::from_raw(data as *mut AsyncWork<T>) };
   let napi_async_work = mem::replace(&mut work.napi_async_work, ptr::null_mut());
   let deferred = mem::replace(&mut work.deferred, ptr::null_mut());
-  if status == sys::Status::napi_cancelled {
+  if status == sys::Status::napi_cancelled || work.status.get() == 2 {
     const ABORT_ERROR_NAME: &str = "AbortError";
     let wrapped_env = Env::from_raw(env);
     let mut error =

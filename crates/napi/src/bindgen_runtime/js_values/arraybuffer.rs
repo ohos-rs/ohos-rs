@@ -85,6 +85,50 @@ impl From<TypedArrayType> for sys::napi_typedarray_type {
   }
 }
 
+fn typed_array_element_size(typed_array_type: TypedArrayType) -> usize {
+  match typed_array_type {
+    TypedArrayType::Int8 | TypedArrayType::Uint8 | TypedArrayType::Uint8Clamped => 1,
+    TypedArrayType::Int16 | TypedArrayType::Uint16 => 2,
+    TypedArrayType::Int32 | TypedArrayType::Uint32 | TypedArrayType::Float32 => 4,
+    TypedArrayType::Float64 => 8,
+    #[cfg(feature = "napi6")]
+    TypedArrayType::BigInt64 | TypedArrayType::BigUint64 => 8,
+    TypedArrayType::Unknown => 1,
+  }
+}
+
+fn normalize_typed_array_lengths(
+  env: sys::napi_env,
+  arraybuffer: sys::napi_value,
+  byte_offset: usize,
+  reported_length: usize,
+  typed_array_type: TypedArrayType,
+) -> Result<(usize, usize)> {
+  let mut arraybuffer_length = 0;
+  check_status!(unsafe {
+    sys::napi_get_arraybuffer_info(env, arraybuffer, ptr::null_mut(), &mut arraybuffer_length)
+  })?;
+
+  let available_byte_length = arraybuffer_length.saturating_sub(byte_offset);
+  let element_size = typed_array_element_size(typed_array_type);
+  if reported_length == 0 || element_size == 1 {
+    let byte_length = reported_length.min(available_byte_length);
+    return Ok((byte_length, byte_length));
+  }
+
+  let reported_byte_length = reported_length.saturating_mul(element_size);
+  if reported_byte_length <= available_byte_length {
+    return Ok((reported_length, reported_byte_length));
+  }
+
+  if reported_length <= available_byte_length && reported_length % element_size == 0 {
+    return Ok((reported_length / element_size, reported_length));
+  }
+
+  let element_length = available_byte_length / element_size;
+  Ok((element_length, element_length * element_size))
+}
+
 #[cfg(target_family = "wasm")]
 extern "C" {
   fn emnapi_sync_memory(
@@ -170,34 +214,41 @@ impl<'env> ArrayBuffer<'env> {
     }
     let len = data.len();
     let cap = data.capacity();
-    let finalize_hint = Box::into_raw(Box::new((len, cap)));
-    let mut status = unsafe {
-      sys::napi_create_external_arraybuffer(
-        env.0,
-        inner_ptr.cast(),
-        data.len(),
-        Some(finalize_slice::<u8>),
-        finalize_hint.cast(),
-        &mut buf,
-      )
-    };
-    if status == napi_sys_ohos::Status::napi_no_external_buffers_allowed {
-      unsafe {
-        let _ = Box::from_raw(finalize_hint);
-      }
+    if len == 0 {
       let mut underlying_data = ptr::null_mut();
-      status =
-        unsafe { sys::napi_create_arraybuffer(env.0, data.len(), &mut underlying_data, &mut buf) };
+      let status =
+        unsafe { sys::napi_create_arraybuffer(env.0, 0, &mut underlying_data, &mut buf) };
       check_status!(status, "Failed to create arraybuffer")?;
-      if len > 0 {
+      inner_ptr = underlying_data.cast();
+    } else {
+      let finalize_hint = Box::into_raw(Box::new((len, cap)));
+      let mut status = unsafe {
+        sys::napi_create_external_arraybuffer(
+          env.0,
+          inner_ptr.cast(),
+          data.len(),
+          Some(finalize_slice::<u8>),
+          finalize_hint.cast(),
+          &mut buf,
+        )
+      };
+      if status == napi_sys_ohos::Status::napi_no_external_buffers_allowed {
+        unsafe {
+          let _ = Box::from_raw(finalize_hint);
+        }
+        let mut underlying_data = ptr::null_mut();
+        status = unsafe {
+          sys::napi_create_arraybuffer(env.0, data.len(), &mut underlying_data, &mut buf)
+        };
+        check_status!(status, "Failed to create arraybuffer")?;
         let underlying_slice: &mut [u8] =
           unsafe { std::slice::from_raw_parts_mut(underlying_data.cast(), len) };
         underlying_slice.copy_from_slice(data.as_slice());
+        inner_ptr = underlying_data.cast();
+      } else {
+        check_status!(status, "Failed to create arraybuffer")?;
+        mem::forget(data);
       }
-      inner_ptr = underlying_data.cast();
-    } else {
-      check_status!(status, "Failed to create arraybuffer")?;
-      mem::forget(data);
     }
     Ok(Self {
       value: Value {
@@ -427,20 +478,23 @@ impl FromNapiValue for TypedArray<'_> {
       },
       "Failed to get typedarray info"
     )?;
+    let typed_array_type = TypedArrayType::from(typed_array_type);
+    let (_, byte_length) =
+      normalize_typed_array_lengths(env, arraybuffer, byte_offset, length, typed_array_type)?;
     Ok(Self {
       value: Value {
         env,
         value: napi_val,
         value_type: ValueType::Object,
       },
-      typed_array_type: typed_array_type.into(),
+      typed_array_type,
       byte_offset,
       arraybuffer: ArrayBuffer {
         value,
-        data: if data.is_null() {
+        data: if data.is_null() || byte_length == 0 {
           &[]
         } else {
-          unsafe { std::slice::from_raw_parts(data as *const u8, length) }
+          unsafe { std::slice::from_raw_parts(data as *const u8, byte_length) }
         },
       },
     })
@@ -726,10 +780,12 @@ macro_rules! impl_typed_array {
             ),
           ));
         }
+        let (element_length, _) =
+          normalize_typed_array_lengths(env, array_buffer, byte_offset, length, $typed_array_type)?;
         Ok($name {
           data: data.cast(),
-          length,
-          capacity: length,
+          length: element_length,
+          capacity: element_length,
           byte_offset,
           raw: Some((ref_, env)),
           finalizer_notify: ptr::null_mut::<fn(*mut $rust_type, usize)>(),
@@ -758,12 +814,16 @@ macro_rules! impl_typed_array {
         let length = val_length * ratio;
         let val_data = val.data;
         if length == 0 {
-          // Rust uses 0x1 as the data pointer for empty buffers,
-          // but NAPI/V8 only allows multiple buffers to have
-          // the same data pointer if it's 0x0.
+          // Keep a dedicated output pointer for runtimes that reject a null data-out argument.
+          let mut underlying_data = ptr::null_mut();
           check_status!(
             unsafe {
-              sys::napi_create_arraybuffer(env, length, ptr::null_mut(), &mut arraybuffer_value)
+              sys::napi_create_arraybuffer(
+                env,
+                length,
+                &mut underlying_data,
+                &mut arraybuffer_value,
+              )
             },
             "Create external arraybuffer failed"
           )?;
@@ -833,12 +893,16 @@ macro_rules! impl_typed_array {
         let val_data = val.data;
         let mut copied_val = None;
         if length == 0 {
-          // Rust uses 0x1 as the data pointer for empty buffers,
-          // but NAPI/V8 only allows multiple buffers to have
-          // the same data pointer if it's 0x0.
+          // Keep a dedicated output pointer for runtimes that reject a null data-out argument.
+          let mut underlying_data = ptr::null_mut();
           check_status!(
             unsafe {
-              sys::napi_create_arraybuffer(env, length, ptr::null_mut(), &mut arraybuffer_value)
+              sys::napi_create_arraybuffer(
+                env,
+                length,
+                &mut underlying_data,
+                &mut arraybuffer_value,
+              )
             },
             "Create external arraybuffer failed"
           )?;
@@ -1297,13 +1361,15 @@ macro_rules! impl_from_slice {
         // In order to guarantee that `slice::from_raw_parts` is sound, the pointer must be non-null, so
         // let's make sure it always is, even in the case of `napi_get_typedarray_info` returning a null
         // ptr.
+        let (element_length, _) =
+          normalize_typed_array_lengths(env, array_buffer, byte_offset, length, $typed_array_type)?;
         Ok(Self {
-          inner: if length == 0 {
+          inner: if element_length == 0 {
             ptr::NonNull::dangling()
           } else {
             ptr::NonNull::new_unchecked(data.cast())
           },
-          length,
+          length: element_length,
           raw_value: napi_val,
           env,
           _marker: PhantomData,
@@ -1379,10 +1445,12 @@ macro_rules! impl_from_slice {
             format!("Expected $name, got {}", typed_array_type),
           ));
         }
-        Ok(if length == 0 {
+        let (element_length, _) =
+          normalize_typed_array_lengths(env, array_buffer, byte_offset, length, $typed_array_type)?;
+        Ok(if element_length == 0 {
           &mut []
         } else {
-          unsafe { core::slice::from_raw_parts_mut(data as *mut $rust_type, length) }
+          unsafe { core::slice::from_raw_parts_mut(data as *mut $rust_type, element_length) }
         })
       }
     }
@@ -1414,10 +1482,12 @@ macro_rules! impl_from_slice {
             format!("Expected $name, got {}", typed_array_type),
           ));
         }
-        Ok(if length == 0 {
+        let (element_length, _) =
+          normalize_typed_array_lengths(env, array_buffer, byte_offset, length, $typed_array_type)?;
+        Ok(if element_length == 0 {
           &[]
         } else {
-          unsafe { core::slice::from_raw_parts_mut(data as *mut $rust_type, length) }
+          unsafe { core::slice::from_raw_parts(data as *const $rust_type, element_length) }
         })
       }
     }
@@ -1605,13 +1675,20 @@ impl FromNapiValue for Uint8ClampedSlice<'_> {
         format!("Expected $name, got {typed_array_type}"),
       ));
     }
+    let (element_length, _) = normalize_typed_array_lengths(
+      env,
+      array_buffer,
+      byte_offset,
+      length,
+      TypedArrayType::Uint8Clamped,
+    )?;
     Ok(Self {
-      inner: if length == 0 {
+      inner: if element_length == 0 {
         NonNull::dangling()
       } else {
         unsafe { NonNull::new_unchecked(data.cast()) }
       },
-      length,
+      length: element_length,
       raw_value: napi_val,
       env,
       _marker: PhantomData,

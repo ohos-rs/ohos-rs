@@ -1,0 +1,45 @@
+name: Build OHOS examples
+
+description: Setup OHOS SDK, build local ohrs, then build hello/napi/napi-compact examples
+
+inputs:
+  ohrs-bin:
+    description: Path to the built ohrs executable from repository root
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup OpenHarmony SDK
+      uses: openharmony-rs/setup-ohos-sdk@v0.2
+      with:
+        version: '5.0.0'
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        target: aarch64-unknown-linux-ohos,armv7-unknown-linux-ohos,x86_64-unknown-linux-ohos
+
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+
+    - name: Build local ohrs
+      shell: bash
+      run: cargo build -p ohrs
+
+    - name: Verify local ohrs
+      shell: bash
+      run: ${{ inputs.ohrs-bin }} --version
+
+    - name: Build hello example
+      shell: bash
+      run: ${{ inputs.ohrs-bin }} build -p hello
+
+    - name: Build napi example
+      shell: bash
+      run: ${{ inputs.ohrs-bin }} build -p example
+
+    - name: Build napi-compact example
+      shell: bash
+      run: ${{ inputs.ohrs-bin }} build -p compact

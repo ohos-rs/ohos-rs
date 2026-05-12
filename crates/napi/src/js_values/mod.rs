@@ -47,7 +47,7 @@ mod object_property;
 #[cfg(feature = "serde-json")]
 mod ser;
 mod string;
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 mod symbol;
 mod tagged_object;
 #[cfg(feature = "compat-mode")]
@@ -87,7 +87,7 @@ pub use object_property::*;
 #[cfg(feature = "serde-json")]
 pub use ser::Ser;
 pub use string::*;
-#[cfg(not(target_env = "ohos"))]
+#[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 pub use symbol::*;
 pub(crate) use tagged_object::TaggedObject;
 #[cfg(feature = "compat-mode")]

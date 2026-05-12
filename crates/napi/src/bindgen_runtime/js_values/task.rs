@@ -217,14 +217,14 @@ fn on_abort_impl(
       if abort_controller.status.get() == 1 {
         return Ok(ptr::null_mut());
       }
+      // Mark aborted first so completion can reject even if the platform cancel API is unreliable.
+      abort_controller.status.set(2);
       let raw_async_work = abort_controller.raw_work.get();
-      let status = sys::napi_cancel_async_work(env, raw_async_work);
-      // async work is already started, so we can't cancel it
-      if status != sys::Status::napi_ok {
-        abort_controller.status.set(0);
-      } else {
-        // abort function must be called from JavaScript main thread, so Relaxed Ordering is ok.
-        abort_controller.status.set(2);
+      if !raw_async_work.is_null() {
+        #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
+        {
+          let _ = sys::napi_cancel_async_work(env, raw_async_work);
+        }
       }
     }
     let mut undefined = ptr::null_mut();
@@ -239,18 +239,18 @@ fn on_abort_impl(
 impl<T: for<'task> ScopedTask<'task>> ToNapiValue for AsyncTask<T> {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> crate::Result<sys::napi_value> {
     if let Some(abort_signal) = val.abort_signal {
-      #[cfg(target_env = "ohos")]
+      #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
       let async_promise =
         async_work::run(env, val.inner, Some(abort_signal.status.clone()), val.qos)?;
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       let async_promise = async_work::run(env, val.inner, Some(abort_signal.status.clone()))?;
       abort_signal.raw_work.set(async_promise.napi_async_work);
       Ok(async_promise.promise_object().inner)
     } else {
-      #[cfg(target_env = "ohos")]
+      #[cfg(any(target_env = "ohos", feature = "arkvm-test"))]
       let async_promise = async_work::run(env, val.inner, None, val.qos)?;
 
-      #[cfg(not(target_env = "ohos"))]
+      #[cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
       let async_promise = async_work::run(env, val.inner, None)?;
       Ok(async_promise.promise_object().inner)
     }

@@ -1,0 +1,6 @@
+{
+    "ignorePatterns": [
+        "target/**",
+        ".tmp_arkvm_runner/**"
+    ]
+}

@@ -6,8 +6,6 @@ use napi_ohos::{
   UnknownRef,
 };
 
-use crate::class::Animal;
-
 #[napi]
 pub fn call_threadsafe_function(
   tsfn: Arc<ThreadsafeFunction<u32, UnknownReturnValue>>,
@@ -120,21 +118,36 @@ pub fn threadsafe_function_fatal_mode_error(
   Ok(())
 }
 
+#[napi(ts_return_type = "Promise<string>")]
+pub fn threadsafe_function_fatal_mode_error_message<'env>(
+  env: &'env Env,
+  cb: ThreadsafeFunction<bool, String, bool, Status, false>,
+) -> Result<PromiseRaw<'env, String>> {
+  let (sender, receiver) = napi_ohos::tokio::sync::oneshot::channel::<String>();
+  thread::spawn(move || {
+    cb.call_with_return_value(true, ThreadsafeFunctionCallMode::Blocking, move |ret, _| {
+      let message = ret.err().map(|err| err.reason.clone()).unwrap_or_default();
+      let _ = sender.send(message);
+      Ok(())
+    });
+  });
+
+  env.spawn_future(async move {
+    receiver.await.map_err(|err| {
+      Error::new(
+        Status::GenericFailure,
+        format!("Receive fatal mode error message failed: {err}"),
+      )
+    })
+  })
+}
+
 #[napi]
-fn threadsafe_function_closure_capture(
-  env: Env,
-  default_value: ClassInstance<Animal>,
-  func: Function<Reference<Animal>, ()>,
-) -> napi_ohos::Result<()> {
-  let str = "test";
-  let default_value_reference: Reference<Animal> =
-    unsafe { Reference::from_napi_value(env.raw(), default_value.value)? };
+fn threadsafe_function_closure_capture(func: Function<String, ()>) -> napi_ohos::Result<()> {
+  let captured = "test".to_owned();
   let tsfn = func
     .build_threadsafe_function::<()>()
-    .build_callback(move |ctx| {
-      println!("Captured in ThreadsafeFunction {}", str); // str is NULL at this point
-      default_value_reference.clone(ctx.env)
-    })?;
+    .build_callback(move |_| Ok(captured.clone()))?;
 
   tsfn.call((), ThreadsafeFunctionCallMode::NonBlocking);
 
@@ -216,16 +229,25 @@ pub async fn tsfn_return_promise(func: ThreadsafeFunction<u32, Promise<u32>>) ->
 pub async fn tsfn_return_promise_timeout(
   func: ThreadsafeFunction<u32, Promise<u32>>,
 ) -> Result<u32> {
-  use tokio::time::{self, Duration};
+  use tokio::{
+    sync::oneshot,
+    time::{self, Duration},
+  };
+
   let promise = func.call_async(Ok(1)).await?;
-  let sleep = time::sleep(Duration::from_nanos(1));
-  tokio::select! {
-    _ = sleep => {
-      Err(Error::new(Status::GenericFailure, "Timeout".to_owned()))
-    }
-    value = promise => {
-      Ok(value? + 2)
-    }
+  let (tx, rx) = oneshot::channel();
+  tokio::spawn(async move {
+    let _ = tx.send(promise.await);
+  });
+
+  match time::timeout(Duration::from_millis(100), rx).await {
+    Ok(Ok(Ok(value))) => Ok(value + 2),
+    Ok(Ok(Err(err))) => Err(err),
+    Ok(Err(_)) => Err(Error::new(
+      Status::GenericFailure,
+      "Promise channel closed".to_owned(),
+    )),
+    Err(_) => Err(Error::new(Status::GenericFailure, "Timeout".to_owned())),
   }
 }
 

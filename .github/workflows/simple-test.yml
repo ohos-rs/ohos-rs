@@ -1,62 +1,84 @@
-# Action name
-name: Simple Test Action
+name: ArkVM Tests
 
-# Here, this action will be enabled on all pushes.
-# Modify this to fit your needs.
 on:
-  push
+  pull_request:
+    branches:
+      - ohos
+  push:
+    branches:
+      - ohos
+  workflow_dispatch:
 
-# Jobs section
+concurrency:
+  group: arkvm-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  simple-test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+  build-linux:
+    name: Build Examples (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-ohos-examples
+        with:
+          ohrs-bin: ./target/debug/ohrs
+
+  build-macos:
+    name: Build Examples (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-ohos-examples
+        with:
+          ohrs-bin: ./target/debug/ohrs
+
+  build-windows:
+    name: Build Examples (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-ohos-examples
+        with:
+          ohrs-bin: ./target/debug/ohrs.exe
+
+  unit-tests-linux:
+    name: Linux Unit Tests
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup OpenHarmony SDK
-        uses: openharmony-rs/setup-ohos-sdk@v0.1
-        id: setup-ohos
-        with:
-          version: '5.0.0'
-
-      - name: Setup Rust environment
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup arkvm
+        id: setup-arkvm
+        uses: harmony-contrib/arkts-vm@v2.0.0
         with:
-          toolchain: stable
-          target: 'aarch64-unknown-linux-ohos,armv7-unknown-linux-ohos,x86_64-unknown-linux-ohos'
+          cache: true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Validate Ark host bundle
+        env:
+          ARK_HOST_TOOLS_DIR: ${{ steps.setup-arkvm.outputs.arkvm-path }}
+        run: |
+          set -euo pipefail
+          echo "Expect host bundle at: ${ARK_HOST_TOOLS_DIR}"
+          test -x "${ARK_HOST_TOOLS_DIR}/ark_js_napi_cli"
+          test -x "${ARK_HOST_TOOLS_DIR}/es2abc"
+          test -f "${ARK_HOST_TOOLS_DIR}/libace_napi.so"
+          test -f "${ARK_HOST_TOOLS_DIR}/libets_interop_js_napi.so"
 
-      - name: Install oxk
-        run: npm install @ohos-rs/oxk -g
+      - name: Build ArkVM host libs
+        env:
+          ARK_HOST_TOOLS_DIR: ${{ steps.setup-arkvm.outputs.arkvm-path }}
+        run: bash ./scripts/arkvm/build_host_libs.sh
 
-      - name: Setup just
-        uses: extractions/setup-just@v3
-
-      - name: Build local ohrs
-        run: cargo build -p ohrs
-
-      - name: Add local ohrs to PATH
-        run: echo "$PWD/target/debug" >> "$GITHUB_PATH"
-
-      - name: Verify local ohrs
-        run: ohrs --version
-
-      - name: Cli test
-        run: cargo test -p ohrs
-
-      - name: Lint
-        run: just check
-
-      - name: Run examples
-        run: just test
+      - name: Run ArkTS + N-API Tests
+        env:
+          ARK_HOST_TOOLS_DIR: ${{ steps.setup-arkvm.outputs.arkvm-path }}
+        run: bash ./scripts/arkvm/run_tests.sh

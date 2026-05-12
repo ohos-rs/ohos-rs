@@ -1,4 +1,4 @@
-#![cfg(not(target_env = "ohos"))]
+#![cfg(not(any(target_env = "ohos", feature = "arkvm-test")))]
 
 use std::ptr;
 

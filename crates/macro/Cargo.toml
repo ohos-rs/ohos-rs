@@ -12,7 +12,7 @@ name = "napi-derive-ohos"
 readme = "README.md"
 repository = "https://github.com/ohos-rs/ohos-rs"
 rust-version.workspace = true
-version = "1.1.6"
+version = "1.2.0"
 
 [package.metadata.workspaces]
 independent = true
@@ -29,7 +29,7 @@ type-def    = ["napi-derive-backend-ohos/type-def", "ctor"]
 [dependencies]
 convert_case             = "0.11"
 ctor                     = { version = "1.0.0", default-features = false, optional = true }
-napi-derive-backend-ohos = { version = "1.1.6", path = "../backend" }
+napi-derive-backend-ohos = { version = "1.2.0", path = "../backend" }
 proc-macro2              = "1"
 quote                    = "1"
 syn                      = { version = "2", features = ["fold", "full", "extra-traits"] }

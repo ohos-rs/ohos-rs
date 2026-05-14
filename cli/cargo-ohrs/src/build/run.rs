@@ -146,7 +146,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   ]);
 
   apply_hms_include_env(&mut prepare_env, &hms_paths, arch.rust_target());
-  apply_windows_ohos_cmake_env(&mut prepare_env, arch.rust_target(), &toolchain);
+  apply_windows_ohos_cmake_env(&mut prepare_env, arch.rust_target(), &ctx.ndk, arch)?;
 
   let mut args: Vec<String> = match arch.to_arch() {
     "loongarch64" => {

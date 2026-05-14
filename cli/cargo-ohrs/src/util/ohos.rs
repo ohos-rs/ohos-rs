@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::env;
-#[cfg(target_os = "windows")]
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -118,25 +117,28 @@ pub fn apply_hms_include_env(
   );
 }
 
-#[cfg(target_os = "windows")]
-pub fn apply_windows_ohos_cmake_env(
+pub fn apply_ohos_cmake_env(
   prepare_env: &mut HashMap<String, String>,
   rust_target: &str,
   ndk: &str,
   arch: &Arch,
 ) -> io::Result<()> {
-  let target_key = format!("CMAKE_GENERATOR_{}", rust_target);
-  let target_key_alt = format!("CMAKE_GENERATOR_{}", rust_target.replace('-', "_"));
-  let has_generator = env::var(&target_key).is_ok()
-    || env::var(&target_key_alt).is_ok()
-    || env::var("TARGET_CMAKE_GENERATOR").is_ok()
-    || env::var("CMAKE_GENERATOR").is_ok();
+  #[cfg(target_os = "windows")]
+  {
+    let target_key = format!("CMAKE_GENERATOR_{}", rust_target);
+    let target_key_alt = format!("CMAKE_GENERATOR_{}", rust_target.replace('-', "_"));
+    let has_generator = env::var(&target_key).is_ok()
+      || env::var(&target_key_alt).is_ok()
+      || env::var("TARGET_CMAKE_GENERATOR").is_ok()
+      || env::var("CMAKE_GENERATOR").is_ok();
 
-  if !has_generator {
-    prepare_env.insert(
-      String::from("TARGET_CMAKE_GENERATOR"),
-      String::from("Ninja"),
-    );
+    if !has_generator {
+      prepare_env.insert(target_key_alt, String::from("Ninja"));
+      prepare_env.insert(
+        String::from("TARGET_CMAKE_GENERATOR"),
+        String::from("Ninja"),
+      );
+    }
   }
 
   let target_toolchain_key = format!("CMAKE_TOOLCHAIN_FILE_{}", rust_target);
@@ -147,29 +149,15 @@ pub fn apply_windows_ohos_cmake_env(
     || env::var("CMAKE_TOOLCHAIN_FILE").is_ok();
 
   if !has_toolchain_file {
-    let toolchain_file = write_windows_ohos_cmake_toolchain(ndk, rust_target, arch)?;
+    let toolchain_file = write_ohos_cmake_toolchain(ndk, rust_target, arch)?;
+    prepare_env.insert(target_toolchain_key_alt, toolchain_file.clone());
     prepare_env.insert(String::from("TARGET_CMAKE_TOOLCHAIN_FILE"), toolchain_file);
   }
 
   Ok(())
 }
 
-#[cfg(not(target_os = "windows"))]
-pub fn apply_windows_ohos_cmake_env(
-  _: &mut HashMap<String, String>,
-  _: &str,
-  _: &str,
-  _: &Arch,
-) -> io::Result<()> {
-  Ok(())
-}
-
-#[cfg(target_os = "windows")]
-fn write_windows_ohos_cmake_toolchain(
-  ndk: &str,
-  rust_target: &str,
-  arch: &Arch,
-) -> io::Result<String> {
+fn write_ohos_cmake_toolchain(ndk: &str, rust_target: &str, arch: &Arch) -> io::Result<String> {
   let sdk_toolchain = Path::new(ndk)
     .join("native")
     .join("build")
@@ -204,7 +192,6 @@ fn write_windows_ohos_cmake_toolchain(
   Ok(wrapper.to_string_lossy().to_string())
 }
 
-#[cfg(target_os = "windows")]
 fn cmake_path(path: &Path) -> String {
   path.to_string_lossy().replace('\\', "/")
 }

@@ -1,7 +1,7 @@
 use crate::util::Arch;
 use anyhow::Error;
 use cargo_metadata::{MetadataCommand, Package};
-use std::{env, str::FromStr};
+use std::{env, path::PathBuf, str::FromStr};
 
 mod run;
 
@@ -128,6 +128,21 @@ fn get_workspace_packages() -> anyhow::Result<Vec<Package>> {
   }
 }
 
+fn get_cargo_target_dir() -> anyhow::Result<PathBuf> {
+  let pwd = env::current_dir()?;
+  let cargo_file = pwd.join("./Cargo.toml");
+  if cargo_file.try_exists().is_err() {
+    return Ok(pwd.join("target"));
+  }
+
+  let metadata = MetadataCommand::new()
+    .no_deps()
+    .manifest_path(&cargo_file)
+    .exec()?;
+
+  Ok(PathBuf::from(metadata.target_directory.as_str()))
+}
+
 pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
   let ohos_ndk = env::var("OHOS_NDK_HOME").map_err(|_| {
     Error::msg(
@@ -186,6 +201,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
 
   //
   let workspace_packages = get_workspace_packages()?;
+  let atomic_target_dir = get_cargo_target_dir()?;
   let is_workspace = workspace_packages.len() > 1;
 
   // If in workspace mode, execute command for each package separately
@@ -254,6 +270,8 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
             args.bisheng,
             normalized_soname,
             Some(resolve_build_target_name(pkg)),
+            args.atomic,
+            atomic_target_dir.clone(),
           )?;
           Ok(())
         })
@@ -293,6 +311,8 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
           args.bisheng,
           normalized_soname,
           build_target_name.clone(),
+          args.atomic,
+          atomic_target_dir.clone(),
         )?;
         Ok(())
       })

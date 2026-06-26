@@ -92,6 +92,13 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
     base_flags.push(format!("-Wl,-soname,{}", soname));
   }
 
+  if ctx.atomic {
+    let release = ctx.init_args.iter().any(|arg| *arg == "--release")
+      || cargo_args.iter().any(|arg| arg == "--release");
+    let atomic_lib = super::atomic::lib_path(&ctx.atomic_target_dir, release, arch)?;
+    base_flags.push(atomic_lib.to_string_lossy().to_string());
+  }
+
   let tmp_path_str = ctx.tmp_ts_file_path.to_str().ok_or(Error::msg(
     "Try to set TYPE_DEF_TMP_PATH before build failed.",
   ))?;

@@ -77,6 +77,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.zigbuild = args.zigbuild;
   ctx.bisheng = args.bisheng;
   ctx.skip_napi_check = args.skip_napi_check;
+  ctx.atomic = args.atomic;
   ctx.soname = if let Some(ref s) = args.soname {
     Some(normalize_soname(s)?)
   } else {
@@ -228,6 +229,7 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
   ctx.build_target_name = Some(resolve_build_target_name(pkg));
   ctx.workspace_packages = packages_to_build.iter().map(|p| (*p).clone()).collect();
   ctx.cargo_build_target_dir = Some(metadata.target_directory.clone());
+  ctx.atomic_target_dir = PathBuf::from(metadata.target_directory.as_str());
 
   ctx.init_args = if ctx.zigbuild {
     vec!["zigbuild"]
@@ -235,11 +237,9 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
     vec!["build"]
   };
 
-  if let Some(cargo_args) = &args.cargo_args {
-    // Release mode and --release arg should be ignored
-    if args.release && !cargo_args.contains(&String::from("--release")) {
-      ctx.init_args.push("--release");
-    }
+  let cargo_args = args.cargo_args.as_deref().unwrap_or_default();
+  if args.release && !cargo_args.contains(&String::from("--release")) {
+    ctx.init_args.push("--release");
   }
 
   // Create target folder

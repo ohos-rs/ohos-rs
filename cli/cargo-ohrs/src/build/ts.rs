@@ -158,7 +158,8 @@ fn process_type_def(
   }
 
   let abort_reg = Regex::new(r"\bAbortSignal\b").unwrap();
-  if abort_reg.is_match(&dts) {
+  let has_abort = abort_reg.is_match(&dts);
+  if has_abort {
     has_import = true;
     header.push_str(super::abort_tmp::ABORT_TS);
 
@@ -168,6 +169,23 @@ fn process_type_def(
       For more detail info: https://github.com/ohos-rs/abort-controller",
       "AbortController".bold().red(),
       "@ohos-rs/abort-controller".bold().red()
+    );
+
+    println!("{}", info);
+  }
+
+  let stream_reg = Regex::new(r"\b(?:ReadableStream|WritableStream|WriteableStream)\b").unwrap();
+  if stream_reg.is_match(&dts) {
+    has_import = true;
+    if !has_abort {
+      header.push_str(super::abort_tmp::ABORT_TS);
+    }
+    header.push_str(super::stream_tmp::STREAM_TS);
+
+    let info = format!(
+      "\nTips: You're currently using {}, which isn't defined by the ArkTS type environment.
+      OHOS-RS will emit Web Stream type declarations into index.d.ts.",
+      "Web Stream".bold().red()
     );
 
     println!("{}", info);

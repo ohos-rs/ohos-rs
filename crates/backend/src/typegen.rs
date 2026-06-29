@@ -340,7 +340,11 @@ static KNOWN_TYPES: LazyLock<HashMap<&'static str, (&'static str, bool, bool)>> 
     ]);
 
     // Stream types
-    map.extend([("ReadableStream", ("ReadableStream<{}>", false, false))]);
+    map.extend([
+      ("ReadableStream", ("ReadableStream<{}>", false, false)),
+      ("WriteableStream", ("WritableStream", false, false)),
+      ("WritableStream", ("WritableStream", false, false)),
+    ]);
 
     // Either types (union types for multiple variants)
     map.extend([

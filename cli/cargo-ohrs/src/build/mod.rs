@@ -11,6 +11,7 @@ mod abort_tmp;
 mod artifact;
 mod prepare;
 mod run;
+mod stream_tmp;
 mod ts;
 
 #[allow(unused_imports)]

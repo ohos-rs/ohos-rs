@@ -16,7 +16,7 @@ pub fn run(
   bisheng: bool,
   soname: Option<String>,
   build_target_name: Option<String>,
-  atomic_enabled: bool,
+  atomic_linkage: Option<atomic::Linkage>,
   atomic_target_dir: PathBuf,
 ) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
@@ -86,10 +86,10 @@ pub fn run(
     base_flags.push(format!("-Wl,-soname,{}", soname));
   }
 
-  if atomic_enabled {
+  if let Some(atomic_linkage) = atomic_linkage {
     let release = args.iter().any(|arg| arg == "--release");
-    let atomic_lib = atomic::lib_path(&atomic_target_dir, release, arch)?;
-    base_flags.push(atomic_lib.to_string_lossy().to_string());
+    let atomic = atomic::resolve(&atomic_target_dir, release, arch, atomic_linkage)?;
+    base_flags.push(format!("-L{}", atomic.search_dir.to_string_lossy()));
   }
 
   let mut rust_flags = base_flags

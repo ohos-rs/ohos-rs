@@ -77,7 +77,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
   ctx.zigbuild = args.zigbuild;
   ctx.bisheng = args.bisheng;
   ctx.skip_napi_check = args.skip_napi_check;
-  ctx.atomic = args.atomic;
+  ctx.atomic = super::atomic::Linkage::from_flags(args.sta_atomic, args.dyn_atomic)?;
   ctx.soname = if let Some(ref s) = args.soname {
     Some(normalize_soname(s)?)
   } else {

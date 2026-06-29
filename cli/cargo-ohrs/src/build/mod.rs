@@ -60,7 +60,7 @@ pub struct Context<'a> {
   pub skip_napi_check: bool,
   pub soname: Option<String>,
   pub build_target_name: Option<String>,
-  pub atomic: bool,
+  pub atomic: Option<atomic::Linkage>,
   pub atomic_target_dir: PathBuf,
 }
 

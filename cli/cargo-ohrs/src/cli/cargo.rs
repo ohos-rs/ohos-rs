@@ -35,8 +35,12 @@ pub fn cli_cargo() -> impl Parser<crate::Options> {
     .argument::<String>("SONAME")
     .optional();
 
-  let atomic = long("atomic")
-    .help("Link the bundled OHOS libatomic built by Zig.")
+  let sta_atomic = long("sta-atomic")
+    .help("Statically link the bundled OHOS libatomic built by Zig.")
+    .flag(true, false);
+
+  let dyn_atomic = long("dyn-atomic")
+    .help("Dynamically link the bundled OHOS libatomic built by Zig.")
     .flag(true, false);
 
   let cargo_parser = construct!(crate::CargoArgs {
@@ -45,7 +49,8 @@ pub fn cli_cargo() -> impl Parser<crate::Options> {
     disable_target,
     package,
     soname,
-    atomic,
+    sta_atomic,
+    dyn_atomic,
     args
   });
   construct!(crate::Options::Cargo(cargo_parser))

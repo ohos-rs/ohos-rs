@@ -92,11 +92,15 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
     base_flags.push(format!("-Wl,-soname,{}", soname));
   }
 
-  if ctx.atomic {
+  let mut atomic_runtime_lib = None;
+  if let Some(atomic_linkage) = ctx.atomic {
     let release = ctx.init_args.iter().any(|arg| *arg == "--release")
       || cargo_args.iter().any(|arg| arg == "--release");
-    let atomic_lib = super::atomic::lib_path(&ctx.atomic_target_dir, release, arch)?;
-    base_flags.push(atomic_lib.to_string_lossy().to_string());
+    let atomic = super::atomic::resolve(&ctx.atomic_target_dir, release, arch, atomic_linkage)?;
+    if atomic_linkage == super::atomic::Linkage::Dynamic {
+      atomic_runtime_lib = Some(atomic.lib);
+    }
+    base_flags.push(format!("-L{}", atomic.search_dir.to_string_lossy()));
   }
 
   let tmp_path_str = ctx.tmp_ts_file_path.to_str().ok_or(Error::msg(
@@ -188,7 +192,7 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   // respect cli extra args
   args.extend(cargo_args.iter().cloned());
 
-  let mut artifact_files: Vec<PathBuf> = Vec::new();
+  let mut artifact_files: Vec<PathBuf> = atomic_runtime_lib.into_iter().collect();
 
   let mut child = Command::new("cargo")
     .args(args)

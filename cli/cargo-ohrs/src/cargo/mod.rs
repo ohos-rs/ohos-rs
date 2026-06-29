@@ -202,6 +202,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
   //
   let workspace_packages = get_workspace_packages()?;
   let atomic_target_dir = get_cargo_target_dir()?;
+  let atomic_linkage = crate::build::atomic::Linkage::from_flags(args.sta_atomic, args.dyn_atomic)?;
   let is_workspace = workspace_packages.len() > 1;
 
   // If in workspace mode, execute command for each package separately
@@ -270,7 +271,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
             args.bisheng,
             normalized_soname,
             Some(resolve_build_target_name(pkg)),
-            args.atomic,
+            atomic_linkage,
             atomic_target_dir.clone(),
           )?;
           Ok(())
@@ -311,7 +312,7 @@ pub fn cargo(args: crate::CargoArgs) -> anyhow::Result<()> {
           args.bisheng,
           normalized_soname,
           build_target_name.clone(),
-          args.atomic,
+          atomic_linkage,
           atomic_target_dir.clone(),
         )?;
         Ok(())

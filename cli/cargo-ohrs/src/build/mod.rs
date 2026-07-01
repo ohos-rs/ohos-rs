@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 
 mod abort_tmp;
 mod artifact;
+pub(crate) mod atomic;
 mod prepare;
 mod run;
 mod stream_tmp;
@@ -60,6 +61,8 @@ pub struct Context<'a> {
   pub skip_napi_check: bool,
   pub soname: Option<String>,
   pub build_target_name: Option<String>,
+  pub atomic: Option<atomic::Linkage>,
+  pub atomic_target_dir: PathBuf,
 }
 
 /// Build logic
@@ -149,7 +152,6 @@ pub fn build(args: crate::BuildArgs) -> anyhow::Result<()> {
         .map(|d| d.to_string())
         .unwrap_or_default(),
     );
-
     let mut hasher = Sha256::new();
     hasher.update(&pkg.manifest_path.as_str());
     let hash_result = hasher.finalize();

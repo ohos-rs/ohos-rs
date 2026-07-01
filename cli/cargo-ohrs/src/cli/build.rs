@@ -74,6 +74,14 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     .argument::<String>("SONAME")
     .optional();
 
+  let sta_atomic = long("sta-atomic")
+    .help("Statically link the bundled OHOS libatomic built by Zig.")
+    .flag(true, false);
+
+  let dyn_atomic = long("dyn-atomic")
+    .help("Dynamically link the bundled OHOS libatomic built by Zig.")
+    .flag(true, false);
+
   let init_parser = construct!(crate::BuildArgs {
     dist,
     arch,
@@ -88,6 +96,8 @@ pub fn cli_build() -> impl Parser<crate::Options> {
     package,
     skip_napi_check,
     soname,
+    sta_atomic,
+    dyn_atomic,
     cargo_args,
   });
   construct!(crate::Options::Build(init_parser))

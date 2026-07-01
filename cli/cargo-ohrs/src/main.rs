@@ -34,6 +34,8 @@ pub(crate) struct BuildArgs {
   package: Option<String>,
   skip_napi_check: bool,
   soname: Option<String>,
+  sta_atomic: bool,
+  dyn_atomic: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +55,8 @@ pub(crate) struct CargoArgs {
   args: Vec<String>,
   package: Option<String>,
   soname: Option<String>,
+  sta_atomic: bool,
+  dyn_atomic: bool,
 }
 
 #[derive(Debug, Clone)]

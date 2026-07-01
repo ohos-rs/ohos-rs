@@ -1,4 +1,4 @@
-use crate::build::get_hos_sdk;
+use crate::build::{atomic, get_hos_sdk};
 use crate::util::{
   append_hms_link_flags, apply_hms_include_env, apply_ohos_cmake_env, resolve_hms_paths,
   resolve_toolchain_paths, Arch,
@@ -6,6 +6,7 @@ use crate::util::{
 use std::collections::HashMap;
 use std::env;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::process::{exit, Command, Stdio};
 
 pub fn run(
@@ -15,6 +16,8 @@ pub fn run(
   bisheng: bool,
   soname: Option<String>,
   build_target_name: Option<String>,
+  atomic_linkage: Option<atomic::Linkage>,
+  atomic_target_dir: PathBuf,
 ) -> anyhow::Result<()> {
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
   let hos_ndk = get_hos_sdk(&ndk).unwrap_or_default();
@@ -81,6 +84,12 @@ pub fn run(
   // Add SONAME linker flag if specified
   if let Some(ref soname) = soname {
     base_flags.push(format!("-Wl,-soname,{}", soname));
+  }
+
+  if let Some(atomic_linkage) = atomic_linkage {
+    let release = args.iter().any(|arg| arg == "--release");
+    let atomic = atomic::resolve(&atomic_target_dir, release, arch, atomic_linkage)?;
+    base_flags.push(format!("-L{}", atomic.search_dir.to_string_lossy()));
   }
 
   let mut rust_flags = base_flags

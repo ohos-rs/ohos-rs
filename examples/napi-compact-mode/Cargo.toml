@@ -13,8 +13,7 @@ crate-type = ["cdylib"]
 default     = ["latest"]
 latest      = ["napi-ohos/napi8"]
 napi3       = ["napi-ohos/napi3"]
-dyn-symbols = ["napi-ohos/dyn-symbols"]
-arkvm-test  = ["dyn-symbols", "napi-ohos/arkvm-test"]
+arkvm-test  = ["napi-ohos/arkvm-test"]
 
 [dependencies]
 futures          = "0.3"

@@ -1,6 +1,12 @@
 use std::env;
 
 fn main() {
+  let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
+
+  if target_env == "ohos" && env::var("CARGO_FEATURE_DYN_SYMBOLS").is_ok() {
+    panic!("Please don't set features with dyn-symbols for OHOS target builds")
+  }
+
   if env::var("CARGO_FEATURE_NAPI9").is_ok() {
     panic!("Please don't set features with napi9")
   }
@@ -18,7 +24,6 @@ fn main() {
   println!("cargo::rustc-check-cfg=cfg(tokio_unstable)");
 
   let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
-  let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap();
   if target_os == "windows" && target_env == "gnu" {
     napi_build_ohos::setup();
   }

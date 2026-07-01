@@ -1,0 +1,18 @@
+{
+  license: "MIT",
+  author: "richerfu",
+  name: "@ohos-rs/streams",
+  description: "WebStreams polyfill for OpenHarmony",
+  main: "index.ets",
+  version: "1.0.0",
+  repository: "https://github.com/harmony-contrib/streams.git",
+  dependencies: {},
+  keywords: [
+    "ohos-rs",
+    "WebStreams",
+    "ReadableStream",
+    "WritableStream",
+    "streams"
+  ],
+  homepage: "https://ohos.rs/ecosystem/polyfill/web-streams"
+}

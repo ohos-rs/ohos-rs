@@ -184,8 +184,10 @@ fn process_type_def(
 
     let info = format!(
       "\nTips: You're currently using {}, which isn't defined by the ArkTS type environment.
+      You could consider using {} as an alternative.
       OHOS-RS will emit Web Stream type declarations into index.d.ts.",
-      "Web Stream".bold().red()
+      "Web Stream".bold().red(),
+      "@ohos-rs/streams".bold().red()
     );
 
     println!("{}", info);

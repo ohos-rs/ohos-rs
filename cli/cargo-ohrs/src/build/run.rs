@@ -10,13 +10,23 @@ use anyhow::Error;
 use cargo_metadata::Message;
 use std::collections::HashMap;
 use std::env;
+use std::ffi::{OsStr, OsString};
+use std::fs;
 use std::io::BufReader;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{exit, Command, Stdio};
 
-use super::artifact::{resolve_artifact_library, resolve_dependence_library};
+use super::artifact::{
+  ohos_runtime_library_paths, ohos_system_library_paths, resolve_artifact_library,
+  resolve_artifact_search_paths, resolve_link_search_paths, resolve_runtime_libraries,
+};
 
 pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Result<()> {
+  let package_id = ctx
+    .package
+    .as_ref()
+    .map(|package| package.id.clone())
+    .ok_or_else(|| Error::msg("No package selected for build"))?;
   let linker_name = format!("CARGO_TARGET_{}_LINKER", &arch.rust_link_target());
 
   let ndk_path = if ctx.bisheng {
@@ -193,6 +203,14 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   args.extend(cargo_args.iter().cloned());
 
   let mut artifact_files: Vec<PathBuf> = atomic_runtime_lib.into_iter().collect();
+  let hos_ndk = (!ctx.hos_ndk.is_empty()).then(|| Path::new(&ctx.hos_ndk));
+  let system_search_paths = ohos_system_library_paths(Path::new(&ctx.ndk), hos_ndk, *arch);
+  let runtime_search_paths = ohos_runtime_library_paths(Path::new(&ctx.ndk), *arch);
+  let mut dependency_search_paths = artifact_files
+    .iter()
+    .filter_map(|artifact| artifact.parent().map(Path::to_path_buf))
+    .collect::<Vec<_>>();
+  let mut cargo_reported_success = None;
 
   let mut child = Command::new("cargo")
     .args(args)
@@ -211,49 +229,15 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
               println!("{:?}", msg);
             }
             // Get final compiled library
-            Message::CompilerArtifact(artifact) => {
-              if let Some(p) = resolve_artifact_library(artifact) {
-                artifact_files.extend(p);
-              }
+            Message::CompilerArtifact(artifact) if !ctx.skip_libs => {
+              dependency_search_paths.extend(resolve_artifact_search_paths(&artifact));
+              artifact_files.extend(resolve_artifact_library(&artifact, &package_id));
             }
-            Message::BuildScriptExecuted(script) => {
-              if let Some(lib) =
-                resolve_dependence_library(script, ctx.ndk.clone(), ctx.hos_ndk.clone())
-              {
-                artifact_files.extend(lib);
-              }
+            Message::BuildScriptExecuted(script) if !ctx.skip_libs => {
+              dependency_search_paths
+                .extend(resolve_link_search_paths(&script, &system_search_paths));
             }
-            Message::BuildFinished(finished) => match finished.success {
-              true => {
-                if ctx.skip_libs {
-                  return Ok(());
-                }
-                let bin_dir = &ctx.dist.join(arch.to_arch());
-                check_and_clean_file_or_dir!(bin_dir);
-                create_dist_dir!(bin_dir);
-
-                artifact_files
-                  .iter()
-                  .filter(|i| {
-                    if ctx.copy_static {
-                      return true;
-                    }
-                    if let Some(ext) = i.extension() {
-                      if ext == "a" {
-                        return false;
-                      }
-                    }
-                    true
-                  })
-                  .for_each(|i| {
-                    if let Some(f) = i.file_name() {
-                      let dist = bin_dir.join(f);
-                      move_file!(i, dist);
-                    }
-                  })
-              }
-              false => exit(-1),
-            },
+            Message::BuildFinished(finished) => cargo_reported_success = Some(finished.success),
             _ => (), // Unknown message
           }
         }
@@ -265,9 +249,88 @@ pub fn build(cargo_args: &[String], ctx: &Context, arch: &Arch) -> anyhow::Resul
   }
 
   let status = child.wait()?;
-  if !status.success() {
+  if !status.success() || cargo_reported_success == Some(false) {
     exit(status.code().unwrap_or(-1))
   }
 
+  if ctx.skip_libs {
+    return Ok(());
+  }
+
+  dependency_search_paths.extend(
+    artifact_files
+      .iter()
+      .filter_map(|artifact| artifact.parent().map(Path::to_path_buf)),
+  );
+  let runtime_libraries = resolve_runtime_libraries(
+    &artifact_files,
+    &dependency_search_paths,
+    &runtime_search_paths,
+    &system_search_paths,
+    Path::new(&toolchain.readobj),
+  )?;
+
+  let bin_dir = &ctx.dist.join(arch.to_arch());
+  check_and_clean_file_or_dir!(bin_dir);
+  create_dist_dir!(bin_dir);
+
+  let mut copied_files = HashMap::new();
+  for artifact in artifact_files
+    .iter()
+    .filter(|artifact| ctx.copy_static || artifact.extension() != Some(OsStr::new("a")))
+  {
+    let file_name = artifact
+      .file_name()
+      .ok_or_else(|| Error::msg(format!("Artifact has no file name: {}", artifact.display())))?;
+    copy_output_file(artifact, file_name, bin_dir, &mut copied_files)?;
+  }
+  for library in runtime_libraries {
+    copy_output_file(
+      &library.source,
+      OsStr::new(&library.soname),
+      bin_dir,
+      &mut copied_files,
+    )?;
+  }
+
+  Ok(())
+}
+
+fn copy_output_file(
+  source: &Path,
+  file_name: &OsStr,
+  bin_dir: &Path,
+  copied_files: &mut HashMap<OsString, PathBuf>,
+) -> anyhow::Result<()> {
+  if !source.is_file() {
+    return Err(Error::msg(format!(
+      "Artifact does not exist: {}",
+      source.display()
+    )));
+  }
+
+  let source_identity = source
+    .canonicalize()
+    .unwrap_or_else(|_| source.to_path_buf());
+  if let Some(existing) = copied_files.get(file_name) {
+    if existing == &source_identity {
+      return Ok(());
+    }
+    return Err(Error::msg(format!(
+      "Multiple artifacts resolve to '{}': {} and {}",
+      file_name.to_string_lossy(),
+      existing.display(),
+      source.display()
+    )));
+  }
+
+  fs::copy(source, bin_dir.join(file_name)).map_err(|error| {
+    Error::msg(format!(
+      "Failed to copy {} to {}: {error}",
+      source.display(),
+      bin_dir.display()
+    ))
+  })?;
+  copied_files.insert(file_name.to_os_string(), source_identity);
   Ok(())
 }

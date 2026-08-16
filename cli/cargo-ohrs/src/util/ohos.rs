@@ -101,10 +101,12 @@ pub fn apply_hms_include_env(
     return;
   };
 
-  let include_flag = format!("-I{}", include);
+  let include_flag = format!("-I\"{}\"", include.replace('\\', "/"));
 
   append_env_with_flag(prepare_env, "TARGET_CFLAGS", &include_flag);
   append_env_with_flag(prepare_env, "TARGET_CXXFLAGS", &include_flag);
+
+  prepare_env.insert(String::from("CC_SHELL_ESCAPED_FLAGS"), String::from("1"));
 
   let bindgen_target = rust_target.replace('-', "_");
   append_env_with_flag(

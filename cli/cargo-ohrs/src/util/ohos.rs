@@ -87,8 +87,8 @@ pub fn resolve_hms_paths(hos_ndk: &str, arch: &Arch) -> HmsPaths {
 
 pub fn append_hms_link_flags(base_flags: &mut Vec<String>, hms_paths: &HmsPaths) {
   if let Some(lib) = hms_paths.lib.as_ref() {
-    base_flags.push(format!("-L{}", lib));
-    base_flags.push(format!("-Wl,-rpath-link,{}", lib));
+    base_flags.push(format!("-L\"{}\"", lib.replace('\\', "/")));
+    base_flags.push(format!("-Wl,-rpath-link,\"{}\"", lib.replace('\\', "/")));
   }
 }
 
@@ -101,10 +101,12 @@ pub fn apply_hms_include_env(
     return;
   };
 
-  let include_flag = format!("-I{}", include);
+  let include_flag = format!("-I\"{}\"", include.replace('\\', "/"));
 
   append_env_with_flag(prepare_env, "TARGET_CFLAGS", &include_flag);
   append_env_with_flag(prepare_env, "TARGET_CXXFLAGS", &include_flag);
+
+  prepare_env.insert(String::from("CC_SHELL_ESCAPED_FLAGS"), String::from("1"));
 
   let bindgen_target = rust_target.replace('-', "_");
   append_env_with_flag(

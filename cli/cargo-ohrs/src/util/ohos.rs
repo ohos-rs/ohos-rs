@@ -87,8 +87,8 @@ pub fn resolve_hms_paths(hos_ndk: &str, arch: &Arch) -> HmsPaths {
 
 pub fn append_hms_link_flags(base_flags: &mut Vec<String>, hms_paths: &HmsPaths) {
   if let Some(lib) = hms_paths.lib.as_ref() {
-    base_flags.push(format!("-L\"{}\"", lib.replace('\\', "/")));
-    base_flags.push(format!("-Wl,-rpath-link,\"{}\"", lib.replace('\\', "/")));
+    base_flags.push(format!("-L{}", lib));
+    base_flags.push(format!("-Wl,-rpath-link,{}", lib));
   }
 }
 

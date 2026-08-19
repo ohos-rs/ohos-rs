@@ -1062,7 +1062,41 @@ impl Env {
     Ok(Object::from_raw(self.0, result))
   }
 
-  /// Run [Task](./trait.Task.html) in libuv thread pool, return [AsyncWorkPromise](./struct.AsyncWorkPromise.html)
+  /// Run [Task](./trait.Task.html) in the libuv thread pool.
+  ///
+  /// [`AsyncWorkPromise::promise_object`](crate::AsyncWorkPromise::promise_object)
+  /// returns [`PromiseRaw`](crate::bindgen_prelude::PromiseRaw). It does not
+  /// return `JsObject` (compat-mode only) or
+  /// [`Object`](crate::bindgen_prelude::Object).
+  ///
+  /// Prefer returning [`AsyncTask`](crate::bindgen_prelude::AsyncTask) from a
+  /// `#[napi]` function when you only need the Promise in ArkTS.
+  ///
+  /// ```
+  /// use napi_ohos::bindgen_prelude::*;
+  ///
+  /// struct ComputeFib {
+  ///   n: u32,
+  /// }
+  ///
+  /// impl Task for ComputeFib {
+  ///   type Output = u32;
+  ///   type JsValue = u32;
+  ///
+  ///   fn compute(&mut self) -> Result<Self::Output> {
+  ///     Ok(self.n)
+  ///   }
+  ///
+  ///   fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+  ///     Ok(output)
+  ///   }
+  /// }
+  ///
+  /// #[napi]
+  /// pub fn fib<'env>(env: &'env Env, init: u32) -> Result<PromiseRaw<'env, u32>> {
+  ///   Ok(env.spawn(ComputeFib { n: init })?.promise_object())
+  /// }
+  /// ```
   pub fn spawn<'env, T: 'env + ScopedTask<'env>>(
     &self,
     task: T,

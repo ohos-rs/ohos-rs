@@ -56,6 +56,12 @@ impl<T> UnwindSafe for AsyncWorkPromise<T> {}
 impl<T> std::panic::RefUnwindSafe for AsyncWorkPromise<T> {}
 
 impl<T> AsyncWorkPromise<T> {
+  /// The JS `Promise` created for this async work.
+  ///
+  /// This is a [`PromiseRaw`], not `JsObject` and not
+  /// [`Object`](crate::bindgen_prelude::Object). Return it from a `#[napi]`
+  /// function, or use [`AsyncTask`](crate::bindgen_prelude::AsyncTask) instead
+  /// of calling [`Env::spawn`](crate::Env::spawn) yourself.
   pub fn promise_object<'env>(&self) -> PromiseRaw<'env, T> {
     PromiseRaw::new(self.env, self.raw_promise)
   }

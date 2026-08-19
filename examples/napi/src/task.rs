@@ -2,6 +2,48 @@ use std::{sync::mpsc, thread::sleep};
 
 use napi_ohos::{bindgen_prelude::*, ScopedTask};
 
+fn fibonacci_native(n: u32) -> u32 {
+  match n {
+    1 | 2 => 1,
+    _ => fibonacci_native(n - 1) + fibonacci_native(n - 2),
+  }
+}
+
+pub struct ComputeFib {
+  n: u32,
+}
+
+impl ComputeFib {
+  pub fn new(n: u32) -> Self {
+    Self { n }
+  }
+}
+
+impl Task for ComputeFib {
+  type Output = u32;
+  type JsValue = u32;
+
+  fn compute(&mut self) -> Result<Self::Output> {
+    Ok(fibonacci_native(self.n))
+  }
+
+  fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+    Ok(output)
+  }
+}
+
+/// Preferred bindgen pattern used by the Task docs: return `AsyncTask<T>`.
+#[napi]
+pub fn compute_fib(init: u32) -> AsyncTask<ComputeFib> {
+  AsyncTask::new(ComputeFib::new(init))
+}
+
+/// `Env::spawn` + `promise_object()` yields `PromiseRaw`, not `JsObject` / `Object`.
+#[napi]
+pub fn spawn_compute_fib<'env>(env: &'env Env, init: u32) -> Result<PromiseRaw<'env, u32>> {
+  Ok(env.spawn(ComputeFib::new(init))?.promise_object())
+}
+
 pub struct SimpleTask {
   receiver: mpsc::Receiver<i32>,
 }

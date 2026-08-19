@@ -3,6 +3,49 @@ use crate::{
   Env, Error, Result,
 };
 
+/// Background work executed on the libuv thread pool.
+///
+/// Implement [`compute`](Task::compute) for the off-thread work and
+/// [`resolve`](Task::resolve) to convert the result on the JS thread.
+///
+/// The usual bindgen pattern is to return [`AsyncTask`](crate::bindgen_prelude::AsyncTask),
+/// which becomes a `Promise` in ArkTS. `JsObject` is not part of
+/// `bindgen_prelude`; if you call [`Env::spawn`](crate::Env::spawn) yourself,
+/// [`AsyncWorkPromise::promise_object`](crate::AsyncWorkPromise::promise_object)
+/// returns [`PromiseRaw`](crate::bindgen_prelude::PromiseRaw), not
+/// [`Object`](crate::bindgen_prelude::Object).
+///
+/// ```
+/// use napi_ohos::bindgen_prelude::*;
+///
+/// struct ComputeFib {
+///   n: u32,
+/// }
+///
+/// impl ComputeFib {
+///   pub fn new(n: u32) -> Self {
+///     Self { n }
+///   }
+/// }
+///
+/// impl Task for ComputeFib {
+///   type Output = u32;
+///   type JsValue = u32;
+///
+///   fn compute(&mut self) -> Result<Self::Output> {
+///     Ok(self.n)
+///   }
+///
+///   fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+///     Ok(output)
+///   }
+/// }
+///
+/// #[napi]
+/// pub fn fib(init: u32) -> AsyncTask<ComputeFib> {
+///   AsyncTask::new(ComputeFib::new(init))
+/// }
+/// ```
 pub trait Task: Send + Sized {
   type Output: Send + Sized + 'static;
   type JsValue: ToNapiValue + TypeName;

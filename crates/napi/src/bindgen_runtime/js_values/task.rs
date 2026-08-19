@@ -14,6 +14,37 @@ use crate::{
 
 use super::Object;
 
+/// Bindgen wrapper that runs a [`Task`](crate::Task) / [`ScopedTask`](crate::ScopedTask)
+/// on the libuv thread pool and resolves a JS `Promise`.
+///
+/// Returning `AsyncTask<T>` from a `#[napi]` function is the current way to
+/// expose this work. `Env::spawn(task)?.promise_object()` is also valid, but
+/// that method returns [`PromiseRaw`](crate::bindgen_prelude::PromiseRaw), not
+/// `JsObject` or [`Object`].
+///
+/// ```
+/// use napi_ohos::bindgen_prelude::*;
+///
+/// struct DelaySum(u32, u32);
+///
+/// impl Task for DelaySum {
+///   type Output = u32;
+///   type JsValue = u32;
+///
+///   fn compute(&mut self) -> Result<Self::Output> {
+///     Ok(self.0 + self.1)
+///   }
+///
+///   fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+///     Ok(output)
+///   }
+/// }
+///
+/// #[napi]
+/// pub fn without_abort_controller(a: u32, b: u32) -> AsyncTask<DelaySum> {
+///   AsyncTask::new(DelaySum(a, b))
+/// }
+/// ```
 pub struct AsyncTask<T: for<'task> ScopedTask<'task>> {
   inner: T,
   abort_signal: Option<AbortSignal>,

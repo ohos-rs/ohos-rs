@@ -1,13 +1,18 @@
-use std::ffi::CString;
-
-use crate::Result;
+use std::ffi::{CString, NulError};
 
 /// Same signature as [`super::ark::ArkRuntime::load_with_info`].
 ///
 /// Extracted so `path` and `module_info` can be independent `AsRef<str>`
-/// types (`&str` vs `String`) and so host tests can exercise that without
-/// an Ark runtime or Harmony device.
-pub(crate) fn load_with_info<P, I>(path: P, module_info: I) -> Result<(CString, CString)>
+/// types (`&str` vs `String`) and so host rustc tests can exercise that
+/// without linking N-API or using a Harmony device.
+///
+/// Host check (no device / no libace):
+/// `rustc --test crates/napi/src/ohos/load_with_info.rs && ./load_with_info`
+#[cfg_attr(
+  not(any(target_env = "ohos", feature = "arkvm-test")),
+  allow(dead_code)
+)]
+pub(crate) fn load_with_info<P, I>(path: P, module_info: I) -> Result<(CString, CString), NulError>
 where
   P: AsRef<str>,
   I: AsRef<str>,

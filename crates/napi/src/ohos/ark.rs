@@ -88,16 +88,19 @@ impl ArkRuntime {
   /// #[napi]
   /// pub fn run_ble() -> Result<JsNumber> {
   ///   let runtime = ArkRuntime::new()?;
-  ///   let module = runtime.load_with_info("entry/src/main/ets/Test", "com.example.application/entry")?;
+  ///   let module = runtime.load_with_info("entry/src/main/ets/Test", format!("{}/{}", bundle, entry))?;
   ///
   ///   let access: Module = module.get("access")?;
   ///   let ret = access.call_without_args("getState")?;
   ///   ret.coerce_to_number()
   /// }
   /// ```
-  pub fn load_with_info<T: AsRef<str>>(&self, path: T, module_info: T) -> Result<Module> {
-    let c_path = CString::new(path.as_ref())?;
-    let c_info = CString::new(module_info.as_ref())?;
+  pub fn load_with_info<P, I>(&self, path: P, module_info: I) -> Result<Module>
+  where
+    P: AsRef<str>,
+    I: AsRef<str>,
+  {
+    let (c_path, c_info) = super::load_with_info::load_with_info(path, module_info)?;
     let mut module = ptr::null_mut();
     check_pending_exception!(self.env.0, unsafe {
       napi_sys_ohos::napi_load_module_with_info(

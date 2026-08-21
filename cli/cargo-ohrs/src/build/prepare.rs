@@ -3,7 +3,7 @@ use crate::create_dist_dir;
 use anyhow::Error;
 use cargo_metadata::{MetadataCommand, Package};
 use sha2::{Digest, Sha256};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use std::{env, fs};
 use version_compare::compare_to;
@@ -50,6 +50,24 @@ fn normalize_soname(soname: &str) -> anyhow::Result<String> {
   Ok(format!("lib{}.so", soname))
 }
 
+fn rust_project_missing(cargo_file: &Path) -> bool {
+  matches!(cargo_file.try_exists(), Ok(false) | Err(_))
+}
+
+fn ensure_rust_project(cargo_file: &Path) -> anyhow::Result<()> {
+  if rust_project_missing(cargo_file) {
+    return Err(Error::msg(format!(
+      "No Rust project found in path: {}.",
+      cargo_file.to_str().unwrap_or_default()
+    )));
+  }
+  Ok(())
+}
+
+fn should_force_napi_build(tmp_full_path: &Path) -> bool {
+  !fs::exists(tmp_full_path).unwrap_or(false)
+}
+
 fn resolve_build_target_name(pkg: &Package) -> String {
   pkg
     .targets
@@ -86,12 +104,7 @@ pub fn prepare(args: &mut crate::BuildArgs, ctx: &mut Context) -> anyhow::Result
 
   let cargo_file = ctx.pwd.join("./Cargo.toml");
   let cargo_file_str = cargo_file.to_str().unwrap_or_default();
-  if cargo_file.try_exists().is_err() {
-    return Err(Error::msg(format!(
-      "No Rust project found in path: {}.",
-      cargo_file_str
-    )));
-  }
+  ensure_rust_project(&cargo_file)?;
 
   let metadata = MetadataCommand::new()
     .no_deps()
@@ -328,7 +341,7 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
       .iter()
       .find(|name| name.name == "napi-derive-ohos")
       .is_some()
-      && !fs::exists(&tmp_full_path).is_ok()
+      && should_force_napi_build(&tmp_full_path)
     {
       env::set_var(
         format!(
@@ -354,4 +367,75 @@ If you want to skip the check, you can set the skip_check to true: ohrs build --
   ctx.ndk = ohos_ndk;
 
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::sync::atomic::{AtomicU64, Ordering};
+
+  static NEXT_TEST_DIR: AtomicU64 = AtomicU64::new(1);
+
+  struct TestDir(PathBuf);
+
+  impl TestDir {
+    fn new() -> Self {
+      let id = NEXT_TEST_DIR.fetch_add(1, Ordering::Relaxed);
+      let path = std::env::temp_dir().join(format!("ohrs-prepare-{}-{id}", std::process::id()));
+      fs::create_dir_all(&path).unwrap();
+      Self(path)
+    }
+  }
+
+  impl Drop for TestDir {
+    fn drop(&mut self) {
+      let _ = fs::remove_dir_all(&self.0);
+    }
+  }
+
+  #[test]
+  fn missing_cargo_toml_returns_custom_error() {
+    let temp = TestDir::new();
+    let cargo_file = temp.0.join("Cargo.toml");
+
+    let error = ensure_rust_project(&cargo_file).unwrap_err();
+    let message = error.to_string();
+
+    assert!(
+      message.contains("No Rust project found"),
+      "expected custom missing-project error, got: {message}"
+    );
+    assert!(
+      message.contains(cargo_file.to_str().unwrap_or_default()),
+      "expected path in error, got: {message}"
+    );
+    assert!(rust_project_missing(&cargo_file));
+  }
+
+  #[test]
+  fn existing_cargo_toml_is_accepted() {
+    let temp = TestDir::new();
+    let cargo_file = temp.0.join("Cargo.toml");
+    fs::write(
+      &cargo_file,
+      "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+    )
+    .unwrap();
+
+    assert!(ensure_rust_project(&cargo_file).is_ok());
+    assert!(!rust_project_missing(&cargo_file));
+  }
+
+  #[test]
+  fn force_build_is_true_only_when_tmp_path_is_absent() {
+    let temp = TestDir::new();
+    let missing = temp.0.join("absent");
+    let present = temp.0.join("present");
+    fs::create_dir_all(&present).unwrap();
+
+    assert_eq!(fs::exists(&missing).unwrap(), false);
+    assert_eq!(fs::exists(&present).unwrap(), true);
+    assert!(should_force_napi_build(&missing));
+    assert!(!should_force_napi_build(&present));
+  }
 }
